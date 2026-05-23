@@ -431,8 +431,11 @@ Recent advancements in `v7` include:
 - **Final Synthesis (Island Crossover):** Cross-pollinating mathematical winners from individual CPU threads to synthesize complex, structurally sound ultimate hybrids.
 - **Fundamental Universal Domains Expansion:** The engine now enforces physical and logical invariants across 8 domains, including Special Relativity (Lorentz constraints), Thermodynamics (Carnot/Entropy constraints), Holographic Theory (Bekenstein bound/AdS-CFT), and Strict Boolean Logic.
 - **Arity-Aware Tree Growth:** Added a 15% probability mutation parameter enabling Lisp S-expression growth.
+- **Dynamic N-Qubit Quantum Simulator:** Scaled the quantum censor to dynamically auto-detect and simulate $N$-qubits using list S-expressions with algebraic amplitude rational representation ($N/\sqrt{2}^R$) and constructive/destructive interference.
+- **Lisp-Side Timeout and Daemon Recoverer:** Wrapped pipe I/O in an `sb-ext:with-timeout` 1.0s sandbox, forcefully killing and auto-restarting hung Prolog daemons on-the-fly without thread blockage.
 
 For deep technical details, verification benchmarks, and how to run, refer to:
 * **[v7 Engine Documentation (v7/README.md)](file:///f:/%D0%9A%D0%B5%D0%B9%D1%81/AGI-lite/v7/README.md)** — Core architectures, setup guides, and comprehensive descriptions of all 8 scientific domains.
 * **[Bell State Quantum Entanglement Experiment (v7/docs/BELL_STATE_EXPERIMENT.md)](file:///f:/%D0%9A%D0%B5%D0%B9%D1%81/AGI-lite/v7/docs/BELL_STATE_EXPERIMENT.md)** — A detailed, arXiv-style preprint documenting the formal discovery of quantum entangling topologies with a 12-thread CPU performance analysis.
+
 

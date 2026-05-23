@@ -98,16 +98,35 @@
                           (t (string-downcase (symbol-name op))))))
          (format nil "~A(~{~A~^, ~})" prolog-op (mapcar #'lisp-to-prolog args)))))))
 
-(defun check-with-prolog (ast domain proc)
-  "Sends the AST to the running SWI-Prolog daemon.
-   Returns T if Prolog accepts it (Censor approves), NIL otherwise."
-  (let* ((prolog-term (lisp-to-prolog ast))
+(defun check-with-prolog (ast domain proc-cell)
+  "Sends the AST to the running SWI-Prolog daemon with a 1.0s timeout.
+   If a timeout or error occurs, forcefully restarts the daemon and rejects the candidate."
+  (let* ((proc (car proc-cell))
+         (prolog-term (lisp-to-prolog ast))
          (query (format nil "censor(~A, ~A)." (string-downcase (symbol-name domain)) prolog-term)))
-    (format (uiop:process-info-input proc) "~A~%" query)
-    (force-output (uiop:process-info-input proc))
-    (let ((response (read-line (uiop:process-info-output proc) nil :eof)))
-      (and (stringp response)
-           (string= (string-trim '(#\Space #\Tab #\Return #\Newline) response) "true")))))
+    (handler-case
+        (sb-ext:with-timeout 1.0 ; 1.0 second (1000 milliseconds)
+          (format (uiop:process-info-input proc) "~A~%" query)
+          (force-output (uiop:process-info-input proc))
+          (let ((response (read-line (uiop:process-info-output proc) nil :eof)))
+            (and (stringp response)
+                 (string= (string-trim '(#\Space #\Tab #\Return #\Newline #\") response) "true"))))
+      (sb-ext:timeout ()
+        (format t "[TIMEOUT] Prolog daemon hung on query: ~A. Forcefully restarting...~%" query)
+        (ignore-errors (uiop:terminate-process proc :urgent t))
+        (let ((new-proc (uiop:launch-program (list "swipl" "-q" "-s" "v7/engine/daemon.pl")
+                                             :input :stream
+                                             :output :stream)))
+          (setf (car proc-cell) new-proc))
+        nil)
+      (error (e)
+        (format t "[ERROR] Prolog daemon pipe error: ~A. Restarting daemon...~%" e)
+        (ignore-errors (uiop:terminate-process proc :urgent t))
+        (let ((new-proc (uiop:launch-program (list "swipl" "-q" "-s" "v7/engine/daemon.pl")
+                                             :input :stream
+                                             :output :stream)))
+          (setf (car proc-cell) new-proc))
+        nil))))
 
 ;; =======================================================================
 ;; 4. Main Universal Cognitive Engine Loop (Multi-Threaded)
@@ -136,20 +155,21 @@
 (defun worker-loop (base-ast domain iterations thread-id)
   (multiple-value-bind (ops vars consts) (get-domain-config domain)
     ;; Dynamic bindings of special variables are thread-local in SBCL
-    (let ((*current-operators* ops)
-          (*current-variables* vars)
-          (*current-constants* consts)
-          (proc (uiop:launch-program (list "swipl" "-q" "-s" "v7/engine/daemon.pl")
-                                     :input :stream
-                                     :output :stream))
-          (result nil)
-          (actual-iters 0))
+    (let* ((*current-operators* ops)
+           (*current-variables* vars)
+           (*current-constants* consts)
+           (proc (uiop:launch-program (list "swipl" "-q" "-s" "v7/engine/daemon.pl")
+                                      :input :stream
+                                      :output :stream))
+           (proc-cell (list proc))
+           (result nil)
+           (actual-iters 0))
       ;; Use a local hypothesis that evolves over time rather than always mutating base-ast
       (let ((current-ast base-ast))
         (loop for i from 1 to iterations
               do (incf actual-iters)
                  (let ((hypothesis (mutate current-ast)))
-                   (if (check-with-prolog hypothesis domain proc)
+                   (if (check-with-prolog hypothesis domain proc-cell)
                        (progn
                          (format t "[Thread ~D] [ACCEPT] Iteration ~D: ~A~%" thread-id i hypothesis)
                          (setf result hypothesis)
@@ -158,9 +178,10 @@
                        (when (< (random 100) 20)
                          (setf current-ast hypothesis))))))
       ;; Clean up the Prolog daemon
-      (format (uiop:process-info-input proc) "quit~%")
-      (ignore-errors (force-output (uiop:process-info-input proc)))
-      (uiop:wait-process proc)
+      (let ((active-proc (car proc-cell)))
+        (format (uiop:process-info-input active-proc) "quit~%")
+        (ignore-errors (force-output (uiop:process-info-input active-proc)))
+        (uiop:wait-process active-proc))
       (cons result actual-iters))))
 
 (defun synthesize-hybrids (winners domain desired-hybrids max-iterations)
@@ -168,13 +189,14 @@
     (return-from synthesize-hybrids winners))
   (format t "~%--- Final Synthesis Phase (Island Crossover) ---~%")
   (multiple-value-bind (ops vars consts) (get-domain-config domain)
-    (let ((*current-operators* ops)
-          (*current-variables* vars)
-          (*current-constants* consts)
-          (proc (uiop:launch-program (list "swipl" "-q" "-s" "v7/engine/daemon.pl")
-                                     :input :stream
-                                     :output :stream))
-          (hybrids nil))
+    (let* ((*current-operators* ops)
+           (*current-variables* vars)
+           (*current-constants* consts)
+           (proc (uiop:launch-program (list "swipl" "-q" "-s" "v7/engine/daemon.pl")
+                                      :input :stream
+                                      :output :stream))
+           (proc-cell (list proc))
+           (hybrids nil))
       (loop for i from 1 to max-iterations
             while (< (length hybrids) desired-hybrids)
             do (let* ((parent1 (random-element winners))
@@ -183,12 +205,13 @@
                  ;; Only accept the child if it's actually different from parents
                  (when (and (not (equal child parent1))
                             (not (equal child parent2))
-                            (check-with-prolog child domain proc))
+                            (check-with-prolog child domain proc-cell))
                    (format t "[SYNTHESIS] Found valid hybrid at iteration ~D: ~A~%" i child)
                    (push child hybrids))))
-      (format (uiop:process-info-input proc) "quit~%")
-      (ignore-errors (force-output (uiop:process-info-input proc)))
-      (uiop:wait-process proc)
+      (let ((active-proc (car proc-cell)))
+        (format (uiop:process-info-input active-proc) "quit~%")
+        (ignore-errors (force-output (uiop:process-info-input active-proc)))
+        (uiop:wait-process active-proc))
       hybrids)))
 
 (defun run-engine-parallel (base-ast domain iterations num-threads)
