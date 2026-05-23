@@ -43,9 +43,9 @@
           (random-element *current-variables*))
       (let ((op (car ast))
             (args (cdr ast)))
-        (if (< (random 10) 3) ; 30% chance to mutate the operator
-            ;; If mutating operator, keep same arity by choosing ops based on domain if possible,
-            ;; but for simplicity we just mutate it randomly and let Prolog reject bad arity.
+        ;; If the operator is unknown or doesn't match arity constraints later,
+        ;; Lisp will just mutate it.
+        (if (< (random 10) 4) ; 40% chance to mutate the operator
             (cons (random-element *current-operators*) args)
             ;; Otherwise, mutate a random child node
             (let ((mutated-args (copy-list args))
@@ -106,6 +106,8 @@
      (values '(+ - * / deriv int sin cos) '(x t) '(0 1 -1)))
     (:quantum
      (values '(tensor seq h x_gate y_gate z_gate cnot) '(q1 q2 q3) '(1 0)))
+    (:multidim
+     (values '(add sub dot cross scale norm) '(v2_a v2_b v3_a v3_b v4_a s1 s2) '(0 1)))
     (t (error "Unknown domain"))))
 
 (defun worker-loop (base-ast domain iterations thread-id)
@@ -118,13 +120,18 @@
                                      :input :stream
                                      :output :stream))
           (result nil))
-      (loop for i from 1 to iterations
-            do (let ((hypothesis (mutate base-ast)))
-                 (if (check-with-prolog hypothesis domain proc)
-                     (progn
-                       (format t "[Thread ~D] [ACCEPT] Iteration ~D: ~A~%" thread-id i hypothesis)
-                       (setf result hypothesis)
-                       (return)))))
+      ;; Use a local hypothesis that evolves over time rather than always mutating base-ast
+      (let ((current-ast base-ast))
+        (loop for i from 1 to iterations
+              do (let ((hypothesis (mutate current-ast)))
+                   (if (check-with-prolog hypothesis domain proc)
+                       (progn
+                         (format t "[Thread ~D] [ACCEPT] Iteration ~D: ~A~%" thread-id i hypothesis)
+                         (setf result hypothesis)
+                         (return))
+                       ;; If rejected, occasionally keep the mutation anyway to escape local minima
+                       (when (< (random 100) 5)
+                         (setf current-ast hypothesis))))))
       ;; Clean up the Prolog daemon
       (format (uiop:process-info-input proc) "quit~%")
       (ignore-errors (force-output (uiop:process-info-input proc)))
@@ -169,6 +176,13 @@
     ;; Provide a better base string for quantum that mutating once or twice fixes it easily.
     ;; cnot takes 2 arguments, control and target. seq takes 2 arguments.
     ;; let's use a base that just needs a small mutation
-    (run-engine-parallel '(seq q1 q1) :quantum 500 num-threads)))
+    (run-engine-parallel '(seq q1 q1) :quantum 500 num-threads)
+
+    (format t "~%--- Running Multi-Dimensional Tensor Domain ---~%")
+    ;; Complex mathematically invalid AST:
+    ;; 1. cross product is only for 3D, here we give v2_a and v4_a.
+    ;; 2. adding a scalar (s1) to the result of a cross product (which should be a vector).
+    ;; The Lisp mutator must find a structurally coherent tensor equation.
+    (run-engine-parallel '(add (cross v2_a v4_a) s1) :multidim 50000 num-threads)))
 
 (main)

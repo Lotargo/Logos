@@ -4,6 +4,7 @@
 :- consult('arithmetic.pl').
 :- consult('calculus.pl').
 :- consult('quantum.pl').
+:- consult('multidim.pl').
 
 % Dispatcher based on Domain
 censor(arithmetic, AST) :-
@@ -14,3 +15,6 @@ censor(calculus, AST) :-
 
 censor(quantum, AST) :-
     quantum_censor(AST).
+
+censor(multidim, AST) :-
+    multidim:multidim_censor(AST).
