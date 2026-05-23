@@ -1,5 +1,5 @@
 % logic.pl - Constraints for Boolean Logic
-:- module(logic, [logic_censor/1]).
+:- module(logic, [logic_censor/1, eval_bool/4]).
 
 is_bool(true).
 is_bool(false).
