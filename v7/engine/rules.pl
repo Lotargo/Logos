@@ -5,6 +5,10 @@
 :- consult('calculus.pl').
 :- consult('quantum.pl').
 :- consult('multidim.pl').
+:- consult('relativity.pl').
+:- consult('thermo.pl').
+:- consult('holography.pl').
+:- consult('logic.pl').
 
 % Dispatcher based on Domain
 censor(arithmetic, AST) :-
@@ -18,3 +22,15 @@ censor(quantum, AST) :-
 
 censor(multidim, AST) :-
     multidim:multidim_censor(AST).
+
+censor(relativity, AST) :-
+    relativity:relativity_censor(AST).
+
+censor(thermo, AST) :-
+    thermo:thermo_censor(AST).
+
+censor(holography, AST) :-
+    holography:holography_censor(AST).
+
+censor(logic, AST) :-
+    logic:logic_censor(AST).

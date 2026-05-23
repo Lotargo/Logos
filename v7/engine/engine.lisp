@@ -39,19 +39,25 @@
   "Mutates the AST by randomly changing operators, variables, or numbers."
   (if (atom ast)
       (if (numberp ast)
-          (random-element *current-constants*)
-          (random-element *current-variables*))
+          (if *current-constants* (random-element *current-constants*) ast)
+          (if *current-variables* (random-element *current-variables*) ast))
       (let ((op (car ast))
             (args (cdr ast)))
-        ;; If the operator is unknown or doesn't match arity constraints later,
-        ;; Lisp will just mutate it.
         (if (< (random 10) 4) ; 40% chance to mutate the operator
-            (cons (random-element *current-operators*) args)
+            (if *current-operators*
+                (cons (random-element *current-operators*) args)
+                ast)
             ;; Otherwise, mutate a random child node
-            (let ((mutated-args (copy-list args))
-                  (idx (random (length args))))
-              (setf (nth idx mutated-args) (mutate (nth idx mutated-args)))
-              (cons op mutated-args))))))
+            (if args
+                (let ((mutated-args (copy-list args))
+                      (idx (random (length args))))
+                  ;; For thermodynamics `0` is technically a number, so make sure
+                  ;; random mutations don't get stuck if we just randomly pick a leaf
+                  (if (and (atom (nth idx mutated-args)) (< (random 10) 5))
+                      (setf (nth idx mutated-args) (if *current-variables* (random-element *current-variables*) (nth idx mutated-args)))
+                      (setf (nth idx mutated-args) (mutate (nth idx mutated-args))))
+                  (cons op mutated-args))
+                ast)))))
 
 (defun crossover (ast1 ast2)
   "Simple crossover: replace a random subtree in ast1 with ast2."
@@ -108,6 +114,14 @@
      (values '(tensor seq h x_gate y_gate z_gate cnot) '(q1 q2 q3) '(1 0)))
     (:multidim
      (values '(add sub dot cross scale norm) '(v2_a v2_b v3_a v3_b v4_a s1 s2) '(0 1)))
+    (:relativity
+     (values '(gamma add_vel) '(v1 v2 c) '(0)))
+    (:thermo
+     (values '(carnot delta_s) '(t_hot t_cold) '(0)))
+    (:holography
+     (values '(entropy info_bound) '(area volume) '(0)))
+    (:logic
+     (values '(and or implies not) '(p q) '(true false)))
     (t (error "Unknown domain"))))
 
 (defun worker-loop (base-ast domain iterations thread-id)
@@ -130,13 +144,42 @@
                          (setf result hypothesis)
                          (return))
                        ;; If rejected, occasionally keep the mutation anyway to escape local minima
-                       (when (< (random 100) 5)
+                       ;; Increase probability of keeping to 20% to better traverse deep AST valleys
+                       (when (< (random 100) 20)
                          (setf current-ast hypothesis))))))
       ;; Clean up the Prolog daemon
       (format (uiop:process-info-input proc) "quit~%")
       (ignore-errors (force-output (uiop:process-info-input proc)))
       (uiop:wait-process proc)
       result)))
+
+(defun synthesize-hybrids (winners domain desired-hybrids max-iterations)
+  (when (< (length winners) 2)
+    (return-from synthesize-hybrids winners))
+  (format t "~%--- Final Synthesis Phase (Island Crossover) ---~%")
+  (multiple-value-bind (ops vars consts) (get-domain-config domain)
+    (let ((*current-operators* ops)
+          (*current-variables* vars)
+          (*current-constants* consts)
+          (proc (uiop:launch-program (list "swipl" "-q" "-s" "v7/engine/daemon.pl")
+                                     :input :stream
+                                     :output :stream))
+          (hybrids nil))
+      (loop for i from 1 to max-iterations
+            while (< (length hybrids) desired-hybrids)
+            do (let* ((parent1 (random-element winners))
+                      (parent2 (random-element winners))
+                      (child (crossover parent1 parent2)))
+                 ;; Only accept the child if it's actually different from parents
+                 (when (and (not (equal child parent1))
+                            (not (equal child parent2))
+                            (check-with-prolog child domain proc))
+                   (format t "[SYNTHESIS] Found valid hybrid at iteration ~D: ~A~%" i child)
+                   (push child hybrids))))
+      (format (uiop:process-info-input proc) "quit~%")
+      (ignore-errors (force-output (uiop:process-info-input proc)))
+      (uiop:wait-process proc)
+      hybrids)))
 
 (defun run-engine-parallel (base-ast domain iterations num-threads)
   (format t "=== Starting Parallel Cognitive Engine v7 ===~%")
@@ -152,8 +195,12 @@
     (let ((results (remove nil (mapcar #'sb-thread:join-thread threads))))
       (if results
           (progn
-            (format t "Found valid hypotheses:~%")
-            (loop for res in results do (format t "  ~A~%" res)))
+            (format t "Found valid hypotheses from Islands:~%")
+            (loop for res in results do (format t "  ~A~%" res))
+            (let ((hybrids (synthesize-hybrids results domain 3 20000)))
+              (when hybrids
+                (format t "Ultimate Hybrids:~%")
+                (loop for h in hybrids do (format t "  ~A~%" h)))))
           (format t "No valid hypotheses found.~%")))))
 
 (defun main ()
@@ -183,6 +230,18 @@
     ;; 1. cross product is only for 3D, here we give v2_a and v4_a.
     ;; 2. adding a scalar (s1) to the result of a cross product (which should be a vector).
     ;; The Lisp mutator must find a structurally coherent tensor equation.
-    (run-engine-parallel '(add (cross v2_a v4_a) s1) :multidim 50000 num-threads)))
+    (run-engine-parallel '(add (cross v2_a v4_a) s1) :multidim 20000 num-threads)
+
+    (format t "~%--- Running Relativity Domain ---~%")
+    (run-engine-parallel '(gamma (add_vel c c)) :relativity 20000 num-threads)
+
+    (format t "~%--- Running Thermodynamics Domain ---~%")
+    (run-engine-parallel '(carnot 0 t_hot) :thermo 50000 num-threads)
+
+    (format t "~%--- Running Holography Domain ---~%")
+    (run-engine-parallel '(entropy volume) :holography 20 num-threads)
+
+    (format t "~%--- Running Logic Domain ---~%")
+    (run-engine-parallel '(and true 5) :logic 20 num-threads)))
 
 (main)
