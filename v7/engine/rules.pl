@@ -11,57 +11,128 @@
 :- consult('logic.pl').
 
 % Dispatcher based on Domain returning float Penalty (0.0 is perfect, 1000.0 is worst)
-censor(arithmetic, AST, Penalty) :-
+
+:- dynamic novelty_archive/2.
+
+% Master dispatcher entry point from daemon
+censor(Mode, Domain, AST, Penalty) :-
+    (   Mode == target
+    ->  target_censor(Domain, AST, Penalty)
+    ;   novelty_censor(Domain, AST, Penalty)
+    ).
+
+% Open-Ended Evolution / Novelty Search Censor
+novelty_censor(Domain, AST, Penalty) :-
+    % First, verify it's a valid structure using the target_censor (expecting a valid penalty < 1000)
+    target_censor(Domain, AST, BasePenalty),
+    (   BasePenalty >= 1000.0
+    ->  Penalty = 1000.0 % Invalid physics/math gets rejected
+    ;   % Valid! Now check if we discovered a novel state (phenotype)
+        (   get_state(Domain, AST, State)
+        ->  (   novelty_archive(Domain, State)
+            ->  % Already discovered. Still valid, but not novel.
+                % Calculate AST size to give a slight gradient for golfing known states
+                ast_size(AST, Size),
+                Penalty is 500.0 + (Size * 2.0)
+            ;   % NEW DISCOVERY!
+                assertz(novelty_archive(Domain, State)),
+                ast_size(AST, Size),
+                % Small penalty for size to encourage elegant discoveries
+                Penalty is 0.0 + (Size * 0.1)
+            )
+        ;   % Could not extract a clear state, just use base penalty
+            Penalty = BasePenalty
+        )
+    ).
+
+% Phenotype extraction: Map ASTs to concrete math/physics states
+get_state(quantum, AST, State) :-
+    find_qubits(AST, RawQubits),
+    (   RawQubits = [] -> Qubits = [q1, q2] ; Qubits = RawQubits ),
+    sort_qubits(Qubits, SortedQs),
+    length(SortedQs, N),
+    create_ground_state(N, GroundVec),
+    GroundState = [amp(c(1, 0), GroundVec)],
+    eval_quantum(AST, SortedQs, GroundState, State).
+
+get_state(arithmetic, AST, State) :-
+    eval_term(AST, State).
+
+get_state(logic, AST, State) :-
+    % For logic, the state is its truth table (TT, TF, FT, FF)
+    logic:eval_bool(AST, true, true, S1),
+    logic:eval_bool(AST, true, false, S2),
+    logic:eval_bool(AST, false, true, S3),
+    logic:eval_bool(AST, false, false, S4),
+    State = truth_table(S1, S2, S3, S4).
+
+% Simple AST node counter
+ast_size(AST, Size) :-
+    (   atomic(AST)
+    ->  Size = 1
+    ;   compound(AST)
+    ->  AST =.. [_|Args],
+        map_ast_size(Args, ArgSizes),
+        sum_list(ArgSizes, Sum),
+        Size is Sum + 1
+    ).
+
+map_ast_size([], []).
+map_ast_size([H|T], [S|ST]) :-
+    ast_size(H, S),
+    map_ast_size(T, ST).
+
+target_censor(arithmetic, AST, Penalty) :-
     !,
     arithmetic_censor(AST, Penalty).
 
-censor(quantum, AST, Penalty) :-
+target_censor(quantum, AST, Penalty) :-
     !,
     quantum_censor(AST, Penalty).
 
-censor(calculus, AST, Penalty) :-
+target_censor(calculus, AST, Penalty) :-
     !,
     (   calculus_censor(AST)
     ->  Penalty = 0.0
     ;   Penalty = 1000.0
     ).
 
-censor(multidim, AST, Penalty) :-
+target_censor(multidim, AST, Penalty) :-
     !,
     (   multidim:multidim_censor(AST)
     ->  Penalty = 0.0
     ;   Penalty = 1000.0
     ).
 
-censor(relativity, AST, Penalty) :-
+target_censor(relativity, AST, Penalty) :-
     !,
     (   relativity:relativity_censor(AST)
     ->  Penalty = 0.0
     ;   Penalty = 1000.0
     ).
 
-censor(thermo, AST, Penalty) :-
+target_censor(thermo, AST, Penalty) :-
     !,
     (   thermo:thermo_censor(AST)
     ->  Penalty = 0.0
     ;   Penalty = 1000.0
     ).
 
-censor(holography, AST, Penalty) :-
+target_censor(holography, AST, Penalty) :-
     !,
     (   holography:holography_censor(AST)
     ->  Penalty = 0.0
     ;   Penalty = 1000.0
     ).
 
-censor(logic, AST, Penalty) :-
+target_censor(logic, AST, Penalty) :-
     !,
     (   logic:logic_censor(AST)
     ->  Penalty = 0.0
     ;   Penalty = 1000.0
     ).
 
-censor(unified, AST, Penalty) :-
+target_censor(unified, AST, Penalty) :-
     !,
     unified_censor(AST, Penalty).
 

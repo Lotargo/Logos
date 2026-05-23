@@ -83,6 +83,8 @@
 ;; =======================================================================
 
 (defvar *adf-library* nil)
+(defparameter *novelty-search-mode* :auto)
+
 
 (defun expand-adfs (ast)
   "Recursively expands any ADF symbols in the AST into their actual bodies."
@@ -116,12 +118,12 @@
                             (t (string-downcase (symbol-name op))))))
            (format nil "~A(~{~A~^, ~})" prolog-op (mapcar #'lisp-to-prolog args))))))))
 
-(defun check-with-prolog (ast domain proc-cell)
+(defun check-with-prolog (ast domain proc-cell &optional (mode :target))
   "Sends the AST to the running SWI-Prolog daemon with a 1.0s timeout.
    Returns the penalty score (a float between 0.0 and 1000.0) if successful, or 1000.0 if failed."
   (let* ((proc (car proc-cell))
          (prolog-term (lisp-to-prolog ast))
-         (query (format nil "censor(~A, ~A, Penalty)." (string-downcase (symbol-name domain)) prolog-term)))
+         (query (format nil "censor(~A, ~A, ~A, Penalty)." (string-downcase (symbol-name mode)) (string-downcase (symbol-name domain)) prolog-term)))
     (handler-case
         (sb-ext:with-timeout 1.0 ; 1.0 second (1000 milliseconds)
           (format (uiop:process-info-input proc) "~A~%" query)
@@ -187,22 +189,52 @@
                                       :output :stream))
            (proc-cell (list proc))
            (best-ast base-ast)
-           (best-penalty (check-with-prolog base-ast domain proc-cell))
-           (actual-iters 0))
+           (current-mode (if (eq *novelty-search-mode* t) :novelty :target))
+           (best-penalty (check-with-prolog base-ast domain proc-cell current-mode))
+           (actual-iters 0)
+           (stagnation-counter 0)
+           (novelty-discoveries 0))
       (let ((current-ast base-ast))
         (loop for i from 1 to iterations
-              while (> best-penalty 0.0)
+              while (or (> best-penalty 0.0) (eq current-mode :novelty))
               do (incf actual-iters)
+                 (incf stagnation-counter)
+
+                 ;; Auto Mode Switching Logic
+                 (when (eq *novelty-search-mode* :auto)
+                   (cond
+                     ((and (eq current-mode :target) (> stagnation-counter 100))
+                      (format t "[Thread ~D] Stagnation detected. Switching to EXPLORATION (Novelty) mode.~%" thread-id)
+                      (setf current-mode :novelty)
+                      (setf stagnation-counter 0)
+                      (setf novelty-discoveries 0)
+                      (setf best-penalty 1000.0)) ; Reset best penalty for novelty
+                     ((and (eq current-mode :novelty) (>= novelty-discoveries 5))
+                      (format t "[Thread ~D] Sufficient exploration done. Switching back to TARGET mode.~%" thread-id)
+                      (setf current-mode :target)
+                      (setf stagnation-counter 0)
+                      (setf best-penalty (check-with-prolog best-ast domain proc-cell :target)))))
+
                  (let* ((hypothesis (mutate current-ast))
-                        (penalty (check-with-prolog hypothesis domain proc-cell)))
+                        (penalty (check-with-prolog hypothesis domain proc-cell current-mode)))
+
+                   ;; Log Discoveries in Novelty Mode
+                   (when (and (eq current-mode :novelty) (< penalty 100.0) (< penalty best-penalty))
+                      (format t "[NOVELTY DISCOVERY] Thread ~D found novel state in ~A! AST: ~A (Penalty: ~,2F)~%" thread-id domain hypothesis penalty)
+                      (incf novelty-discoveries)
+                      (with-open-file (stream "discoveries.log" :direction :output :if-exists :append :if-does-not-exist :create)
+                        (format stream "[NOVELTY] Thread ~D | Domain: ~A | Penalty: ~,2F | AST: ~A~%" thread-id domain penalty hypothesis)))
+
                    (if (or (< penalty best-penalty)
                            (and (= penalty best-penalty) (< (length (format nil "~A" hypothesis)) (length (format nil "~A" best-ast))))
                            (< (random 100) 15))
                        (progn
+                         (when (< penalty best-penalty)
+                           (setf stagnation-counter 0))
                          (setf best-ast hypothesis)
                          (setf best-penalty penalty)
                          (setf current-ast hypothesis)
-                         (when (= best-penalty 0.0)
+                         (when (and (eq current-mode :target) (= best-penalty 0.0))
                            (format t "[Thread ~D] [CONVERGED] Iteration ~D: ~A (Penalty: 0.0)~%" thread-id i best-ast)
                            (return)))))
                  
@@ -225,7 +257,7 @@
                        (setf immigrants (aref migration-pools our-idx))
                        (setf (aref migration-pools our-idx) nil))
                      (dolist (immigrant immigrants)
-                       (let ((imm-penalty (check-with-prolog immigrant domain proc-cell)))
+                       (let ((imm-penalty (check-with-prolog immigrant domain proc-cell current-mode)))
                          (if (< imm-penalty best-penalty)
                              (progn
                                (setf best-ast immigrant)
@@ -234,7 +266,7 @@
                                (format t "[Thread ~D] Accepted immigrant! New best: ~A (Penalty: ~,2F)~%" thread-id best-ast best-penalty))
                              (when (< (random 100) 50)
                                (let* ((child (crossover current-ast immigrant))
-                                      (child-penalty (check-with-prolog child domain proc-cell)))
+                                      (child-penalty (check-with-prolog child domain proc-cell current-mode)))
                                  (when (< child-penalty best-penalty)
                                    (setf best-ast child)
                                    (setf best-penalty child-penalty)
