@@ -2,7 +2,7 @@
 
 (defun ensure-papers-directory-exists ()
   "Creates the v7/papers directory if it does not exist."
-  (uiop:run-program "mkdir -p v7/papers" :ignore-error-status t))
+  (ensure-directories-exist "v7/papers/"))
 
 (defun generate-latex-ontology (domain base-ast discovered-axioms best-hybrid iterations elapsed-time)
   "Generates a .tex whitepaper describing the evolutionary process and discovered meta-axioms."

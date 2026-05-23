@@ -277,6 +277,8 @@ is_thermo_expr(delta_s(_)).
 
 is_rel_expr(gamma(_)).
 is_rel_expr(add_vel(_, _)).
+is_rel_expr(warp_drive(_, _)).
+is_rel_expr(tachyon(_)).
 
 is_holo_expr(entropy(_)).
 is_holo_expr(info_bound(_)).

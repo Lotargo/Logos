@@ -1,3 +1,4 @@
+(defvar *current-operators* nil)
 (in-package :cognitive-engine)
 
 ;; Add wormhole operation to multidim
@@ -88,3 +89,39 @@
       0.0
       ;; Otherwise, heavily penalize
       1000.0))
+
+(defun get-random-axiom-structure-relativity ()
+  "Generates a random Prolog string for the relativity domain (Warp Drive/Tachyons)."
+  (let ((templates (list
+                    "valid_speed(warp_drive(A, B)) :- valid_speed(A), valid_speed(B)"
+                    "eval_vel(warp_drive(A, B), W) :- eval_vel(A, U), eval_vel(B, V), { W = U + V }" ; Simple additive velocity, breaking Lorentz
+                    "valid_rel(warp_drive(A, B)) :- eval_vel(A, U), eval_vel(B, V), { U + V > 1.0 }" ; Accepts if it breaks speed of light
+                    "valid_speed(tachyon(V)) :- number(V), { V > 1.0 }"
+                    "valid_rel(tachyon(V)) :- number(V), { V > 1.0 }")))
+    (random-element templates)))
+
+;; Update meta-mutate-axiom to handle relativity
+(defun meta-mutate-axiom-relativity (proc-cell domain current-ast best-penalty check-fn)
+  (if (and *meta-evolution-enabled* (eq domain :relativity))
+      (let ((new-axiom (get-random-axiom-structure-relativity)))
+        (inject-prolog-rule proc-cell (format nil "relativity:~A" new-axiom))
+        (let ((new-op (if (search "warp_drive" new-axiom) 'warp_drive
+                          (if (search "tachyon" new-axiom) 'tachyon nil))))
+          (if new-op
+              (progn
+                (pushnew new-op *current-operators*)
+                (let* ((mutated-ast (mutate current-ast))
+                       (new-penalty (funcall check-fn mutated-ast domain proc-cell :target)))
+                  (if (< new-penalty best-penalty)
+                      (progn
+                        (format t "[META-EVOLUTION] Discovered and validated new relativity axiom! ~A~%" new-axiom)
+                        (push new-axiom *discovered-axioms*)
+                        (values mutated-ast new-penalty new-axiom))
+                      (progn
+                        (retract-prolog-rule proc-cell (format nil "relativity:~A" new-axiom))
+                        (setf *current-operators* (remove new-op *current-operators*))
+                        (values nil nil nil)))))
+              (progn
+                (retract-prolog-rule proc-cell (format nil "relativity:~A" new-axiom))
+                (values nil nil nil)))))
+      (values nil nil nil)))
