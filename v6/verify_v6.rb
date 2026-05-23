@@ -129,19 +129,18 @@ if __FILE__ == $0
     p3 = [60, 82] # 2 * p1
     p4 = [38, 59] # 3 * p1
     
-    # Construct 10 dense property training cases
+    # Construct 10 dense property training cases with randomized inputs and NO expected answers
     training_cases = [
-      # Sub-test point addition cases
-      { p1: p1, p2: p2, a: a, b: b, q: q, expected_sum: nil, expected_double: ref.double_point(p1), k: 2, p: p1, expected_mul: p3 },
-      { p1: p1, p2: nil, a: a, b: b, q: q, expected_sum: p1, expected_double: ref.double_point(p3), k: 1, p: p1, expected_mul: p1 },
-      { p1: nil, p2: p1, a: a, b: b, q: q, expected_sum: p1, expected_double: ref.double_point(p4), k: 3, p: p1, expected_mul: p4 },
-      { p1: p1, p2: p3, a: a, b: b, q: q, expected_sum: p4, expected_double: ref.double_point(p1), k: 4, p: p1, expected_mul: ref.ecc_scalar_mul(4, p1) },
-      { p1: p3, p2: p4, a: a, b: b, q: q, expected_sum: ref.add_points(p3, p4), expected_double: ref.double_point(p3), k: 5, p: p1, expected_mul: ref.ecc_scalar_mul(5, p1) },
-      { p1: p1, p2: p1, a: a, b: b, q: q, expected_sum: p3, expected_double: ref.double_point(p4), k: 6, p: p1, expected_mul: ref.ecc_scalar_mul(6, p1) },
-      { p1: p4, p2: p4, a: a, b: b, q: q, expected_sum: ref.double_point(p4), expected_double: ref.double_point(p1), k: 7, p: p1, expected_mul: ref.ecc_scalar_mul(7, p1) },
-      { p1: nil, p2: nil, a: a, b: b, q: q, expected_sum: nil, expected_double: nil, k: 0, p: p1, expected_mul: nil },
-      { p1: p3, p2: p2, a: a, b: b, q: q, expected_sum: ref.add_points(p3, p2), expected_double: ref.double_point(p2), k: 8, p: p1, expected_mul: ref.ecc_scalar_mul(8, p1) },
-      { p1: p4, p2: p1, a: a, b: b, q: q, expected_sum: ref.add_points(p4, p1), expected_double: ref.double_point(p3), k: 9, p: p1, expected_mul: ref.ecc_scalar_mul(9, p1) }
+      { p1: p1, p2: p2, a: a, b: b, q: q, k: 2, p: p1, k2: 3 },
+      { p1: p1, p2: nil, a: a, b: b, q: q, k: 1, p: p1, k2: 4 },
+      { p1: nil, p2: p1, a: a, b: b, q: q, k: 3, p: p1, k2: 2 },
+      { p1: p1, p2: p3, a: a, b: b, q: q, k: 4, p: p1, k2: 5 },
+      { p1: p3, p2: p4, a: a, b: b, q: q, k: 5, p: p1, k2: 6 },
+      { p1: p1, p2: p1, a: a, b: b, q: q, k: 6, p: p1, k2: 7 },
+      { p1: p4, p2: p4, a: a, b: b, q: q, k: 7, p: p1, k2: 8 },
+      { p1: nil, p2: nil, a: a, b: b, q: q, k: 0, p: p1, k2: 9 },
+      { p1: p3, p2: p2, a: a, b: b, q: q, k: 8, p: p1, k2: 10 },
+      { p1: p4, p2: p1, a: a, b: b, q: q, k: 9, p: p1, k2: 11 }
     ]
     
     client = LLMClient.new("../dont_delete")

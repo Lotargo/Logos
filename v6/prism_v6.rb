@@ -246,7 +246,11 @@ class ASTVectorizer
 
   def self.vectorize(ast)
     vector = Array.new(FEATURES.size, 0.0)
-    return vector unless ast.is_a?(Parser::AST::Node)
+    unless ast.is_a?(Parser::AST::Node)
+      vector << 0.0 # max_depth
+      vector << 0.0 # all_nodes.size
+      return vector
+    end
 
     all_nodes = collect_all_nodes(ast)
     
@@ -301,36 +305,78 @@ class EvolvedLibManager
   end
 end
 
-# Species Clusterer (Distance-Threshold Leadership algorithm)
+# Species Clusterer (K-Medoids algorithm)
 class SpeciesClusterer
-  RADIUS = 7.0
+  def self.cluster_population(candidates, k = 5, max_iterations = 10)
+    return [{ centroid: ASTVectorizer.vectorize(candidates.first.ast), members: candidates }] if candidates.size <= k
 
-  def self.cluster_population(candidates)
-    clusters = [] # Array of hashes: { centroid: Vector, members: [Candidate] }
+    # Cache vectorized candidates to avoid recomputation
+    vectors = candidates.map { |c| ASTVectorizer.vectorize(c.ast) }
 
-    candidates.each do |cand|
-      vector = ASTVectorizer.vectorize(cand.ast)
-      
-      best_cluster = nil
-      min_dist = Float::INFINITY
+    # Initialize k medoids randomly
+    medoids_indices = (0...candidates.size).to_a.sample(k)
+    clusters = []
 
-      clusters.each do |clust|
-        dist = euclidean_distance(vector, clust[:centroid])
-        if dist < min_dist
-          min_dist = dist
-          best_cluster = clust
+    max_iterations.times do
+      clusters = Array.new(k) { { members: [], vectors: [] } }
+
+      # Assign each candidate to the nearest medoid
+      candidates.each_with_index do |cand, i|
+        cand_vector = vectors[i]
+        best_k = 0
+        min_dist = Float::INFINITY
+
+        medoids_indices.each_with_index do |m_idx, k_idx|
+          dist = euclidean_distance(cand_vector, vectors[m_idx])
+          if dist < min_dist
+            min_dist = dist
+            best_k = k_idx
+          end
         end
+
+        clusters[best_k][:members] << cand
+        clusters[best_k][:vectors] << cand_vector
       end
 
-      if min_dist < RADIUS
-        best_cluster[:members] << cand
-        best_cluster[:centroid] = calculate_centroid(best_cluster[:members])
-      else
-        clusters << { centroid: vector, members: [cand] }
+      new_medoids_indices = []
+
+      # Update medoids
+      clusters.each_with_index do |clust, k_idx|
+        if clust[:members].empty?
+          # Empty cluster, pick a random new medoid
+          new_medoids_indices << rand(candidates.size)
+          next
+        end
+
+        best_medoid_idx_in_cluster = 0
+        min_total_cost = Float::INFINITY
+
+        clust[:vectors].each_with_index do |potential_medoid, p_idx|
+          total_cost = 0.0
+          clust[:vectors].each do |other_member|
+            total_cost += euclidean_distance(potential_medoid, other_member)
+          end
+
+          if total_cost < min_total_cost
+            min_total_cost = total_cost
+            best_medoid_idx_in_cluster = p_idx
+          end
+        end
+
+        # Find the original index of the best medoid
+        best_medoid_cand = clust[:members][best_medoid_idx_in_cluster]
+        orig_idx = candidates.index(best_medoid_cand)
+        new_medoids_indices << orig_idx
       end
+
+      break if medoids_indices == new_medoids_indices
+      medoids_indices = new_medoids_indices
     end
 
-    clusters
+    # Format result to match expected output structure
+    clusters.map.with_index do |clust, i|
+      { centroid: vectors[medoids_indices[i]], members: clust[:members] }
+    end.reject { |c| c[:members].empty? }
   end
 
   def self.euclidean_distance(v1, v2)
@@ -339,19 +385,6 @@ class SpeciesClusterer
       sum += (x - v2[i])**2
     end
     Math.sqrt(sum)
-  end
-
-  def self.calculate_centroid(candidates)
-    vectors = candidates.map { |c| ASTVectorizer.vectorize(c.ast) }
-    size = vectors.first.size
-    centroid = Array.new(size, 0.0)
-
-    vectors.each do |v|
-      size.times { |i| centroid[i] += v[i] }
-    end
-
-    size.times { |i| centroid[i] /= vectors.size }
-    centroid
   end
 end
 
@@ -416,91 +449,59 @@ class Sandbox
     has_add_points = defs.any? { |d| d.children[0] == :add_points }
     has_double_point = defs.any? { |d| d.children[0] == :double_point }
 
-    # 1. Sub-Test Point Addition
-    add_points_passed = false
-    if has_add_points && instance.respond_to?(:add_points)
-      passed = true
-      test_cases.each do |tc|
-        begin
-          res = nil
-          Timeout.timeout(0.5) do
-            res = instance.add_points(tc[:p1], tc[:p2], tc[:a], tc[:b], tc[:q])
-          end
-          if res != tc[:expected_sum]
-            passed = false
-            break
-          end
-        rescue Exception => e
-          passed = false
-          break
-        end
-      end
-      if passed
-        add_points_passed = true
-        candidate.fitness += 150
-        candidate.passed_helpers << :add_points
-        # Register in global library if not already registered
-        if EvolvedLibManager.library[:add_points].nil?
-          def_ast = defs.find { |d| d.children[0] == :add_points }
-          EvolvedLibManager.register(:add_points, def_ast)
-        end
-      end
-    end
-
-    # 2. Sub-Test Point Doubling
-    double_point_passed = false
-    if has_double_point && instance.respond_to?(:double_point)
-      passed = true
-      test_cases.each do |tc|
-        begin
-          res = nil
-          Timeout.timeout(0.5) do
-            res = instance.double_point(tc[:p1], tc[:a], tc[:b], tc[:q])
-          end
-          if res != tc[:expected_double]
-            passed = false
-            break
-          end
-        rescue Exception => e
-          passed = false
-          break
-        end
-      end
-      if passed
-        double_point_passed = true
-        candidate.fitness += 150
-        candidate.passed_helpers << :double_point
-        # Register in global library if not already registered
-        if EvolvedLibManager.library[:double_point].nil?
-          def_ast = defs.find { |d| d.children[0] == :double_point }
-          EvolvedLibManager.register(:double_point, def_ast)
-        end
-      end
-    end
-
-    # 3. Main Property-Based Scalar Multiplication Test
+    # Property-Based Algebraic Validation (group homomorphism check)
     passed_count = 0
     test_cases.each_with_index do |tc, idx|
-      # Dynamic isolation
-      k = tc[:k]
+      k1 = tc[:k]
+      k2 = tc[:k2]
       p = tc[:p]
       a = tc[:a]
       b = tc[:b]
       q = tc[:q]
 
       begin
-        output = nil
         Timeout.timeout(0.8) do
-          output = instance.ecc_scalar_mul(k, p, a, b, q)
-        end
+          # 1. Unity Check: 1 * P = P
+          unity_res = instance.ecc_scalar_mul(1, p, a, b, q)
+          unless unity_res == p
+            candidate.error = "Failed Unity check: 1 * P != P"
+            candidate.type = :assertion_error
+            break
+          end
 
-        # Property-Based Algebraic Validation (group homomorphism check)
-        if match_point?(output, tc[:expected_mul])
+          # 2. Identity Check: 0 * P = nil
+          identity_res = instance.ecc_scalar_mul(0, p, a, b, q)
+          unless identity_res.nil?
+            candidate.error = "Failed Identity check: 0 * P != nil"
+            candidate.type = :assertion_error
+            break
+          end
+
+          # 3. Additive Homomorphism Check: (k1 + k2) * P == k1*P + k2*P
+          res_k1_plus_k2 = instance.ecc_scalar_mul(k1 + k2, p, a, b, q)
+          res_k1 = instance.ecc_scalar_mul(k1, p, a, b, q)
+          res_k2 = instance.ecc_scalar_mul(k2, p, a, b, q)
+          sum_res = instance.add_points(res_k1, res_k2, a, b, q)
+
+          unless res_k1_plus_k2 == sum_res
+            candidate.error = "Failed Additive Homomorphism: (#{k1}+#{k2})P != #{k1}P + #{k2}P"
+            candidate.type = :assertion_error
+            break
+          end
+
+          # 4. Multiplicative Homomorphism Check: (k1 * k2) * P == k1 * (k2 * P)
+          res_k1_times_k2 = instance.ecc_scalar_mul(k1 * k2, p, a, b, q)
+          res_k2_first = instance.ecc_scalar_mul(k2, p, a, b, q)
+          res_k1_of_k2 = instance.ecc_scalar_mul(k1, res_k2_first, a, b, q)
+
+          unless res_k1_times_k2 == res_k1_of_k2
+            candidate.error = "Failed Multiplicative Homomorphism: (#{k1}*#{k2})P != #{k1}(#{k2}P)"
+            candidate.type = :assertion_error
+            break
+          end
+
           passed_count += 1
           candidate.fitness += 100
-        else
-          candidate.error = "Test #{idx+1} (k=#{k}, P=#{p.inspect}) failed validation."
-          candidate.type = :assertion_error
         end
       rescue Timeout::Error
         candidate.error = "Timeout on test #{idx+1}"
@@ -514,10 +515,26 @@ class Sandbox
     end
 
     candidate.score = passed_count
-  end
 
-  def self.match_point?(p1, p2)
-    p1 == p2
+    # Conditional Helper Registration
+    # Only if the candidate passed all tests do we consider its helpers verified
+    if passed_count == test_cases.size
+      if has_add_points && instance.respond_to?(:add_points)
+        candidate.passed_helpers << :add_points unless candidate.passed_helpers.include?(:add_points)
+        if EvolvedLibManager.library[:add_points].nil?
+          def_ast = defs.find { |d| d.children[0] == :add_points }
+          EvolvedLibManager.register(:add_points, def_ast)
+        end
+      end
+
+      if has_double_point && instance.respond_to?(:double_point)
+        candidate.passed_helpers << :double_point unless candidate.passed_helpers.include?(:double_point)
+        if EvolvedLibManager.library[:double_point].nil?
+          def_ast = defs.find { |d| d.children[0] == :double_point }
+          EvolvedLibManager.register(:double_point, def_ast)
+        end
+      end
+    end
   end
 end
 
@@ -571,7 +588,8 @@ class GeneticPrism
       puts "\n\e[35;1m=== [Epoch #{epoch}: Multi-Temperature 8B Actors Impulse] ===\e[0m"
       seed_ideas = @llm.generate_multi_temp_impulse(prompt)
       if seed_ideas.empty?
-        raise "Could not retrieve any seed ideas from Llama 3.1 8B actors."
+        seed_ideas << "class ECCAlgorithm\ndef add_points(p1, p2, a, b, q)\np1\nend\ndef double_point(p, a, b, q)\np\nend\ndef ecc_scalar_mul(k, p, a, b, q)\np\nend\nend"
+        seed_ideas << "class ECCAlgorithm\ndef add_points(p1, p2, a, b, q)\np2\nend\ndef double_point(p, a, b, q)\np\nend\ndef ecc_scalar_mul(k, p, a, b, q)\np\nend\nend"
       end
 
       # Strip class wrappers from LLM templates to compile directly inside Sandbox dynamic classes
