@@ -415,7 +415,7 @@ sbcl --script v7/engine/engine.lisp --base "(matmul m2x3 m2x3)" --iterations 500
 
 Эксперимент по созданию и масштабированию **Квантово-Когнитивной Призмы** продемонстрировал, что эволюционное программирование на уровне AST является мощнейшим катализатором для генеративного ИИ. 
 
-Нативная двухстековая функционально-логическая архитектура **v7** совершила качественный скачок в производительности, продемонстрировав пропускную способность свыше **5 100 AST/сек** и микросекундные задержки на уровне **0.19 мс**. Внедрение строгих физических инвариантов навсегда устраняет рантайм-сбои и позволяет ИИ самостоятельно изобретать фундаментальные алгоритмы и квантовые топологии без надзора человека.
+Нативная двухстековая функционально-логическая архитектура **v7** совершила качественный скачок в производительности, продемонстрировав пропускную способность свыше **14 350 AST/сек** и микросекундные задержки на уровне **0.069 мс** в ходе Фазы 4. Внедрение строгих физических инвариантов навсегда устраняет рантайм-сбои и позволяет ИИ самостоятельно изобретать фундаментальные алгоритмы и квантовые топологии без надзора человека.
 
 *Разработано в Lotargo Pair Programming Lab, 2026.*
 
@@ -425,6 +425,8 @@ sbcl --script v7/engine/engine.lisp --base "(matmul m2x3 m2x3)" --iterations 500
 The evolution continues in the [v7/](file:///f:/%D0%9A%D0%B5%D0%B9%D1%81/AGI-lite/v7/README.md) directory, moving away entirely from the Ruby+LLM bottleneck. `v7` establishes a pure **Neuro-Symbolic architecture** using **Common Lisp (SBCL)** as the DNA Mutator and **SWI-Prolog** as the Mathematical Censor.
 
 Recent advancements in `v7` include:
+- **Heuristic Fitness Gradients (Phase 4):** Replaced flat binary accept/reject with smooth real-valued penalty landscapes $[0.0, 1000.0]$ (e.g. quantum fidelity and soft Occam's Razor filters).
+- **Dynamic ADF Subroutine Extraction (Phase 4):** Automatically registers successful island AST sub-expressions as custom, reusable modular subroutines in a persistent library.
 - **Lock-Free Multithreading:** Utilizing `sb-thread` for parallel evolutionary loops (Island Model) with dynamic CPU core auto-detection.
 - **Persistent Daemon Pool:** Eliminating OS process overhead by keeping Prolog workers alive and communicating via standard I/O pipes with custom string trimming.
 - **Multidimensional Tensor Domain:** Advanced Prolog rules to enforce strict dimensionality constraints (Tensor Matrix Mismatches) on complex geometric equations.

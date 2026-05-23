@@ -82,35 +82,55 @@
 ;; 3. Prolog Interface: Mathematical Censor
 ;; =======================================================================
 
-(defun lisp-to-prolog (ast)
-  "Translates Lisp AST into Prolog term syntax."
+(defvar *adf-library* nil)
+
+(defun expand-adfs (ast)
+  "Recursively expands any ADF symbols in the AST into their actual bodies."
   (cond
-    ((numberp ast) (format nil "~A" ast))
-    ((symbolp ast) (string-downcase (symbol-name ast)))
+    ((null ast) nil)
+    ((atom ast)
+     (let ((body (assoc ast *adf-library*)))
+       (if body
+           (expand-adfs (cdr body))
+           ast)))
     ((listp ast)
-     (let ((op (car ast))
-           (args (cdr ast)))
-       (let ((prolog-op (case op
-                          (+ "add")
-                          (- "sub")
-                          (* "mul")
-                          (/ "div")
-                          (t (string-downcase (symbol-name op))))))
-         (format nil "~A(~{~A~^, ~})" prolog-op (mapcar #'lisp-to-prolog args)))))))
+     (let ((body (assoc (car ast) *adf-library*)))
+       (if body
+           (expand-adfs (cdr body))
+           (cons (car ast) (mapcar #'expand-adfs (cdr ast))))))))
+
+(defun lisp-to-prolog (ast)
+  "Translates Lisp AST into Prolog term syntax after expanding any ADFs."
+  (let ((expanded (expand-adfs ast)))
+    (cond
+      ((numberp expanded) (format nil "~A" expanded))
+      ((symbolp expanded) (string-downcase (symbol-name expanded)))
+      ((listp expanded)
+       (let ((op (car expanded))
+             (args (cdr expanded)))
+         (let ((prolog-op (case op
+                            (+ "add")
+                            (- "sub")
+                            (* "mul")
+                            (/ "div")
+                            (t (string-downcase (symbol-name op))))))
+           (format nil "~A(~{~A~^, ~})" prolog-op (mapcar #'lisp-to-prolog args))))))))
 
 (defun check-with-prolog (ast domain proc-cell)
   "Sends the AST to the running SWI-Prolog daemon with a 1.0s timeout.
-   If a timeout or error occurs, forcefully restarts the daemon and rejects the candidate."
+   Returns the penalty score (a float between 0.0 and 1000.0) if successful, or 1000.0 if failed."
   (let* ((proc (car proc-cell))
          (prolog-term (lisp-to-prolog ast))
-         (query (format nil "censor(~A, ~A)." (string-downcase (symbol-name domain)) prolog-term)))
+         (query (format nil "censor(~A, ~A, Penalty)." (string-downcase (symbol-name domain)) prolog-term)))
     (handler-case
         (sb-ext:with-timeout 1.0 ; 1.0 second (1000 milliseconds)
           (format (uiop:process-info-input proc) "~A~%" query)
           (force-output (uiop:process-info-input proc))
           (let ((response (read-line (uiop:process-info-output proc) nil :eof)))
-            (and (stringp response)
-                 (string= (string-trim '(#\Space #\Tab #\Return #\Newline #\") response) "true"))))
+            (if (and (stringp response) (not (eq response :eof)))
+                (or (ignore-errors (read-from-string (string-trim '(#\Space #\Tab #\Return #\Newline #\") response)))
+                    1000.0)
+                1000.0)))
       (sb-ext:timeout ()
         (format t "[TIMEOUT] Prolog daemon hung on query: ~A. Forcefully restarting...~%" query)
         (ignore-errors (uiop:terminate-process proc :urgent t))
@@ -118,7 +138,7 @@
                                              :input :stream
                                              :output :stream)))
           (setf (car proc-cell) new-proc))
-        nil)
+        1000.0)
       (error (e)
         (format t "[ERROR] Prolog daemon pipe error: ~A. Restarting daemon...~%" e)
         (ignore-errors (uiop:terminate-process proc :urgent t))
@@ -126,7 +146,7 @@
                                              :input :stream
                                              :output :stream)))
           (setf (car proc-cell) new-proc))
-        nil))))
+        1000.0))))
 
 ;; =======================================================================
 ;; 4. Main Universal Cognitive Engine Loop (Multi-Threaded)
@@ -156,33 +176,37 @@
   (multiple-value-bind (ops vars consts) (get-domain-config domain)
     ;; Dynamic bindings of special variables are thread-local in SBCL
     (let* ((*current-operators* ops)
-           (*current-variables* vars)
+           (*current-variables* (append vars (mapcar #'car *adf-library*)))
            (*current-constants* consts)
            (proc (uiop:launch-program (list "swipl" "-q" "-s" "v7/engine/daemon.pl")
                                       :input :stream
                                       :output :stream))
            (proc-cell (list proc))
-           (result nil)
+           (best-ast base-ast)
+           (best-penalty (check-with-prolog base-ast domain proc-cell))
            (actual-iters 0))
-      ;; Use a local hypothesis that evolves over time rather than always mutating base-ast
       (let ((current-ast base-ast))
         (loop for i from 1 to iterations
+              while (> best-penalty 0.0)
               do (incf actual-iters)
-                 (let ((hypothesis (mutate current-ast)))
-                   (if (check-with-prolog hypothesis domain proc-cell)
+                 (let* ((hypothesis (mutate current-ast))
+                        (penalty (check-with-prolog hypothesis domain proc-cell)))
+                   (if (or (< penalty best-penalty)
+                           (and (= penalty best-penalty) (< (length (format nil "~A" hypothesis)) (length (format nil "~A" best-ast))))
+                           (< (random 100) 15))
                        (progn
-                         (format t "[Thread ~D] [ACCEPT] Iteration ~D: ~A~%" thread-id i hypothesis)
-                         (setf result hypothesis)
-                         (return))
-                       ;; If rejected, occasionally keep the mutation anyway to escape local minima
-                       (when (< (random 100) 20)
-                         (setf current-ast hypothesis))))))
+                         (setf best-ast hypothesis)
+                         (setf best-penalty penalty)
+                         (setf current-ast hypothesis)
+                         (when (= best-penalty 0.0)
+                           (format t "[Thread ~D] [CONVERGED] Iteration ~D: ~A (Penalty: 0.0)~%" thread-id i best-ast)
+                           (return)))))))
       ;; Clean up the Prolog daemon
       (let ((active-proc (car proc-cell)))
         (format (uiop:process-info-input active-proc) "quit~%")
         (ignore-errors (force-output (uiop:process-info-input active-proc)))
         (uiop:wait-process active-proc))
-      (cons result actual-iters))))
+      (cons best-ast actual-iters))))
 
 (defun synthesize-hybrids (winners domain desired-hybrids max-iterations)
   (when (< (length winners) 2)
@@ -190,7 +214,7 @@
   (format t "~%--- Final Synthesis Phase (Island Crossover) ---~%")
   (multiple-value-bind (ops vars consts) (get-domain-config domain)
     (let* ((*current-operators* ops)
-           (*current-variables* vars)
+           (*current-variables* (append vars (mapcar #'car *adf-library*)))
            (*current-constants* consts)
            (proc (uiop:launch-program (list "swipl" "-q" "-s" "v7/engine/daemon.pl")
                                       :input :stream
@@ -202,10 +226,10 @@
             do (let* ((parent1 (random-element winners))
                       (parent2 (random-element winners))
                       (child (crossover parent1 parent2)))
-                 ;; Only accept the child if it's actually different from parents
+                 ;; Only accept the child if it's actually different from parents and has 0.0 penalty
                  (when (and (not (equal child parent1))
                             (not (equal child parent2))
-                            (check-with-prolog child domain proc-cell))
+                            (= (check-with-prolog child domain proc-cell) 0.0))
                    (format t "[SYNTHESIS] Found valid hybrid at iteration ~D: ~A~%" i child)
                    (push child hybrids))))
       (let ((active-proc (car proc-cell)))
@@ -230,7 +254,13 @@
          (end-time (get-internal-real-time))
          (elapsed-seconds (/ (- end-time start-time) (coerce internal-time-units-per-second 'double-float)))
          (total-iterations (loop for res in thread-results sum (cdr res)))
-         (winners (remove nil (mapcar #'car thread-results))))
+         (winners (remove-duplicates (remove nil (mapcar #'car thread-results)) :test #'equal)))
+
+    ;; Dynamic Subroutine Extraction: Register successful island winners as new ADF symbols
+    (dolist (w winners)
+      (let ((adf-sym (intern (format nil "ADF-~D" (1+ (length *adf-library*))))))
+        (push (cons adf-sym w) *adf-library*)
+        (format t "[ADF MANAGER] Extracted and registered dynamic subroutine: ~A -> ~A~%" adf-sym w)))
     
     (format t "~%==================================================~%")
     (format t "      v7 ENGINE PERFORMANCE DASHBOARD~%")

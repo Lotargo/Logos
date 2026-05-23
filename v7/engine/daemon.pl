@@ -11,11 +11,16 @@ daemon :-
     ->  halt
     ;   (term_string(Query, Line) -> true ; Query = fail),
         (   catch(Query, Error, (print_message(error, Error), write(user_error, 'Error executing query\n'), fail))
-        ->  write('true\n')
-        ;   write('false\n')
+        ->  % Extract the Penalty value from the unified censor(Domain, AST, Penalty) query and print it
+            (   Query = censor(_, _, Penalty)
+            ->  format('~w~n', [Penalty])
+            ;   write('0.0\n')
+            )
+        ;   write('1000.0\n')
         ),
         flush_output(user_output),
         daemon
     ).
+
 
 :- initialization(daemon).

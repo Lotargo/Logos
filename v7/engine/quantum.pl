@@ -1,22 +1,29 @@
-% quantum.pl - Prolog Quantum Physics invariants & Dynamic N-Qubit Hilbert Space Simulator
+% quantum.pl - Prolog Quantum Physics invariants & Heuristic Penalty Quantum Simulator
 
-quantum_censor(AST) :-
-    valid_quantum_structure(AST),
-    \+ is_quantum_redundant(AST),
-    find_qubits(AST, RawQubits),
-    (   RawQubits = []
-    ->  Qubits = [q1, q2]
-    ;   (   length(RawQubits, 1)
-        ->  union(RawQubits, [q2], Qubits)
-        ;   Qubits = RawQubits
+quantum_censor(AST, Penalty) :-
+    (   \+ valid_quantum_structure(AST)
+    ->  Penalty = 1000.0
+    ;   (   is_quantum_redundant(AST)
+        ->  Penalty = 900.0
+        ;   find_qubits(AST, RawQubits),
+            (   RawQubits = []
+            ->  Qubits = [q1, q2]
+            ;   (   length(RawQubits, 1)
+                ->  union(RawQubits, [q2], Qubits)
+                ;   Qubits = RawQubits
+                )
+            ),
+            sort_qubits(Qubits, SortedQs),
+            length(SortedQs, N),
+            create_ground_state(N, GroundVec),
+            GroundState = [amp(c(1, 0), GroundVec)],
+            (   catch(eval_quantum(AST, SortedQs, GroundState, FinalState), _, fail)
+            ->  quantum_fidelity(FinalState, SortedQs, Fidelity),
+                Penalty is 1000.0 * (1.0 - Fidelity)
+            ;   Penalty = 1000.0
+            )
         )
-    ),
-    sort_qubits(Qubits, SortedQs),
-    length(SortedQs, N),
-    create_ground_state(N, GroundVec),
-    GroundState = [amp(c(1, 0), GroundVec)],
-    eval_quantum(AST, SortedQs, GroundState, FinalState),
-    is_bell_state(FinalState, SortedQs).
+    ).
 
 % Qubit name format is q followed by integer
 valid_quantum_structure(X) :- atom(X), atom_concat(q, _, X), !.
@@ -237,14 +244,35 @@ eval_quantum(tensor(A, B), SortedQs, InState, OutState) :-
     eval_quantum(A, SortedQs, InState, MidState),
     eval_quantum(B, SortedQs, MidState, OutState).
 
-is_bell_state(State, SortedQs) :-
+% =======================================================================
+% Continuous Quantum Fidelity Gradients
+% =======================================================================
+
+coeff_to_float(c(N, R), Val) :-
+    Val is N / (sqrt(2) ** R).
+
+get_state_amplitude(Vec, State, Amp) :-
+    (   member(amp(Coeff, Vec), State)
+    ->  coeff_to_float(Coeff, Amp)
+    ;   Amp = 0.0
+    ).
+
+quantum_fidelity(State, SortedQs, Fidelity) :-
     length(SortedQs, N),
-    length(State, 2),
-    member(amp(c(1, 1), V0), State),
-    member(amp(c(1, 1), V1), State),
-    V0 = [0, 0 | Rest],
-    V1 = [1, 1 | Rest],
-    all_zeros(Rest).
+    (   N < 2
+    ->  Fidelity = 0.0
+    ;   create_bell_v0(N, V0),
+        create_bell_v1(N, V1),
+        get_state_amplitude(V0, State, Amp0),
+        get_state_amplitude(V1, State, Amp1),
+        Overlap is (Amp0 + Amp1) / sqrt(2),
+        Fidelity is Overlap * Overlap
+    ).
+
+create_bell_v0(N, V) :- create_ground_state(N, V).
+create_bell_v1(N, [1, 1 | Rest]) :-
+    N2 is N - 2,
+    create_ground_state(N2, Rest).
 
 all_zeros([]).
 all_zeros([0|T]) :- all_zeros(T).

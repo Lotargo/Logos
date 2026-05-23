@@ -1,15 +1,19 @@
-% arithmetic.pl - Prolog Arithmetic constraints using clp(r)
+% arithmetic.pl - Prolog Arithmetic constraints using clp(r) & Heuristic Penalty Occam's Razor
 :- use_module(library(clpr)).
 
-% Evaluate constraints using clp(r)
-arithmetic_censor(AST) :-
-    % Check structural invalidities and redundancies first (Occam's Razor)
-    \+ contains_div_zero(AST),
-    \+ contains_mul_zero(AST),
-    \+ is_redundant(AST),
-    valid_arithmetic_structure(AST),
-    % Prove it can be evaluated in R without contradictions
-    evaluable_in_r(AST).
+% Evaluate constraints using clp(r) and return Heuristic Penalty
+arithmetic_censor(AST, Penalty) :-
+    (   (contains_div_zero(AST) ; contains_mul_zero(AST))
+    ->  Penalty = 1000.0
+    ;   (   \+ valid_arithmetic_structure(AST)
+        ->  Penalty = 1000.0
+        ;   (   \+ evaluable_in_r(AST)
+            ->  Penalty = 950.0
+            ;   count_redundancies(AST, Count),
+                Penalty is Count * 20.0
+            )
+        )
+    ).
 
 % Invalid structures: Division by zero
 contains_div_zero(div(_, 0)).
@@ -34,25 +38,27 @@ contains_mul_zero(mul(_, Y)) :- contains_mul_zero(Y).
 contains_mul_zero(div(X, _)) :- contains_mul_zero(X).
 contains_mul_zero(div(_, Y)) :- contains_mul_zero(Y).
 
-% Occam's Razor: Redundancy filters to prevent AST bloat
-is_redundant(add(0, _)).
-is_redundant(add(_, 0)).
-is_redundant(sub(_, 0)).
-is_redundant(sub(X, Y)) :- X == Y. % Avoid trivial identity sub(x, x)
-is_redundant(mul(1, _)).
-is_redundant(mul(_, 1)).
-is_redundant(div(_, 1)).
-is_redundant(div(X, Y)) :- X == Y. % Avoid trivial identity div(x, x)
+% Recursive Redundancy Counter (Occam's soft constraints)
+count_redundancies(add(0, X), N) :- !, count_redundancies(X, N1), N is N1 + 1.
+count_redundancies(add(X, 0), N) :- !, count_redundancies(X, N1), N is N1 + 1.
+count_redundancies(sub(X, 0), N) :- !, count_redundancies(X, N1), N is N1 + 1.
+count_redundancies(sub(X, Y), N) :- X == Y, !, count_redundancies(X, N1), N is N1 + 1.
+count_redundancies(mul(1, X), N) :- !, count_redundancies(X, N1), N is N1 + 1.
+count_redundancies(mul(X, 1), N) :- !, count_redundancies(X, N1), N is N1 + 1.
+count_redundancies(div(X, 1), N) :- !, count_redundancies(X, N1), N is N1 + 1.
+count_redundancies(div(X, Y), N) :- X == Y, !, count_redundancies(X, N1), N is N1 + 1.
+count_redundancies(Term, N) :-
+    compound(Term),
+    !,
+    Term =.. [_|Args],
+    map_redundancies(Args, N).
+count_redundancies(_, 0).
 
-% Propagate redundancy checks down the tree
-is_redundant(add(X, _)) :- is_redundant(X).
-is_redundant(add(_, Y)) :- is_redundant(Y).
-is_redundant(sub(X, _)) :- is_redundant(X).
-is_redundant(sub(_, Y)) :- is_redundant(Y).
-is_redundant(mul(X, _)) :- is_redundant(X).
-is_redundant(mul(_, Y)) :- is_redundant(Y).
-is_redundant(div(X, _)) :- is_redundant(X).
-is_redundant(div(_, Y)) :- is_redundant(Y).
+map_redundancies([], 0).
+map_redundancies([H|T], N) :-
+    count_redundancies(H, N1),
+    map_redundancies(T, N2),
+    N is N1 + N2.
 
 valid_arithmetic_structure(X) :- atom(X).
 valid_arithmetic_structure(X) :- integer(X).
