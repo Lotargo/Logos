@@ -427,7 +427,9 @@ class Sandbox
     end
 
     begin
-      klass.class_eval(candidate.code)
+      # Some LLM outputs might try to require invalid libraries, removing requires for isolation
+      safe_code = candidate.code.gsub(/^\s*require\b.*/, '')
+      klass.class_eval(safe_code)
     rescue SyntaxError => e
       candidate.type = :syntax_error
       candidate.error = "SyntaxError: #{e.message}"
@@ -440,8 +442,16 @@ class Sandbox
       return
     end
 
-    instance = klass.new
-    candidate.fitness = 50 # compiles
+    begin
+      instance = klass.new
+    rescue => e
+      candidate.type = :runtime_error
+      candidate.error = "RuntimeError on init: #{e.message}"
+      candidate.fitness = 0
+      return
+    end
+
+    candidate.fitness = 50 # compiles and inits
     candidate.type = :success
 
     # Parse and extract all defined helper methods from candidate's AST
