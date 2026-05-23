@@ -218,45 +218,98 @@
                                   nil)))))
           (or proc-cores 4)))))
 
+(defun contains-operator-p (operators ast)
+  "Recursively checks if the AST contains any of the given operators/symbols."
+  (cond
+    ((null ast) nil)
+    ((atom ast)
+     (and (or (symbolp ast) (stringp ast) (characterp ast))
+          (member ast operators :test #'string-equal)))
+    (t (or (contains-operator-p operators (car ast))
+           (contains-operator-p operators (cdr ast))))))
+
+(defun detect-domain-by-ast (ast)
+  "Auto-detects the scientific domain based on operators and variables present in the AST."
+  (cond
+    ((contains-operator-p '(gamma add_vel v1 v2) ast) :relativity)
+    ((contains-operator-p '(carnot delta_s t_hot t_cold) ast) :thermo)
+    ((contains-operator-p '(entropy info_bound area volume) ast) :holography)
+    ((contains-operator-p '(tensor seq h x_gate y_gate z_gate cnot q1 q2 q3) ast) :quantum)
+    ((contains-operator-p '(matmul transpose cross dot scale norm m2x3 m3x2 m3x3 m4x1 v2_a v2_b v3_a v3_b v4_a) ast) :multidim)
+    ((contains-operator-p '(deriv int sin cos t) ast) :calculus)
+    ((contains-operator-p '(and or implies not p q true false) ast) :logic)
+    (t :arithmetic))) ; default fallback
+
+(defun parse-cli-args (args)
+  "Parses command line arguments into variables."
+  (let ((domain nil)
+        (base-ast nil)
+        (iterations 20000)
+        (threads nil))
+    (loop for arg-list = args then (cdr arg-list)
+          while arg-list
+          do (let ((arg (car arg-list))
+                   (next-arg (cadr arg-list)))
+               (cond
+                 ((or (string= arg "--domain") (string= arg "-d"))
+                  (setf domain (intern (string-upcase next-arg) :keyword))
+                  (setf arg-list (cdr arg-list)))
+                 ((or (string= arg "--base") (string= arg "-b"))
+                  (setf base-ast (read-from-string next-arg))
+                  (setf arg-list (cdr arg-list)))
+                 ((or (string= arg "--iterations") (string= arg "-i"))
+                  (setf iterations (parse-integer next-arg))
+                  (setf arg-list (cdr arg-list)))
+                 ((or (string= arg "--threads") (string= arg "-t"))
+                  (setf threads (parse-integer next-arg))
+                  (setf arg-list (cdr arg-list))))))
+    (values domain base-ast iterations threads)))
+
 (defun main ()
-  ;; Start with an AST that has division by zero or algebraic redundancy
-  (let ((arith-base '(+ x 0))
-        ;; A calculus AST that shouldn't be accepted (e.g. invalid arity for sin)
-        (calc-base '(deriv (sin x t) x))
-        ;; Quantum AST that is invalid (redundant double Hadamard gate)
-        (quant-base '(h (h q1)))
-        ;; Auto-detect CPU threads for 100% utilization
-        (num-threads (detect-cpu-cores)))
-    (format t "~%[SYSTEM] Detected logical CPU cores: ~D~%" num-threads)
+  (let ((args (uiop:command-line-arguments)))
+    (if args
+        (multiple-value-bind (domain base-ast iterations threads) (parse-cli-args args)
+          (unless base-ast
+            (error "Missing required argument: --base <lisp-expression> (e.g. -b \"(h (h q1))\")"))
+          (let* ((auto-domain (or domain (detect-domain-by-ast base-ast)))
+                 (num-threads (or threads (detect-cpu-cores))))
+            (format t "~%=== Running Custom CLI Task ===~%")
+            (if domain
+                (format t "Domain: ~A~%" domain)
+                (format t "Domain: ~A (Auto-detected)~%" auto-domain))
+            (format t "Base AST: ~A~%" base-ast)
+            (format t "Iterations: ~D~%" iterations)
+            (format t "Threads: ~D~%" num-threads)
+            (run-engine-parallel base-ast auto-domain iterations num-threads)))
+        ;; If no CLI arguments, run the default full multi-domain demo suite!
+        (let ((arith-base '(+ x 0))
+              (calc-base '(deriv (sin x t) x))
+              (quant-base '(h (h q1)))
+              (num-threads (detect-cpu-cores)))
+          (format t "~%[SYSTEM] Detected logical CPU cores: ~D~%" num-threads)
 
-    (format t "~%--- Running Arithmetic Domain ---~%")
-    (run-engine-parallel arith-base :arithmetic 200 num-threads)
+          (format t "~%--- Running Arithmetic Domain ---~%")
+          (run-engine-parallel arith-base :arithmetic 200 num-threads)
 
-    (format t "~%--- Running Calculus Domain ---~%")
-    (run-engine-parallel calc-base :calculus 200 num-threads)
+          (format t "~%--- Running Calculus Domain ---~%")
+          (run-engine-parallel calc-base :calculus 200 num-threads)
 
-    (format t "~%--- Running Quantum Domain ---~%")
-    (run-engine-parallel quant-base :quantum 200 num-threads)
+          (format t "~%--- Running Quantum Domain ---~%")
+          (run-engine-parallel quant-base :quantum 200 num-threads)
 
-    (format t "~%--- Running Multi-Dimensional Tensor Domain ---~%")
-    ;; Complex dimensionally invalid AST: (matmul m2x3 m2x3)
-    ;; Columns of first matrix (3) do not match rows of second matrix (2)
-    (run-engine-parallel '(matmul m2x3 m2x3) :multidim 20000 num-threads)
+          (format t "~%--- Running Multi-Dimensional Tensor Domain ---~%")
+          (run-engine-parallel '(matmul m2x3 m2x3) :multidim 20000 num-threads)
 
-    (format t "~%--- Running Relativity Domain ---~%")
-    ;; Speeds exceeding light speed c=1.0 (1.2) must be rejected and healed
-    (run-engine-parallel '(gamma 1.2) :relativity 20000 num-threads)
+          (format t "~%--- Running Relativity Domain ---~%")
+          (run-engine-parallel '(gamma 1.2) :relativity 20000 num-threads)
 
-    (format t "~%--- Running Thermodynamics Domain ---~%")
-    ;; Absolute zero is physically impossible, Th cannot be equal to Tc
-    (run-engine-parallel '(carnot 0 t_cold) :thermo 50000 num-threads)
+          (format t "~%--- Running Thermodynamics Domain ---~%")
+          (run-engine-parallel '(carnot 0 t_cold) :thermo 50000 num-threads)
 
-    (format t "~%--- Running Holography Domain ---~%")
-    ;; Entropy must be bounded by area, volume is invalid
-    (run-engine-parallel '(entropy volume) :holography 200 num-threads)
+          (format t "~%--- Running Holography Domain ---~%")
+          (run-engine-parallel '(entropy volume) :holography 200 num-threads)
 
-    (format t "~%--- Running Logic Domain ---~%")
-    ;; Logical contradictions are forbidden
-    (run-engine-parallel '(and p (not p)) :logic 200 num-threads)))
+          (format t "~%--- Running Logic Domain ---~%")
+          (run-engine-parallel '(and p (not p)) :logic 200 num-threads)))))
 
 (main)
