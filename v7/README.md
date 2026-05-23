@@ -243,3 +243,21 @@ sbcl --script v7/engine/engine.lisp --base "(/ (+ X 1) 0)" --iterations 100
 
 ---
 *Developed by Lotargo Pair Programming Lab, 2026.*
+
+## Meta-Axiomatic Evolution & Ontology Generation
+
+As part of the continuous enhancements detailed in the Phase 2 plan:
+
+### 1. Meta-Axiomatic Evolution
+The engine has evolved beyond simply mutating Abstract Syntax Trees (ASTs). It now possesses the capability to dynamically mutate its own logical constraints (the "laws of physics") within the Prolog daemon. During deep exploration, the Lisp orchestrator can hypothesize new topological metrics or mathematical operations (such as multi-dimensional `wormholes`) and inject them via `assertz/1` into the Prolog environment. If these new axioms resolve paradoxical deadlocks without breaking core invariants, they are permanently adopted.
+
+### 2. Autonomous LaTeX Ontology Documentation
+As the engine uncovers new valid topological structures and synthesizes novel physics rules, it automatically generates a formal, academic whitepaper. Written in pure `.tex` (LaTeX) format and deposited into the `v7/papers/` directory, these documents serve as the system's "Knowledge Graph," detailing:
+- The initial paradox or boundary condition.
+- New Meta-Axioms discovered (if any).
+- The structurally validated optimal hybrid AST.
+- Real-time algorithmic efficiency metrics.
+
+### 5.3 Эксперимент: Парадокс Варп-Двигателя (The Warp Drive Paradox)
+Для тестирования модуля **Мета-Аксиоматической Эволюции** был проведен эксперимент в домене Специальной Теории Относительности (`:relativity`). Движку была поставлена "невозможная" задача: сложить скорости $0.8c + 0.8c$ и получить сверхсветовой результат, обходя жесткие барьеры Лоренца (`V < 1.0`).
+Движок успешно сгенерировал, протестировал и внедрил в Prolog новые аксиомы (такие как `warp_drive` с прямым сложением скоростей и `tachyon` для частиц с изначальной $V > 1.0$), что позволило решить парадокс за 0.2 секунды. Подробный отчет с метриками и эволюционными логами доступен в файле [WARP_DRIVE_EXPERIMENT.md](file:///f:/%D0%9A%D0%B5%D0%B9%D1%81/AGI-lite/v7/docs/WARP_DRIVE_EXPERIMENT.md).

@@ -4,7 +4,9 @@
 % - vector(N) is an N-dimensional vector
 % - matrix(R, C) is a rectangular matrix of size R x C
 
-:- module(multidim, [multidim_censor/1]).
+:- module(multidim, [multidim_censor/1, dim_of/2]).
+
+:- dynamic dim_of/2.
 
 % Ground truth variables and constants
 dim_of(s1, 0).
