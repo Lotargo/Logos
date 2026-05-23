@@ -287,6 +287,9 @@ is_multidim_expr(cross(_, _)).
 is_multidim_expr(dot(_, _)).
 is_multidim_expr(scale(_, _)).
 is_multidim_expr(norm(_)).
+is_multidim_expr(wormhole(_, _)).
+is_multidim_expr(teleport(_, _)).
+is_multidim_expr(fold(_, _)).
 
 is_calc_expr(deriv(_, _)).
 is_calc_expr(int(_, _)).

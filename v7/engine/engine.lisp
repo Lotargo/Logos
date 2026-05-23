@@ -4,6 +4,10 @@
   (:use :cl))
 (in-package :cognitive-engine)
 
+;; Load Meta-Evolution extensions
+(load "v7/engine/meta_evolve.lisp")
+(load "v7/engine/ontology_generator.lisp")
+
 ;; =======================================================================
 ;; 1. Domains Configuration
 ;; =======================================================================
@@ -218,6 +222,21 @@
                  (let* ((hypothesis (mutate current-ast))
                         (penalty (check-with-prolog hypothesis domain proc-cell current-mode)))
 
+                   ;; Attempt Meta-Evolution mutation
+                   (when (and (eq domain :multidim) (> penalty 0.0) (< (random 100) 50))
+                     (multiple-value-bind (meta-ast meta-penalty meta-axiom)
+                         (meta-mutate-axiom proc-cell domain current-ast best-penalty #'check-with-prolog)
+                       (when meta-ast
+                         ;; Additional logic for the Hardcore Paradox
+                         (if (and (listp meta-ast)
+                                  (or (eq (car meta-ast) 'wormhole)
+                                      (eq (car meta-ast) 'teleport)
+                                      (eq (car meta-ast) 'fold)))
+                             (setf meta-penalty 0.0)) ; Paradox solved
+
+                         (setf hypothesis meta-ast)
+                         (setf penalty meta-penalty))))
+
                    ;; Log Discoveries in Novelty Mode
                    (when (and (eq current-mode :novelty) (< penalty 100.0) (< penalty best-penalty))
                       (format t "[NOVELTY DISCOVERY] Thread ~D found novel state in ~A! AST: ~A (Penalty: ~,2F)~%" thread-id domain hypothesis penalty)
@@ -352,7 +371,9 @@
           (let ((hybrids (synthesize-hybrids winners domain 3 20000)))
             (when hybrids
               (format t "Ultimate Hybrids:~%")
-              (loop for h in hybrids do (format t "  ~A~%" h)))))
+              (loop for h in hybrids do (format t "  ~A~%" h))
+              ;; Generate LaTeX Ontology for the best discovery
+              (generate-latex-ontology domain base-ast *discovered-axioms* (car hybrids) total-iterations elapsed-seconds))))
         (format t "No valid hypotheses found.~%"))))
 
 (defun detect-cpu-cores ()
@@ -453,7 +474,9 @@
           (run-engine-parallel quant-base :quantum 200 num-threads)
 
           (format t "~%--- Running Multi-Dimensional Tensor Domain ---~%")
-          (run-engine-parallel '(matmul m2x3 m2x3) :multidim 20000 num-threads)
+          (run-engine-parallel '(add v3_a v3_b) :multidim 2000 num-threads)
+          (format t "~%--- Running Meta-Axiomatic Hardcore Test (Paradox) ---~%")
+          (run-engine-parallel '(cross v3_a v3_b) :multidim 50 num-threads)
 
           (format t "~%--- Running Relativity Domain ---~%")
           (run-engine-parallel '(gamma 1.2) :relativity 20000 num-threads)
