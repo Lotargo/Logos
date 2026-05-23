@@ -3,14 +3,15 @@
 
 % Evaluate constraints using clp(r)
 arithmetic_censor(AST) :-
-    % Check structural invalidities first
+    % Check structural invalidities and redundancies first (Occam's Razor)
     \+ contains_div_zero(AST),
     \+ contains_mul_zero(AST),
+    \+ is_redundant(AST),
     valid_arithmetic_structure(AST),
     % Prove it can be evaluated in R without contradictions
     evaluable_in_r(AST).
 
-% Invalid structures
+% Invalid structures: Division by zero
 contains_div_zero(div(_, 0)).
 contains_div_zero(add(X, _)) :- contains_div_zero(X).
 contains_div_zero(add(_, Y)) :- contains_div_zero(Y).
@@ -21,6 +22,7 @@ contains_div_zero(mul(_, Y)) :- contains_div_zero(Y).
 contains_div_zero(div(X, _)) :- contains_div_zero(X).
 contains_div_zero(div(_, Y)) :- contains_div_zero(Y).
 
+% Invalid structures: Multiplying by zero
 contains_mul_zero(mul(0, _)).
 contains_mul_zero(mul(_, 0)).
 contains_mul_zero(add(X, _)) :- contains_mul_zero(X).
@@ -32,6 +34,26 @@ contains_mul_zero(mul(_, Y)) :- contains_mul_zero(Y).
 contains_mul_zero(div(X, _)) :- contains_mul_zero(X).
 contains_mul_zero(div(_, Y)) :- contains_mul_zero(Y).
 
+% Occam's Razor: Redundancy filters to prevent AST bloat
+is_redundant(add(0, _)).
+is_redundant(add(_, 0)).
+is_redundant(sub(_, 0)).
+is_redundant(sub(X, Y)) :- X == Y. % Avoid trivial identity sub(x, x)
+is_redundant(mul(1, _)).
+is_redundant(mul(_, 1)).
+is_redundant(div(_, 1)).
+is_redundant(div(X, Y)) :- X == Y. % Avoid trivial identity div(x, x)
+
+% Propagate redundancy checks down the tree
+is_redundant(add(X, _)) :- is_redundant(X).
+is_redundant(add(_, Y)) :- is_redundant(Y).
+is_redundant(sub(X, _)) :- is_redundant(X).
+is_redundant(sub(_, Y)) :- is_redundant(Y).
+is_redundant(mul(X, _)) :- is_redundant(X).
+is_redundant(mul(_, Y)) :- is_redundant(Y).
+is_redundant(div(X, _)) :- is_redundant(X).
+is_redundant(div(_, Y)) :- is_redundant(Y).
+
 valid_arithmetic_structure(X) :- atom(X).
 valid_arithmetic_structure(X) :- integer(X).
 valid_arithmetic_structure(add(X, Y)) :- valid_arithmetic_structure(X), valid_arithmetic_structure(Y).
@@ -40,7 +62,6 @@ valid_arithmetic_structure(mul(X, Y)) :- valid_arithmetic_structure(X), valid_ar
 valid_arithmetic_structure(div(X, Y)) :- valid_arithmetic_structure(X), valid_arithmetic_structure(Y).
 
 % Use clp(r) to ensure evaluating to a real number is physically possible
-% (we bind variables to free reals)
 eval_term(X, X) :- integer(X).
 eval_term(X, _) :- atom(X). % Variables evaluate generically
 eval_term(add(X, Y), R) :- eval_term(X, RX), eval_term(Y, RY), number(RX), number(RY), {R = RX + RY}.

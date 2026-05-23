@@ -98,7 +98,8 @@
     (format (uiop:process-info-input proc) "~A~%" query)
     (force-output (uiop:process-info-input proc))
     (let ((response (read-line (uiop:process-info-output proc) nil :eof)))
-      (string= response "true"))))
+      (and (stringp response)
+           (string= (string-trim '(#\Space #\Tab #\Return #\Newline) response) "true")))))
 
 ;; =======================================================================
 ;; 4. Main Universal Cognitive Engine Loop (Multi-Threaded)
@@ -113,13 +114,13 @@
     (:quantum
      (values '(tensor seq h x_gate y_gate z_gate cnot) '(q1 q2 q3) '(1 0)))
     (:multidim
-     (values '(add sub dot cross scale norm) '(v2_a v2_b v3_a v3_b v4_a s1 s2) '(0 1)))
+     (values '(add sub dot cross scale norm matmul transpose) '(m2x3 m3x2 m3x3 m4x1 s1 s2) '(0 1)))
     (:relativity
-     (values '(gamma add_vel) '(v1 v2 c) '(0)))
+     (values '(gamma add_vel) '(v1 v2) '(0 0.1 0.5 0.8 0.9 1.2)))
     (:thermo
-     (values '(carnot delta_s) '(t_hot t_cold) '(0)))
+     (values '(carnot delta_s) '(t_hot t_cold) '(0 100 300 500)))
     (:holography
-     (values '(entropy info_bound) '(area volume) '(0)))
+     (values '(entropy info_bound) '(area volume) '(0 1 2 5 10)))
     (:logic
      (values '(and or implies not) '(p q) '(true false)))
     (t (error "Unknown domain"))))
@@ -203,45 +204,59 @@
                 (loop for h in hybrids do (format t "  ~A~%" h)))))
           (format t "No valid hypotheses found.~%")))))
 
+(defun detect-cpu-cores ()
+  "Attempts to detect the number of logical CPU cores. Fallbacks to 4 if detection fails."
+  (let ((env-cores (uiop:getenv "NUMBER_OF_PROCESSORS")))
+    (if env-cores
+        (or (ignore-errors (parse-integer env-cores)) 4)
+        (let ((proc-cores (ignore-errors
+                            (with-open-file (s "/proc/cpuinfo" :if-does-not-exist nil)
+                              (if s
+                                  (loop for line = (read-line s nil nil)
+                                        while line
+                                        count (search "processor" line))
+                                  nil)))))
+          (or proc-cores 4)))))
+
 (defun main ()
-  ;; Start with an AST that has division by zero
-  (let ((arith-base '(/ (+ x 1) 0))
+  ;; Start with an AST that has division by zero or algebraic redundancy
+  (let ((arith-base '(+ x 0))
         ;; A calculus AST that shouldn't be accepted (e.g. invalid arity for sin)
         (calc-base '(deriv (sin x t) x))
-        ;; Quantum AST that is invalid (e.g. seq needs valid quantum nodes like q1)
-        (quant-base '(seq q1 0))
-        ;; Use a sensible default of 4 threads
-        (num-threads 4))
+        ;; Quantum AST that is invalid (redundant double Hadamard gate)
+        (quant-base '(h (h q1)))
+        ;; Auto-detect CPU threads for 100% utilization
+        (num-threads (detect-cpu-cores)))
+    (format t "~%[SYSTEM] Detected logical CPU cores: ~D~%" num-threads)
 
     (format t "~%--- Running Arithmetic Domain ---~%")
-    (run-engine-parallel arith-base :arithmetic 20 num-threads)
+    (run-engine-parallel arith-base :arithmetic 200 num-threads)
 
     (format t "~%--- Running Calculus Domain ---~%")
-    (run-engine-parallel calc-base :calculus 20 num-threads)
+    (run-engine-parallel calc-base :calculus 200 num-threads)
 
     (format t "~%--- Running Quantum Domain ---~%")
-    ;; Provide a better base string for quantum that mutating once or twice fixes it easily.
-    ;; cnot takes 2 arguments, control and target. seq takes 2 arguments.
-    ;; let's use a base that just needs a small mutation
-    (run-engine-parallel '(seq q1 q1) :quantum 500 num-threads)
+    (run-engine-parallel quant-base :quantum 200 num-threads)
 
     (format t "~%--- Running Multi-Dimensional Tensor Domain ---~%")
-    ;; Complex mathematically invalid AST:
-    ;; 1. cross product is only for 3D, here we give v2_a and v4_a.
-    ;; 2. adding a scalar (s1) to the result of a cross product (which should be a vector).
-    ;; The Lisp mutator must find a structurally coherent tensor equation.
-    (run-engine-parallel '(add (cross v2_a v4_a) s1) :multidim 20000 num-threads)
+    ;; Complex dimensionally invalid AST: (matmul m2x3 m2x3)
+    ;; Columns of first matrix (3) do not match rows of second matrix (2)
+    (run-engine-parallel '(matmul m2x3 m2x3) :multidim 20000 num-threads)
 
     (format t "~%--- Running Relativity Domain ---~%")
-    (run-engine-parallel '(gamma (add_vel c c)) :relativity 20000 num-threads)
+    ;; Speeds exceeding light speed c=1.0 (1.2) must be rejected and healed
+    (run-engine-parallel '(gamma 1.2) :relativity 20000 num-threads)
 
     (format t "~%--- Running Thermodynamics Domain ---~%")
-    (run-engine-parallel '(carnot 0 t_hot) :thermo 50000 num-threads)
+    ;; Absolute zero is physically impossible, Th cannot be equal to Tc
+    (run-engine-parallel '(carnot 0 t_cold) :thermo 50000 num-threads)
 
     (format t "~%--- Running Holography Domain ---~%")
-    (run-engine-parallel '(entropy volume) :holography 20 num-threads)
+    ;; Entropy must be bounded by area, volume is invalid
+    (run-engine-parallel '(entropy volume) :holography 200 num-threads)
 
     (format t "~%--- Running Logic Domain ---~%")
-    (run-engine-parallel '(and true 5) :logic 20 num-threads)))
+    ;; Logical contradictions are forbidden
+    (run-engine-parallel '(and p (not p)) :logic 200 num-threads)))
 
 (main)
