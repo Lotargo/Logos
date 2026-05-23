@@ -19,3 +19,52 @@
                                                              (/ (AND Q2)
                                                                 (Z_GATE T Q1))
                                                              (H P X))
+[NOVELTY] Thread 3 | Domain: QUANTUM | Penalty: 0.60 | AST: (SEQ (H Q2)
+                                                             (SEQ Q2 Q1))
+[NOVELTY] Thread 3 | Domain: QUANTUM | Penalty: 0.60 | AST: (SEQ (H Q1)
+                                                             (SEQ Q2 Q1))
+[NOVELTY] Thread 4 | Domain: QUANTUM | Penalty: 0.60 | AST: (SEQ (H Q2)
+                                                             (SEQ Q1 Q1))
+[NOVELTY] Thread 4 | Domain: LOGIC | Penalty: 0.40 | AST: (OR P (NOT Q))
+[NOVELTY] Thread 1 | Domain: HOLOGRAPHY | Penalty: 0.00 | AST: (ENTROPY AREA)
+[NOVELTY] Thread 1 | Domain: HOLOGRAPHY | Penalty: 0.00 | AST: (ENTROPY AREA)
+[NOVELTY] Thread 1 | Domain: HOLOGRAPHY | Penalty: 0.00 | AST: (ENTROPY AREA)
+[NOVELTY] Thread 1 | Domain: HOLOGRAPHY | Penalty: 0.00 | AST: (ENTROPY AREA)
+[NOVELTY] Thread 1 | Domain: LOGIC | Penalty: 0.40 | AST: (IMPLIES P (NOT Q))
+[NOVELTY] Thread 1 | Domain: RELATIVITY | Penalty: 0.00 | AST: (GAMMA
+                                                                (ADD_VEL V2 V2))
+[NOVELTY] Thread 1 | Domain: RELATIVITY | Penalty: 0.00 | AST: (GAMMA
+                                                                (ADD_VEL V2 V2))
+[NOVELTY] Thread 1 | Domain: RELATIVITY | Penalty: 0.00 | AST: (GAMMA
+                                                                (ADD_VEL V2 V2))
+[NOVELTY] Thread 1 | Domain: RELATIVITY | Penalty: 0.00 | AST: (GAMMA
+                                                                (ADD_VEL V1 V2))
+[NOVELTY] Thread 1 | Domain: RELATIVITY | Penalty: 0.00 | AST: (GAMMA
+                                                                (ADD_VEL V1 V2))
+[NOVELTY] Thread 2 | Domain: HOLOGRAPHY | Penalty: 0.00 | AST: (ENTROPY AREA)
+[NOVELTY] Thread 2 | Domain: HOLOGRAPHY | Penalty: 0.00 | AST: (ENTROPY AREA)
+[NOVELTY] Thread 2 | Domain: HOLOGRAPHY | Penalty: 0.00 | AST: (ENTROPY AREA)
+[NOVELTY] Thread 2 | Domain: HOLOGRAPHY | Penalty: 0.00 | AST: (ENTROPY AREA)
+[NOVELTY] Thread 2 | Domain: HOLOGRAPHY | Penalty: 0.00 | AST: (ENTROPY AREA)
+[NOVELTY] Thread 1 | Domain: UNIFIED | Penalty: 0.00 | AST: (X_GATE
+                                                             (H (SIN Q2)
+                                                              (* Q2 Q1))
+                                                             (H X T))
+[NOVELTY] Thread 1 | Domain: UNIFIED | Penalty: 0.00 | AST: (ENTROPY
+                                                             (H (SIN Q2)
+                                                              (* Q2 P))
+                                                             (H X T))
+[NOVELTY] Thread 4 | Domain: UNIFIED | Penalty: 0.00 | AST: (/
+                                                             (+ (* Q2)
+                                                                (TRANSPOSE P
+                                                                 Q1))
+                                                             (INT 1 Q3))
+[NOVELTY] Thread 4 | Domain: UNIFIED | Penalty: 0.00 | AST: (*
+                                                             (+ (* Q2)
+                                                                (TRANSPOSE P
+                                                                 Q1))
+                                                             (/ 1 Q3))
+[NOVELTY] Thread 4 | Domain: UNIFIED | Penalty: 0.00 | AST: (H
+                                                             (+ (* Q2)
+                                                                (NOT P Q1))
+                                                             (H 1 Z))

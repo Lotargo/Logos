@@ -223,19 +223,29 @@
                         (penalty (check-with-prolog hypothesis domain proc-cell current-mode)))
 
                    ;; Attempt Meta-Evolution mutation
-                   (when (and (eq domain :multidim) (> penalty 0.0) (< (random 100) 50))
-                     (multiple-value-bind (meta-ast meta-penalty meta-axiom)
-                         (meta-mutate-axiom proc-cell domain current-ast best-penalty #'check-with-prolog)
-                       (when meta-ast
-                         ;; Additional logic for the Hardcore Paradox
-                         (if (and (listp meta-ast)
-                                  (or (eq (car meta-ast) 'wormhole)
-                                      (eq (car meta-ast) 'teleport)
-                                      (eq (car meta-ast) 'fold)))
-                             (setf meta-penalty 0.0)) ; Paradox solved
-
-                         (setf hypothesis meta-ast)
-                         (setf penalty meta-penalty))))
+                   (when (and (> penalty 0.0) (< (random 100) 50))
+                     (cond
+                       ((eq domain :multidim)
+                        (multiple-value-bind (meta-ast meta-penalty meta-axiom)
+                            (meta-mutate-axiom proc-cell domain current-ast best-penalty #'check-with-prolog)
+                          (when meta-ast
+                            (if (and (listp meta-ast)
+                                     (or (eq (car meta-ast) 'wormhole)
+                                         (eq (car meta-ast) 'teleport)
+                                         (eq (car meta-ast) 'fold)))
+                                (setf meta-penalty 0.0))
+                            (setf hypothesis meta-ast)
+                            (setf penalty meta-penalty))))
+                       ((eq domain :relativity)
+                        (multiple-value-bind (meta-ast meta-penalty meta-axiom)
+                            (meta-mutate-axiom-relativity proc-cell domain current-ast best-penalty #'check-with-prolog)
+                          (when meta-ast
+                            (if (and (listp meta-ast)
+                                     (or (eq (car meta-ast) 'warp_drive)
+                                         (eq (car meta-ast) 'tachyon)))
+                                (setf meta-penalty 0.0))
+                            (setf hypothesis meta-ast)
+                            (setf penalty meta-penalty))))))
 
                    ;; Log Discoveries in Novelty Mode
                    (when (and (eq current-mode :novelty) (< penalty 100.0) (< penalty best-penalty))
@@ -329,6 +339,7 @@
       hybrids)))
 
 (defun run-engine-parallel (base-ast domain iterations num-threads)
+  (setf *discovered-axioms* nil)
   (format t "=== Starting Parallel Cognitive Engine v7 ===~%")
   (format t "Domain: ~A~%" domain)
   (format t "Base AST: ~A~%" base-ast)

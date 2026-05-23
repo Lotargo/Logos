@@ -1,5 +1,9 @@
 % relativity.pl - Constraints for Special Relativity using clp(r)
-:- module(relativity, [relativity_censor/1]).
+:- module(relativity, [relativity_censor/1, valid_rel/1, valid_speed/1, eval_vel/2]).
+
+:- dynamic valid_rel/1.
+:- dynamic valid_speed/1.
+:- dynamic eval_vel/2.
 :- use_module(library(clpr)).
 
 % Speeds strictly less than speed of light c = 1.0

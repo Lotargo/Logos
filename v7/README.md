@@ -257,3 +257,7 @@ As the engine uncovers new valid topological structures and synthesizes novel ph
 - New Meta-Axioms discovered (if any).
 - The structurally validated optimal hybrid AST.
 - Real-time algorithmic efficiency metrics.
+
+### 5.3 Эксперимент: Парадокс Варп-Двигателя (The Warp Drive Paradox)
+Для тестирования модуля **Мета-Аксиоматической Эволюции** был проведен эксперимент в домене Специальной Теории Относительности (`:relativity`). Движку была поставлена "невозможная" задача: сложить скорости $0.8c + 0.8c$ и получить сверхсветовой результат, обходя жесткие барьеры Лоренца (`V < 1.0`).
+Движок успешно сгенерировал, протестировал и внедрил в Prolog новые аксиомы (такие как `warp_drive` с прямым сложением скоростей и `tachyon` для частиц с изначальной $V > 1.0$), что позволило решить парадокс за 0.2 секунды. Подробный отчет с метриками и эволюционными логами доступен в файле [WARP_DRIVE_EXPERIMENT.md](file:///f:/%D0%9A%D0%B5%D0%B9%D1%81/AGI-lite/v7/docs/WARP_DRIVE_EXPERIMENT.md).
