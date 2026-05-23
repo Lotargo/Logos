@@ -36,11 +36,19 @@
   (nth (random (length list)) list))
 
 (defun mutate (ast)
-  "Mutates the AST by randomly changing operators, variables, or numbers."
+  "Mutates the AST by randomly changing operators, variables, or numbers, and occasionally growing."
   (if (atom ast)
-      (if (numberp ast)
-          (if *current-constants* (random-element *current-constants*) ast)
-          (if *current-variables* (random-element *current-variables*) ast))
+      (if (< (random 100) 15) ; 15% chance to grow an atom into a subtree
+          (let ((op (and *current-operators* (random-element *current-operators*))))
+            (if op
+                (cons op (loop repeat (if (member op '(h x_gate y_gate z_gate transpose norm gamma delta_s)) 1 2)
+                               collect (if (< (random 10) 5)
+                                           (if *current-variables* (random-element *current-variables*) 0)
+                                           (if *current-constants* (random-element *current-constants*) 0))))
+                ast))
+          (if (numberp ast)
+              (if *current-constants* (random-element *current-constants*) ast)
+              (if *current-variables* (random-element *current-variables*) ast)))
       (let ((op (car ast))
             (args (cdr ast)))
         (if (< (random 10) 4) ; 40% chance to mutate the operator
@@ -112,7 +120,7 @@
     (:calculus
      (values '(+ - * / deriv int sin cos) '(x t) '(0 1 -1)))
     (:quantum
-     (values '(tensor seq h x_gate y_gate z_gate cnot) '(q1 q2 q3) '(1 0)))
+     (values '(seq h cnot) '(q1 q2) nil))
     (:multidim
      (values '(add sub dot cross scale norm matmul transpose) '(m2x3 m3x2 m3x3 m4x1 s1 s2) '(0 1)))
     (:relativity
@@ -134,25 +142,26 @@
           (proc (uiop:launch-program (list "swipl" "-q" "-s" "v7/engine/daemon.pl")
                                      :input :stream
                                      :output :stream))
-          (result nil))
+          (result nil)
+          (actual-iters 0))
       ;; Use a local hypothesis that evolves over time rather than always mutating base-ast
       (let ((current-ast base-ast))
         (loop for i from 1 to iterations
-              do (let ((hypothesis (mutate current-ast)))
+              do (incf actual-iters)
+                 (let ((hypothesis (mutate current-ast)))
                    (if (check-with-prolog hypothesis domain proc)
                        (progn
                          (format t "[Thread ~D] [ACCEPT] Iteration ~D: ~A~%" thread-id i hypothesis)
                          (setf result hypothesis)
                          (return))
                        ;; If rejected, occasionally keep the mutation anyway to escape local minima
-                       ;; Increase probability of keeping to 20% to better traverse deep AST valleys
                        (when (< (random 100) 20)
                          (setf current-ast hypothesis))))))
       ;; Clean up the Prolog daemon
       (format (uiop:process-info-input proc) "quit~%")
       (ignore-errors (force-output (uiop:process-info-input proc)))
       (uiop:wait-process proc)
-      result)))
+      (cons result actual-iters))))
 
 (defun synthesize-hybrids (winners domain desired-hybrids max-iterations)
   (when (< (length winners) 2)
@@ -188,21 +197,37 @@
   (format t "Base AST: ~A~%" base-ast)
   (format t "Threads: ~D~%" num-threads)
 
-  (let ((threads (loop for i from 1 to num-threads
-                       collect (let ((thread-id i))
-                                 (sb-thread:make-thread
-                                  (lambda ()
-                                    (worker-loop base-ast domain iterations thread-id)))))))
-    (let ((results (remove nil (mapcar #'sb-thread:join-thread threads))))
-      (if results
-          (progn
-            (format t "Found valid hypotheses from Islands:~%")
-            (loop for res in results do (format t "  ~A~%" res))
-            (let ((hybrids (synthesize-hybrids results domain 3 20000)))
-              (when hybrids
-                (format t "Ultimate Hybrids:~%")
-                (loop for h in hybrids do (format t "  ~A~%" h)))))
-          (format t "No valid hypotheses found.~%")))))
+  (let* ((start-time (get-internal-real-time))
+         (threads (loop for i from 1 to num-threads
+                        collect (let ((thread-id i))
+                                  (sb-thread:make-thread
+                                   (lambda ()
+                                     (worker-loop base-ast domain iterations thread-id))))))
+         (thread-results (mapcar #'sb-thread:join-thread threads))
+         (end-time (get-internal-real-time))
+         (elapsed-seconds (/ (- end-time start-time) (coerce internal-time-units-per-second 'double-float)))
+         (total-iterations (loop for res in thread-results sum (cdr res)))
+         (winners (remove nil (mapcar #'car thread-results))))
+    
+    (format t "~%==================================================~%")
+    (format t "      v7 ENGINE PERFORMANCE DASHBOARD~%")
+    (format t "==================================================~%")
+    (format t "Total Elapsed Time    : ~,4F seconds~%" elapsed-seconds)
+    (format t "Logical CPU Cores     : ~D~%" num-threads)
+    (format t "Total ASTs Evaluated  : ~D~%" total-iterations)
+    (format t "Throughput (AST/sec)  : ~,2F~%" (if (> elapsed-seconds 0) (/ total-iterations elapsed-seconds) 0))
+    (format t "Avg Latency per AST   : ~,4F ms~%" (if (> total-iterations 0) (/ (* elapsed-seconds 1000) total-iterations) 0))
+    (format t "==================================================~%~%")
+
+    (if winners
+        (progn
+          (format t "Found valid hypotheses from Islands:~%")
+          (loop for res in winners do (format t "  ~A~%" res))
+          (let ((hybrids (synthesize-hybrids winners domain 3 20000)))
+            (when hybrids
+              (format t "Ultimate Hybrids:~%")
+              (loop for h in hybrids do (format t "  ~A~%" h)))))
+        (format t "No valid hypotheses found.~%"))))
 
 (defun detect-cpu-cores ()
   "Attempts to detect the number of logical CPU cores. Fallbacks to 4 if detection fails."
@@ -284,7 +309,7 @@
         ;; If no CLI arguments, run the default full multi-domain demo suite!
         (let ((arith-base '(+ x 0))
               (calc-base '(deriv (sin x t) x))
-              (quant-base '(h (h q1)))
+              (quant-base '(seq (h q2) (cnot q2 q1)))
               (num-threads (detect-cpu-cores)))
           (format t "~%[SYSTEM] Detected logical CPU cores: ~D~%" num-threads)
 
