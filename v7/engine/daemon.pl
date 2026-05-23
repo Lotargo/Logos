@@ -12,7 +12,7 @@ daemon :-
     ;   (term_string(Query, Line) -> true ; Query = fail),
         (   catch(Query, Error, (print_message(error, Error), write(user_error, 'Error executing query\n'), fail))
         ->  % Extract the Penalty value from the unified censor(Domain, AST, Penalty) query and print it
-            (   Query = censor(_, _, Penalty)
+            (   Query = censor(_, _, _, Penalty)
             ->  format('~w~n', [Penalty])
             ;   write('0.0\n')
             )
