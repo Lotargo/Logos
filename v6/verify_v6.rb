@@ -144,7 +144,7 @@ if __FILE__ == $0
     ]
     
     client = LLMClient.new("../dont_delete")
-    prism = GeneticPrism.new(client, 40, 7) # 40 candidates, 7 generations
+    prism = GeneticPrism.new(client, 40, 7) # 20 candidates, 2 generations
     
     begin
       winning_code = prism.evolve_solution(TASK_DESCRIPTION_V6, "ecc_scalar_mul", training_cases)
