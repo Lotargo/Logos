@@ -170,6 +170,10 @@
      (values '(entropy info_bound) '(area volume) '(0 1 2 5 10)))
     (:logic
      (values '(and or implies not) '(p q) '(true false)))
+    (:unified
+     (values '(+ - * / deriv int sin cos seq h cnot x_gate y_gate z_gate matmul transpose cross dot scale norm gamma add_vel carnot delta_s entropy info_bound and or implies not)
+             '(x y z t q1 q2 q3 m2x3 m3x2 m3x3 m4x1 s1 s2 v1 v2 t_hot t_cold area volume p q)
+             '(0 1 2 5 10 -1 0.1 0.5 0.8 0.9 1.2 100 300 500 true false)))
     (t (error "Unknown domain"))))
 
 (defun worker-loop (base-ast domain iterations thread-id)
@@ -308,15 +312,19 @@
 
 (defun detect-domain-by-ast (ast)
   "Auto-detects the scientific domain based on operators and variables present in the AST."
-  (cond
-    ((contains-operator-p '(gamma add_vel v1 v2) ast) :relativity)
-    ((contains-operator-p '(carnot delta_s t_hot t_cold) ast) :thermo)
-    ((contains-operator-p '(entropy info_bound area volume) ast) :holography)
-    ((contains-operator-p '(tensor seq h x_gate y_gate z_gate cnot q1 q2 q3) ast) :quantum)
-    ((contains-operator-p '(matmul transpose cross dot scale norm m2x3 m3x2 m3x3 m4x1 v2_a v2_b v3_a v3_b v4_a) ast) :multidim)
-    ((contains-operator-p '(deriv int sin cos t) ast) :calculus)
-    ((contains-operator-p '(and or implies not p q true false) ast) :logic)
-    (t :arithmetic))) ; default fallback
+  (let ((domains nil))
+    (when (contains-operator-p '(gamma add_vel v1 v2) ast) (push :relativity domains))
+    (when (contains-operator-p '(carnot delta_s t_hot t_cold) ast) (push :thermo domains))
+    (when (contains-operator-p '(entropy info_bound area volume) ast) (push :holography domains))
+    (when (contains-operator-p '(tensor seq h x_gate y_gate z_gate cnot q1 q2 q3) ast) (push :quantum domains))
+    (when (contains-operator-p '(matmul transpose cross dot scale norm m2x3 m3x2 m3x3 m4x1 v2_a v2_b v3_a v3_b v4_a) ast) (push :multidim domains))
+    (when (contains-operator-p '(deriv int sin cos t) ast) (push :calculus domains))
+    (when (contains-operator-p '(and or implies not p q true false) ast) (push :logic domains))
+    (let ((unique-domains (remove-duplicates domains)))
+      (cond
+        ((> (length unique-domains) 1) :unified)
+        ((= (length unique-domains) 1) (car unique-domains))
+        (t :arithmetic)))))
 
 (defun parse-cli-args (args)
   "Parses command line arguments into variables."
@@ -388,6 +396,9 @@
           (run-engine-parallel '(entropy volume) :holography 200 num-threads)
 
           (format t "~%--- Running Logic Domain ---~%")
-          (run-engine-parallel '(and p (not p)) :logic 200 num-threads)))))
+          (run-engine-parallel '(and p (not p)) :logic 200 num-threads)
+
+          (format t "~%--- Running Grand Unified Cross-Domain ---~%")
+          (run-engine-parallel '(add (seq (h q2) (cnot q2 q1)) (carnot 0 t_cold)) :unified 200 num-threads)))))
 
 (main)
