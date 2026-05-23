@@ -431,3 +431,4 @@ Recent advancements in `v7` include:
 - **Persistent Daemon Pool:** Eliminating OS process overhead by keeping Prolog workers alive and communicating via standard I/O pipes.
 - **Multidimensional Tensor Domain:** Advanced Prolog rules to enforce strict dimensionality constraints (Tensor Matrix Mismatches) on complex geometric equations.
 - **Final Synthesis (Island Crossover):** Cross-pollinating mathematical winners from individual CPU threads to synthesize complex, structurally sound ultimate hybrids.
+- **Fundamental Universal Domains Expansion:** The engine now enforces physical and logical invariants across 8 domains, including Special Relativity (Lorentz constraints), Thermodynamics (Carnot/Entropy constraints), Holographic Theory (Bekenstein bound/AdS-CFT), and Strict Boolean Logic.
