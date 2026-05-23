@@ -138,6 +138,34 @@
       (uiop:wait-process proc)
       result)))
 
+(defun synthesize-hybrids (winners domain desired-hybrids max-iterations)
+  (when (< (length winners) 2)
+    (return-from synthesize-hybrids winners))
+  (format t "~%--- Final Synthesis Phase (Island Crossover) ---~%")
+  (multiple-value-bind (ops vars consts) (get-domain-config domain)
+    (let ((*current-operators* ops)
+          (*current-variables* vars)
+          (*current-constants* consts)
+          (proc (uiop:launch-program (list "swipl" "-q" "-s" "v7/engine/daemon.pl")
+                                     :input :stream
+                                     :output :stream))
+          (hybrids nil))
+      (loop for i from 1 to max-iterations
+            while (< (length hybrids) desired-hybrids)
+            do (let* ((parent1 (random-element winners))
+                      (parent2 (random-element winners))
+                      (child (crossover parent1 parent2)))
+                 ;; Only accept the child if it's actually different from parents
+                 (when (and (not (equal child parent1))
+                            (not (equal child parent2))
+                            (check-with-prolog child domain proc))
+                   (format t "[SYNTHESIS] Found valid hybrid at iteration ~D: ~A~%" i child)
+                   (push child hybrids))))
+      (format (uiop:process-info-input proc) "quit~%")
+      (ignore-errors (force-output (uiop:process-info-input proc)))
+      (uiop:wait-process proc)
+      hybrids)))
+
 (defun run-engine-parallel (base-ast domain iterations num-threads)
   (format t "=== Starting Parallel Cognitive Engine v7 ===~%")
   (format t "Domain: ~A~%" domain)
@@ -152,8 +180,12 @@
     (let ((results (remove nil (mapcar #'sb-thread:join-thread threads))))
       (if results
           (progn
-            (format t "Found valid hypotheses:~%")
-            (loop for res in results do (format t "  ~A~%" res)))
+            (format t "Found valid hypotheses from Islands:~%")
+            (loop for res in results do (format t "  ~A~%" res))
+            (let ((hybrids (synthesize-hybrids results domain 3 20000)))
+              (when hybrids
+                (format t "Ultimate Hybrids:~%")
+                (loop for h in hybrids do (format t "  ~A~%" h)))))
           (format t "No valid hypotheses found.~%")))))
 
 (defun main ()
