@@ -10,6 +10,9 @@
 :- consult('holography.pl').
 :- consult('logic.pl').
 :- consult('hardware.pl').
+:- consult('regression.pl').
+:- consult('adversarial.pl').
+:- consult('curry_howard.pl').
 
 % Dispatcher based on Domain returning float Penalty (0.0 is perfect, 1000.0 is worst)
 
@@ -97,6 +100,18 @@ target_censor(calculus, AST, Penalty) :-
     ->  Penalty = 0.0
     ;   Penalty = 1000.0
     ).
+
+target_censor(regression, AST, Penalty) :-
+    !,
+    regression_censor(AST, Penalty).
+
+target_censor(adversarial, AST, Penalty) :-
+    !,
+    adversarial_censor(AST, Penalty).
+
+target_censor(curry_howard, AST, Penalty) :-
+    !,
+    curry_censor(AST, Penalty).
 
 target_censor(multidim, AST, Penalty) :-
     !,

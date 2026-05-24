@@ -8,6 +8,7 @@
 (load "v7/engine/meta_evolve.lisp")
 (load "v7/engine/ontology_generator.lisp")
 (load "v7/engine/verilog_emitter.lisp")
+(load "v7/engine/curry_howard.lisp")
 
 ;; =======================================================================
 ;; 1. Domains Configuration
@@ -31,6 +32,18 @@
      (setf *current-operators* '(tensor seq h x_gate y_gate z_gate cnot))
      (setf *current-variables* '(q1 q2 q3))
      (setf *current-constants* '(1 0)))
+    (:regression
+     (setf *current-operators* '(+ - * /))
+     (setf *current-variables* '(x))
+     (setf *current-constants* '(0 1 2 5 10)))
+    (:adversarial
+     (setf *current-operators* '(+ - * /))
+     (setf *current-variables* '(x))
+     (setf *current-constants* '(0 1 2 5 10)))
+    (:curry_howard
+     (setf *current-operators* '(+ - * /))
+     (setf *current-variables* '(x y))
+     (setf *current-constants* '(0 1 2)))
     (t (error "Unknown domain"))))
 
 ;; =======================================================================
@@ -127,7 +140,8 @@
   "Sends the AST to the running SWI-Prolog daemon with a 1.0s timeout.
    Returns the penalty score (a float between 0.0 and 1000.0) if successful, or 1000.0 if failed."
   (let* ((proc (car proc-cell))
-         (prolog-term (lisp-to-prolog ast))
+         (prepared-ast (if (eq domain :curry_howard) (generate-proof ast) ast))
+         (prolog-term (lisp-to-prolog prepared-ast))
          (query (format nil "censor(~A, ~A, ~A, Penalty)." (string-downcase (symbol-name mode)) (string-downcase (symbol-name domain)) prolog-term)))
     (handler-case
         (sb-ext:with-timeout 1.0 ; 1.0 second (1000 milliseconds)
@@ -179,11 +193,17 @@
      (values '(and or implies not) '(p q) '(true false)))
     (:hardware
      (values '(and or implies not gate_and gate_or gate_not) '(p q r s) '(true false)))
+    (:regression
+     (values '(+ - * /) '(x) '(0 1 2 5 10)))
+    (:adversarial
+     (values '(+ - * /) '(x) '(0 1 2 5 10)))
+    (:curry_howard
+     (values '(+ - * /) '(x y) '(0 1 2)))
     (:unified
      (values '(+ - * / deriv int sin cos seq h cnot x_gate y_gate z_gate matmul transpose cross dot scale norm gamma add_vel carnot delta_s entropy info_bound and or implies not)
              '(x y z t q1 q2 q3 m2x3 m3x2 m3x3 m4x1 s1 s2 v1 v2 t_hot t_cold area volume p q)
              '(0 1 2 5 10 -1 0.1 0.5 0.8 0.9 1.2 100 300 500 true false)))
-    (t (error "Unknown domain"))))
+    (t (error (format nil "Unknown domain: ~A" domain-name)))))
 
 (defun worker-loop (base-ast domain iterations thread-id migration-pools migration-mutexes)
   (multiple-value-bind (ops vars consts) (get-domain-config domain)
@@ -458,6 +478,7 @@
     (when (contains-operator-p '(deriv int sin cos t) ast) (push :calculus domains))
     (when (contains-operator-p '(and or implies not p q true false) ast) (push :logic domains))
     (when (contains-operator-p '(gate_and gate_or gate_not r s) ast) (push :hardware domains))
+    (when (contains-operator-p '(proof type int) ast) (push :curry_howard domains))
     (let ((unique-domains (remove-duplicates domains)))
       (cond
         ((> (length unique-domains) 1) :unified)
