@@ -190,7 +190,7 @@
     (:holography
      (values '(entropy info_bound) '(area volume) '(0 1 2 5 10)))
     (:logic
-     (values '(and or implies not) '(p q) '(true false)))
+     (values '(and or xor implies not) '(p q) '(true false)))
     (:hardware
      (values '(and or implies not gate_and gate_or gate_not) '(p q r s) '(true false)))
     (:regression
@@ -476,7 +476,7 @@
     (when (contains-operator-p '(tensor seq h x_gate y_gate z_gate cnot q1 q2 q3) ast) (push :quantum domains))
     (when (contains-operator-p '(matmul transpose cross dot scale norm m2x3 m3x2 m3x3 m4x1 v2_a v2_b v3_a v3_b v4_a) ast) (push :multidim domains))
     (when (contains-operator-p '(deriv int sin cos t) ast) (push :calculus domains))
-    (when (contains-operator-p '(and or implies not p q true false) ast) (push :logic domains))
+    (when (contains-operator-p '(and or xor implies not p q true false) ast) (push :logic domains))
     (when (contains-operator-p '(gate_and gate_or gate_not r s) ast) (push :hardware domains))
     (when (contains-operator-p '(proof type int) ast) (push :curry_howard domains))
     (let ((unique-domains (remove-duplicates domains)))
