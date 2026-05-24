@@ -142,3 +142,54 @@
 [NOVELTY] Thread 4 | Domain: LOGIC | Penalty: 0.40 | AST: (OR Q (NOT Q))
 [NOVELTY] Thread 4 | Domain: LOGIC | Penalty: 0.40 | AST: (AND Q (NOT Q))
 [NOVELTY] Thread 1 | Domain: LOGIC | Penalty: 0.40 | AST: (OR Q (NOT Q))
+[NOVELTY] Thread 2 | Domain: THERMO | Penalty: 0.00 | AST: (CARNOT T_HOT T_COLD)
+[NOVELTY] Thread 4 | Domain: LOGIC | Penalty: 0.40 | AST: (OR P (NOT Q))
+[NOVELTY] Thread 4 | Domain: LOGIC | Penalty: 0.40 | AST: (OR Q (NOT Q))
+[NOVELTY] Thread 2 | Domain: HARDWARE | Penalty: 7.00 | AST: (OR Q
+                                                                 (GATE_OR S P))
+[NOVELTY] Thread 2 | Domain: HARDWARE | Penalty: 7.00 | AST: (OR Q
+                                                                 (GATE_OR S P))
+[NOVELTY] Thread 1 | Domain: REGRESSION | Penalty: 87.54 | AST: (DIV (ADD M1 R)
+                                                                 R)
+[NOVELTY] Thread 2 | Domain: REGRESSION | Penalty: 87.54 | AST: (DIV (ADD M1 R)
+                                                                 R)
+[NOVELTY] Thread 2 | Domain: UNIFIED | Penalty: 0.00 | AST: (+
+                                                             (-
+                                                              (+
+                                                               (* ADF-4
+                                                                  (H 1 S2)))
+                                                              (- S2 Q1))
+                                                             (+ Y
+                                                                (NOT
+                                                                 (+ ADF-3 X)
+                                                                 ADF-8)))
+[NOVELTY] Thread 2 | Domain: UNIFIED | Penalty: 0.00 | AST: (DELTA_S
+                                                             (-
+                                                              (+
+                                                               (* ADF-4
+                                                                  (H 1 S2)))
+                                                              (- S2 Q1))
+                                                             (+ Y
+                                                                (NOT
+                                                                 (+ ADF-3 X)
+                                                                 ADF-8)))
+[NOVELTY] Thread 2 | Domain: UNIFIED | Penalty: 0.00 | AST: (Z_GATE
+                                                             (-
+                                                              (+
+                                                               (* ADF-4
+                                                                  (H 1 S2)))
+                                                              (- S2 Q1))
+                                                             (+ Y
+                                                                (NOT
+                                                                 (+ ADF-3 X)
+                                                                 ADF-8)))
+[NOVELTY] Thread 2 | Domain: UNIFIED | Penalty: 0.00 | AST: (GAMMA
+                                                             (-
+                                                              (+
+                                                               (* ADF-4
+                                                                  (H 1 S2)))
+                                                              (- S2 T_COLD))
+                                                             (+ Y
+                                                                (NOT
+                                                                 (+ ADF-3 X)
+                                                                 ADF-8)))
