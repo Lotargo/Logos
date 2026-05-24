@@ -18,15 +18,39 @@ quantum_censor(AST, Penalty) :-
                 sort_qubits(Qubits, SortedQs),
                 length(SortedQs, N),
                 create_ground_state(N, GroundVec),
+                % Initial state for Grover's should be equal superposition,
+                % but standard practice is starting from |00> and engine must apply H gates itself
                 GroundState = [amp(c(1, 0), GroundVec)],
                 (   catch(eval_quantum(AST, SortedQs, GroundState, FinalState), _, fail)
                 ->  quantum_fidelity(FinalState, SortedQs, Fidelity),
-                    Penalty is 1000.0 * (1.0 - Fidelity)
+                    BasePenalty is 1000.0 * (1.0 - Fidelity),
+                    % Occam's Razor: If fidelity is very high (> 0.99), apply minor penalty for AST size
+                    (   Fidelity > 0.99
+                    ->  ast_size(AST, Size),
+                        Penalty is BasePenalty + (Size * 0.01)
+                    ;   Penalty = BasePenalty
+                    )
                 ;   Penalty = 1000.0
                 )
             )
         )
     ).
+
+% Simple AST node counter
+ast_size(AST, Size) :-
+    (   atomic(AST)
+    ->  Size = 1
+    ;   compound(AST)
+    ->  AST =.. [_|Args],
+        map_ast_size(Args, ArgSizes),
+        sum_list(ArgSizes, Sum),
+        Size is Sum + 1
+    ).
+
+map_ast_size([], []).
+map_ast_size([H|T], [S|ST]) :-
+    ast_size(H, S),
+    map_ast_size(T, ST).
 
 % Qubit name format is q followed by integer
 valid_quantum_structure(X) :- atom(X), atom_concat(q, _, X), !.
@@ -37,6 +61,10 @@ valid_quantum_structure(x_gate(X)) :- valid_quantum_structure(X).
 valid_quantum_structure(y_gate(X)) :- valid_quantum_structure(X).
 valid_quantum_structure(z_gate(X)) :- valid_quantum_structure(X).
 valid_quantum_structure(cnot(Control, Target)) :-
+    valid_quantum_structure(Control),
+    valid_quantum_structure(Target),
+    Control \= Target.
+valid_quantum_structure(oracle(Control, Target)) :-
     valid_quantum_structure(Control),
     valid_quantum_structure(Target),
     Control \= Target.
@@ -54,6 +82,7 @@ is_quantum_redundant(h(h(_))).
 is_quantum_redundant(x_gate(x_gate(_))).
 is_quantum_redundant(y_gate(y_gate(_))).
 is_quantum_redundant(z_gate(z_gate(_))).
+is_quantum_redundant(oracle(oracle(_, _))).
 is_quantum_redundant(seq(A, B)) :- A == B, is_self_inverse(A).
 
 % Propagate redundancy checks
@@ -63,6 +92,8 @@ is_quantum_redundant(y_gate(X)) :- is_quantum_redundant(X).
 is_quantum_redundant(z_gate(X)) :- is_quantum_redundant(X).
 is_quantum_redundant(cnot(C, _)) :- is_quantum_redundant(C).
 is_quantum_redundant(cnot(_, T)) :- is_quantum_redundant(T).
+is_quantum_redundant(oracle(Q1, _)) :- is_quantum_redundant(Q1).
+is_quantum_redundant(oracle(_, Q2)) :- is_quantum_redundant(Q2).
 is_quantum_redundant(seq(A, _)) :- is_quantum_redundant(A).
 is_quantum_redundant(seq(_, B)) :- is_quantum_redundant(B).
 is_quantum_redundant(tensor(A, _)) :- is_quantum_redundant(A).
@@ -72,6 +103,7 @@ is_self_inverse(h(_)).
 is_self_inverse(x_gate(_)).
 is_self_inverse(y_gate(_)).
 is_self_inverse(z_gate(_)).
+is_self_inverse(oracle(_, _)).
 
 % =======================================================================
 % Dynamic Qubit List Extractors & Sorters
@@ -87,6 +119,11 @@ find_qubits(cnot(C, T), Qs) :-
     find_qubits(C, QsC),
     find_qubits(T, QsT),
     union(QsC, QsT, Qs).
+find_qubits(oracle(Q1, Q2), Qs) :-
+    !,
+    find_qubits(Q1, Qs1),
+    find_qubits(Q2, Qs2),
+    union(Qs1, Qs2, Qs).
 find_qubits(seq(A, B), Qs) :-
     !,
     find_qubits(A, QsA),
@@ -218,6 +255,20 @@ apply_cnot_loop([amp(Coeff, Vec)|T], IndexC, IndexT, [amp(Coeff, NewVec)|Rrest])
     ),
     apply_cnot_loop(T, IndexC, IndexT, Rrest).
 
+apply_oracle_to_state(Index1, Index2, InState, OutState) :-
+    apply_oracle_loop(InState, Index1, Index2, RawState),
+    simplify_state(RawState, OutState).
+
+apply_oracle_loop([], _, _, []).
+apply_oracle_loop([amp(c(N, R), Vec)|T], Index1, Index2, [amp(c(SignN, R), Vec)|Rrest]) :-
+    get_bit(Vec, Index1, Bit1),
+    get_bit(Vec, Index2, Bit2),
+    (   (Bit1 =:= 1, Bit2 =:= 1) % Target state is |11>
+    ->  SignN is -N
+    ;   SignN = N
+    ),
+    apply_oracle_loop(T, Index1, Index2, Rrest).
+
 % eval_quantum(AST, SortedQs, InState, OutState)
 eval_quantum(X, _, State, State) :- atom(X), !.
 
@@ -236,6 +287,12 @@ eval_quantum(cnot(C, T), SortedQs, InState, OutState) :-
     qubit_position(C, SortedQs, IndexC),
     qubit_position(T, SortedQs, IndexT),
     apply_cnot_to_state(IndexC, IndexT, InState, OutState).
+
+eval_quantum(oracle(Q1, Q2), SortedQs, InState, OutState) :-
+    !,
+    qubit_position(Q1, SortedQs, Index1),
+    qubit_position(Q2, SortedQs, Index2),
+    apply_oracle_to_state(Index1, Index2, InState, OutState).
 
 eval_quantum(seq(A, B), SortedQs, InState, OutState) :-
     !,
@@ -264,18 +321,17 @@ quantum_fidelity(State, SortedQs, Fidelity) :-
     length(SortedQs, N),
     (   N < 2
     ->  Fidelity = 0.0
-    ;   create_bell_v0(N, V0),
-        create_bell_v1(N, V1),
-        get_state_amplitude(V0, State, Amp0),
-        get_state_amplitude(V1, State, Amp1),
-        Overlap is (Amp0 + Amp1) / sqrt(2),
-        Fidelity is Overlap * Overlap
+    ;   % Grover's Algorithm goal: Maximize amplitude of |11...1> state
+        create_grover_target(N, TargetVec),
+        get_state_amplitude(TargetVec, State, Amp),
+        Fidelity is Amp * Amp % Probability of measuring target state
     ).
 
-create_bell_v0(N, V) :- create_ground_state(N, V).
-create_bell_v1(N, [1, 1 | Rest]) :-
-    N2 is N - 2,
-    create_ground_state(N2, Rest).
+create_grover_target(0, []) :- !.
+create_grover_target(N, [1|T]) :-
+    N > 0,
+    N1 is N - 1,
+    create_grover_target(N1, T).
 
 all_zeros([]).
 all_zeros([0|T]) :- all_zeros(T).
@@ -291,6 +347,7 @@ gate_matrix(x_gate(_), [[0.0, 1.0], [1.0, 0.0]]).
 gate_matrix(y_gate(_), [[0.0, -1.0], [1.0, 0.0]]). % Assuming Real representation for PoC (iY)
 gate_matrix(z_gate(_), [[1.0, 0.0], [0.0, -1.0]]).
 gate_matrix(cnot(_, _), [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 1.0, 0.0]]).
+gate_matrix(oracle(_, _), [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, -1.0]]). % Flips sign of |11>
 
 build_unitary(X, M) :- gate_matrix(X, M), !.
 build_unitary(seq(A, B), M) :-
@@ -302,7 +359,7 @@ build_unitary(seq(A, B), M) :-
     ->  matrix_multiply(M_B, M_A, M) % For sequential gates, matrices must be same size
     ;   M = [[1.0, 0.0], [0.0, 1.0]] % Mismatch size fallback
     ).
-build_unitary(tensor(A, B), [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]]). % Fallback identity 4x4
+build_unitary(tensor(_, _), [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]]). % Fallback identity 4x4
 build_unitary(_, [[1.0, 0.0], [0.0, 1.0]]). % Fallback identity 2x2
 
 % Vector dot product

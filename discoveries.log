@@ -108,3 +108,37 @@
                                                                (OR Q Q))
 [NOVELTY] Thread 1 | Domain: HARDWARE | Penalty: 12.00 | AST: (GATE_OR ADF-27
                                                                (OR Q Q))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 8.50 | AST: (GATE_OR (AND R Q)
+                                                              (GATE_AND Q R))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 12.00 | AST: (GATE_AND
+                                                               (OR R Q)
+                                                               (IMPLIES Q R))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 12.00 | AST: (GATE_OR (OR R Q)
+                                                               (IMPLIES Q R))
+[NOVELTY] Thread 3 | Domain: QUANTUM | Penalty: 0.50 | AST: (SEQ (H Q1)
+                                                             (X_GATE Q2))
+[NOVELTY] Thread 1 | Domain: THERMO | Penalty: 0.00 | AST: (CARNOT T_HOT T_COLD)
+[NOVELTY] Thread 1 | Domain: HARDWARE | Penalty: 7.00 | AST: (GATE_OR R
+                                                              (OR Q R))
+[NOVELTY] Thread 1 | Domain: HARDWARE | Penalty: 7.00 | AST: (AND R (OR Q R))
+[NOVELTY] Thread 3 | Domain: HARDWARE | Penalty: 8.50 | AST: (GATE_OR (AND P P)
+                                                              (OR Q R))
+[NOVELTY] Thread 3 | Domain: HARDWARE | Penalty: 8.50 | AST: (AND (AND P P)
+                                                                  (OR Q R))
+[NOVELTY] Thread 3 | Domain: RELATIVITY | Penalty: 0.00 | AST: (GAMMA
+                                                                (ADD_VEL V1 V2))
+[NOVELTY] Thread 4 | Domain: UNIFIED | Penalty: 0.00 | AST: (ENTROPY
+                                                             (- (/ X)
+                                                                (NOT ADF-15
+                                                                     Q1))
+                                                             (ENTROPY 5 V2))
+[NOVELTY] Thread 4 | Domain: UNIFIED | Penalty: 0.00 | AST: (DELTA_S
+                                                             (- (/ X)
+                                                                (NOT P Q1))
+                                                             (ENTROPY 5 Q))
+[NOVELTY] Thread 4 | Domain: THERMO | Penalty: 0.00 | AST: (CARNOT T_HOT T_COLD)
+[NOVELTY] Thread 4 | Domain: THERMO | Penalty: 0.00 | AST: (CARNOT T_HOT T_COLD)
+[NOVELTY] Thread 3 | Domain: THERMO | Penalty: 0.00 | AST: (CARNOT T_HOT T_COLD)
+[NOVELTY] Thread 4 | Domain: LOGIC | Penalty: 0.40 | AST: (OR Q (NOT Q))
+[NOVELTY] Thread 4 | Domain: LOGIC | Penalty: 0.40 | AST: (AND Q (NOT Q))
+[NOVELTY] Thread 1 | Domain: LOGIC | Penalty: 0.40 | AST: (OR Q (NOT Q))
