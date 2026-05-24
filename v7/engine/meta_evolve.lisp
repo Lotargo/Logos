@@ -125,3 +125,77 @@
                 (retract-prolog-rule proc-cell (format nil "relativity:~A" new-axiom))
                 (values nil nil nil)))))
       (values nil nil nil)))
+
+
+(defun get-random-axiom-structure-hslg ()
+  "Generates a random Prolog string for the HSLG paradox (Calculus/Unified domain)."
+  (let ((templates (list
+                    "valid_calculus_structure(hayward_core(R)) :- atom(R)"
+                    "valid_calculus_structure(qnm_resonance(M, L)) :- atom(M), atom(L)"
+                    "valid_calculus_structure(golden_ratio_mass(S)) :- atom(S)"
+                    "valid_calculus_structure(limit(hayward_core(R), R, 0)) :- atom(R)"
+                    "valid_calculus_structure(limit(golden_ratio_mass(S), S, phi)) :- atom(S)")))
+    (random-element templates)))
+
+(defun meta-mutate-axiom-hslg (proc-cell domain current-ast best-penalty check-fn)
+  (if (and *meta-evolution-enabled* (eq domain :calculus))
+      (let ((new-axiom (get-random-axiom-structure-hslg)))
+        (inject-prolog-rule proc-cell new-axiom) ; Directly inject to default module
+        (let ((new-op (if (search "hayward_core" new-axiom) 'hayward_core
+                          (if (search "qnm_resonance" new-axiom) 'qnm_resonance
+                              (if (search "golden_ratio_mass" new-axiom) 'golden_ratio_mass nil)))))
+          (if new-op
+              (progn
+                (pushnew new-op *current-operators*)
+                (let* ((mutated-ast (mutate current-ast))
+                       (new-penalty (funcall check-fn mutated-ast domain proc-cell :target)))
+                  (if (< new-penalty best-penalty)
+                      (progn
+                        (format t "[META-EVOLUTION] Discovered and validated new HSLG axiom! ~A~%" new-axiom)
+                        (push new-axiom *discovered-axioms*)
+                        (values mutated-ast new-penalty new-axiom))
+                      (progn
+                        (retract-prolog-rule proc-cell new-axiom)
+                        (setf *current-operators* (remove new-op *current-operators*))
+                        (values nil nil nil)))))
+              (progn
+                (retract-prolog-rule proc-cell new-axiom)
+                (values nil nil nil)))))
+      (values nil nil nil)))
+
+(defun get-random-axiom-structure-hslg-part2 ()
+  "Generates a random Prolog string for the HSLG Part 2 paradox (Thermo/Holography)."
+  (let ((templates (list
+                    "valid_thermo_structure(effective_lambda(L)) :- atom(L)"
+                    "valid_holo_structure(holo_reconstruction(S_BH, S_Baby)) :- atom(S_BH), atom(S_Baby)"
+                    "valid_thermo_structure(hayward_roots(M, L)) :- atom(M), atom(L)"
+                    "valid_holo_structure(info_paradox_resolved(Lambda)) :- atom(Lambda)"
+                    "valid_thermo_structure(sub(add(entropy(S1), entropy(S2)), entropy(S_final))) :- atom(S1), atom(S2), atom(S_final)")))
+    (random-element templates)))
+
+(defun meta-mutate-axiom-hslg-part2 (proc-cell domain current-ast best-penalty check-fn)
+  (if (and *meta-evolution-enabled* (eq domain :unified)) ; We run this in unified to cross thermo & holography
+      (let ((new-axiom (get-random-axiom-structure-hslg-part2)))
+        (inject-prolog-rule proc-cell new-axiom)
+        (let ((new-op (if (search "effective_lambda" new-axiom) 'effective_lambda
+                          (if (search "holo_reconstruction" new-axiom) 'holo_reconstruction
+                              (if (search "hayward_roots" new-axiom) 'hayward_roots
+                                  (if (search "info_paradox_resolved" new-axiom) 'info_paradox_resolved nil))))))
+          (if new-op
+              (progn
+                (pushnew new-op *current-operators*)
+                (let* ((mutated-ast (mutate current-ast))
+                       (new-penalty (funcall check-fn mutated-ast domain proc-cell :target)))
+                  (if (< new-penalty best-penalty)
+                      (progn
+                        (format t "[META-EVOLUTION] Discovered and validated new HSLG Part 2 axiom! ~A~%" new-axiom)
+                        (push new-axiom *discovered-axioms*)
+                        (values mutated-ast new-penalty new-axiom))
+                      (progn
+                        (retract-prolog-rule proc-cell new-axiom)
+                        (setf *current-operators* (remove new-op *current-operators*))
+                        (values nil nil nil)))))
+              (progn
+                (retract-prolog-rule proc-cell new-axiom)
+                (values nil nil nil)))))
+      (values nil nil nil)))

@@ -1,5 +1,7 @@
 % thermo.pl - Constraints for Thermodynamics using clp(r)
-:- module(thermo, [thermo_censor/1]).
+:- module(thermo, [thermo_censor/1, valid_thermo_structure/1]).
+
+:- dynamic valid_thermo_structure/1.
 :- use_module(library(clpr)).
 
 % Third Law of Thermodynamics: absolute temperatures must be strictly above zero
@@ -32,3 +34,4 @@ valid_thermo(delta_s(T)) :-
     { Temp > 0.0 }.
 
 thermo_censor(AST) :- valid_thermo(AST).
+thermo_censor(AST) :- valid_thermo_structure(AST).

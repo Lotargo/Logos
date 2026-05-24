@@ -274,6 +274,8 @@ is_quantum_expr(cnot(_, _)).
 
 is_thermo_expr(carnot(_, _)).
 is_thermo_expr(delta_s(_)).
+is_thermo_expr(effective_lambda(_)).
+is_thermo_expr(hayward_roots(_, _)).
 
 is_rel_expr(gamma(_)).
 is_rel_expr(add_vel(_, _)).
@@ -282,6 +284,8 @@ is_rel_expr(tachyon(_)).
 
 is_holo_expr(entropy(_)).
 is_holo_expr(info_bound(_)).
+is_holo_expr(holo_reconstruction(_, _)).
+is_holo_expr(info_paradox_resolved(_)).
 
 is_multidim_expr(matmul(_, _)).
 is_multidim_expr(transpose(_)).
@@ -297,6 +301,11 @@ is_calc_expr(deriv(_, _)).
 is_calc_expr(int(_, _)).
 is_calc_expr(sin(_)).
 is_calc_expr(cos(_)).
+is_calc_expr(limit(_, _, _)).
+is_calc_expr(div(_, _)).
+is_calc_expr(hayward_core(_)).
+is_calc_expr(golden_ratio_mass(_)).
+is_calc_expr(qnm_resonance(_, _)).
 
 is_logic_expr(and(_, _)).
 is_logic_expr(or(_, _)).

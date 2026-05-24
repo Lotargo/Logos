@@ -1,4 +1,5 @@
 % calculus.pl - Prolog Calculus invariants (Derivatives and Integrals)
+:- dynamic valid_calculus_structure/1.
 
 calculus_censor(AST) :-
     valid_calculus_structure(AST).
