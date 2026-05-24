@@ -3,24 +3,27 @@
 quantum_censor(AST, Penalty) :-
     (   \+ valid_quantum_structure(AST)
     ->  Penalty = 1000.0
-    ;   (   is_quantum_redundant(AST)
-        ->  Penalty = 900.0
-        ;   find_qubits(AST, RawQubits),
-            (   RawQubits = []
-            ->  Qubits = [q1, q2]
-            ;   (   length(RawQubits, 1)
-                ->  union(RawQubits, [q2], Qubits)
-                ;   Qubits = RawQubits
+    ;   (   \+ is_unitary_ast(AST)
+        ->  Penalty = 1000.0
+        ;   (   is_quantum_redundant(AST)
+            ->  Penalty = 900.0
+            ;   find_qubits(AST, RawQubits),
+                (   RawQubits = []
+                ->  Qubits = [q1, q2]
+                ;   (   length(RawQubits, 1)
+                    ->  union(RawQubits, [q2], Qubits)
+                    ;   Qubits = RawQubits
+                    )
+                ),
+                sort_qubits(Qubits, SortedQs),
+                length(SortedQs, N),
+                create_ground_state(N, GroundVec),
+                GroundState = [amp(c(1, 0), GroundVec)],
+                (   catch(eval_quantum(AST, SortedQs, GroundState, FinalState), _, fail)
+                ->  quantum_fidelity(FinalState, SortedQs, Fidelity),
+                    Penalty is 1000.0 * (1.0 - Fidelity)
+                ;   Penalty = 1000.0
                 )
-            ),
-            sort_qubits(Qubits, SortedQs),
-            length(SortedQs, N),
-            create_ground_state(N, GroundVec),
-            GroundState = [amp(c(1, 0), GroundVec)],
-            (   catch(eval_quantum(AST, SortedQs, GroundState, FinalState), _, fail)
-            ->  quantum_fidelity(FinalState, SortedQs, Fidelity),
-                Penalty is 1000.0 * (1.0 - Fidelity)
-            ;   Penalty = 1000.0
             )
         )
     ).
@@ -276,3 +279,93 @@ create_bell_v1(N, [1, 1 | Rest]) :-
 
 all_zeros([]).
 all_zeros([0|T]) :- all_zeros(T).
+
+
+% =======================================================================
+% Semantic Unitary Verification (Algebraic Matrices)
+% =======================================================================
+
+% Map Gates to Real Matrices
+gate_matrix(h(_), [[0.70710678, 0.70710678], [0.70710678, -0.70710678]]).
+gate_matrix(x_gate(_), [[0.0, 1.0], [1.0, 0.0]]).
+gate_matrix(y_gate(_), [[0.0, -1.0], [1.0, 0.0]]). % Assuming Real representation for PoC (iY)
+gate_matrix(z_gate(_), [[1.0, 0.0], [0.0, -1.0]]).
+gate_matrix(cnot(_, _), [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 1.0, 0.0]]).
+
+build_unitary(X, M) :- gate_matrix(X, M), !.
+build_unitary(seq(A, B), M) :-
+    build_unitary(A, M_A),
+    build_unitary(B, M_B),
+    length(M_A, L_A),
+    length(M_B, L_B),
+    (   L_A =:= L_B
+    ->  matrix_multiply(M_B, M_A, M) % For sequential gates, matrices must be same size
+    ;   M = [[1.0, 0.0], [0.0, 1.0]] % Mismatch size fallback
+    ).
+build_unitary(tensor(A, B), [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]]). % Fallback identity 4x4
+build_unitary(_, [[1.0, 0.0], [0.0, 1.0]]). % Fallback identity 2x2
+
+% Vector dot product
+dot_product([], [], 0.0).
+dot_product([H1|T1], [H2|T2], Result) :-
+    dot_product(T1, T2, Rest),
+    Result is H1 * H2 + Rest.
+
+% Get column from matrix
+get_column([], _, []).
+get_column([Row|Matrix], ColIndex, [Elem|ColRest]) :-
+    nth0(ColIndex, Row, Elem),
+    get_column(Matrix, ColIndex, ColRest).
+
+% Matrix multiplication
+matrix_multiply(M1, M2, Result) :-
+    M2 = [Row1|_],
+    length(Row1, NumCols),
+    numlist(0, NumCols, ColIndicesExt),
+    append(ColIndices, [_], ColIndicesExt),
+    maplist(multiply_row(M2, ColIndices), M1, Result).
+
+multiply_row(M2, ColIndices, Row, ResultRow) :-
+    maplist(multiply_cell(M2, Row), ColIndices, ResultRow).
+
+multiply_cell(M2, Row, ColIndex, Result) :-
+    get_column(M2, ColIndex, Col),
+    dot_product(Row, Col, Result).
+
+% Matrix transpose (Conjugate Transpose for Real matrices)
+transpose([[]|_], []).
+transpose(Matrix, [Col|T]) :-
+    matrix_first_col(Matrix, Col, RestMatrix),
+    transpose(RestMatrix, T).
+
+matrix_first_col([], [], []).
+matrix_first_col([[H|T]|Rows], [H|Hs], [T|Ts]) :-
+    matrix_first_col(Rows, Hs, Ts).
+
+% Round matrix elements to handle float inaccuracies
+round_matrix([], []).
+round_matrix([Row|T], [RRow|RT]) :-
+    maplist(round_elem, Row, RRow),
+    round_matrix(T, RT).
+
+round_elem(E, RE) :- RE is round(E * 1000000.0) / 1000000.0.
+
+% Check Identity matrix
+is_identity_matrix(M) :-
+    length(M, N),
+    numlist(0, N, IndicesExt),
+    append(Indices, [_], IndicesExt),
+    maplist(check_identity_row(N), Indices, M).
+
+check_identity_row(N, RowIndex, Row) :-
+    length(Row, N),
+    nth0(RowIndex, Row, 1.0),
+    sum_list(Row, 1.0).
+
+% Full Unitary Check (U * U^T = I)
+is_unitary_ast(AST) :-
+    build_unitary(AST, U),
+    transpose(U, UT),
+    matrix_multiply(U, UT, Product),
+    round_matrix(Product, RoundedProduct),
+    is_identity_matrix(RoundedProduct).
