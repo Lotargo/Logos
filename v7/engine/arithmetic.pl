@@ -9,11 +9,62 @@ arithmetic_censor(AST, Penalty) :-
         ->  Penalty = 1000.0
         ;   (   \+ evaluable_in_r(AST)
             ->  Penalty = 950.0
-            ;   count_redundancies(AST, Count),
-                Penalty is Count * 20.0
+            ;   full_simplify(AST, SimplifiedAST),
+                (   AST == SimplifiedAST
+                ->  count_redundancies(AST, Count),
+                    Penalty is Count * 20.0
+                ;   ast_depth(SimplifiedAST, Depth),
+                    Penalty is Depth * 2.0  % Lower penalty for highly simplifiable ASTs
+                )
             )
         )
     ).
+
+% Full recursive simplify wrapper
+full_simplify(Expr, Simplified) :-
+    simplify_step(Expr, NextExpr),
+    ( Expr == NextExpr -> Simplified = Expr ; full_simplify(NextExpr, Simplified) ).
+
+% Core simplify patterns (Occam's razor logic at algebraic level)
+simplify_step(add(X, 0), Res) :- !, simplify_step(X, Res).
+simplify_step(add(0, X), Res) :- !, simplify_step(X, Res).
+simplify_step(sub(X, 0), Res) :- !, simplify_step(X, Res).
+simplify_step(sub(X, X), 0) :- !.
+simplify_step(mul(X, 1), Res) :- !, simplify_step(X, Res).
+simplify_step(mul(1, X), Res) :- !, simplify_step(X, Res).
+simplify_step(mul(_, 0), 0) :- !.
+simplify_step(mul(0, _), 0) :- !.
+simplify_step(div(X, 1), Res) :- !, simplify_step(X, Res).
+simplify_step(div(X, X), 1) :- X \= 0, !.
+
+% Recursive descent for operations
+simplify_step(add(X, Y), Res) :-
+    simplify_step(X, SX), simplify_step(Y, SY),
+    ( number(SX), number(SY) -> Res is SX + SY ; Res = add(SX, SY) ).
+simplify_step(sub(X, Y), Res) :-
+    simplify_step(X, SX), simplify_step(Y, SY),
+    ( number(SX), number(SY) -> Res is SX - SY ; (SX == SY -> Res = 0 ; Res = sub(SX, SY)) ).
+simplify_step(mul(X, Y), Res) :-
+    simplify_step(X, SX), simplify_step(Y, SY),
+    ( number(SX), number(SY) -> Res is SX * SY ;
+      (SX == 0 ; SY == 0) -> Res = 0 ;
+      (SX == 1 -> Res = SY ; SY == 1 -> Res = SX ; Res = mul(SX, SY)) ).
+simplify_step(div(X, Y), Res) :-
+    simplify_step(X, SX), simplify_step(Y, SY),
+    ( number(SX), number(SY), SY \= 0 -> Res is SX / SY ;
+      (SX == SY, SY \= 0) -> Res = 1 ;
+      (SY == 1 -> Res = SX ; Res = div(SX, SY)) ).
+
+simplify_step(X, X). % Atom or variable fallback
+
+% Helper to penalize complex trees
+ast_depth(Var, 1) :- atom(Var), !.
+ast_depth(Num, 1) :- number(Num), !.
+ast_depth(add(X, Y), D) :- ast_depth(X, DX), ast_depth(Y, DY), D is max(DX, DY) + 1.
+ast_depth(sub(X, Y), D) :- ast_depth(X, DX), ast_depth(Y, DY), D is max(DX, DY) + 1.
+ast_depth(mul(X, Y), D) :- ast_depth(X, DX), ast_depth(Y, DY), D is max(DX, DY) + 1.
+ast_depth(div(X, Y), D) :- ast_depth(X, DX), ast_depth(Y, DY), D is max(DX, DY) + 1.
+ast_depth(_, 10). % fallback
 
 % Invalid structures: Division by zero
 contains_div_zero(div(_, 0)).
