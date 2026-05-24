@@ -143,10 +143,7 @@ target_censor(holography, AST, Penalty) :-
 
 target_censor(logic, AST, Penalty) :-
     !,
-    (   logic:logic_censor(AST)
-    ->  Penalty = 0.0
-    ;   Penalty = 1000.0
-    ).
+    logic:logic_censor(AST, Penalty).
 
 target_censor(hardware, AST, Penalty) :-
     !,
@@ -218,10 +215,7 @@ unified_eval(AST, Penalty) :-
 unified_eval(AST, Penalty) :-
     is_logic_expr(AST),
     !,
-    (   logic:logic_censor(AST)
-    ->  Penalty = 0.0
-    ;   Penalty = 1000.0
-    ).
+    logic:logic_censor(AST, Penalty).
 
 % Arithmetic operators (recursive traversal + soft Occam's Razor)
 unified_eval(add(A, B), Penalty) :-
@@ -291,6 +285,7 @@ is_quantum_expr(x_gate(_)).
 is_quantum_expr(y_gate(_)).
 is_quantum_expr(z_gate(_)).
 is_quantum_expr(cnot(_, _)).
+is_quantum_expr(oracle(_, _)).
 
 is_thermo_expr(carnot(_, _)).
 is_thermo_expr(delta_s(_)).
