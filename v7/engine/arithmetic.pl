@@ -12,9 +12,14 @@ arithmetic_censor(AST, Penalty) :-
             ;   full_simplify(AST, SimplifiedAST),
                 (   AST == SimplifiedAST
                 ->  count_redundancies(AST, Count),
-                    Penalty is Count * 20.0
-                ;   ast_depth(SimplifiedAST, Depth),
-                    Penalty is Depth * 2.0  % Lower penalty for highly simplifiable ASTs
+                    (   Count > 0
+                    ->  Penalty = 1000.0 % Strict identity defense: any redundancy kills the branch
+                    ;   Penalty = 0.0  % Perfect AST with no redundancies
+                    )
+                ;   (   SimplifiedAST == 0, ast_depth(AST, Depth), Depth > 5
+                    ->  Penalty = 1000.0 % Aggressive pruning: Huge tree collapses to 0
+                    ;   Penalty = 1000.0 % Strict identity defense: AST could be simplified, kill the branch
+                    )
                 )
             )
         )

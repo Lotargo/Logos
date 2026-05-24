@@ -329,6 +329,7 @@ is_calc_expr(qnm_resonance(_, _)).
 
 is_logic_expr(and(_, _)).
 is_logic_expr(or(_, _)).
+is_logic_expr(xor(_, _)).
 is_logic_expr(implies(_, _)).
 is_logic_expr(not(_)).
 
