@@ -9,6 +9,7 @@
 :- consult('thermo.pl').
 :- consult('holography.pl').
 :- consult('logic.pl').
+:- consult('hardware.pl').
 
 % Dispatcher based on Domain returning float Penalty (0.0 is perfect, 1000.0 is worst)
 
@@ -131,6 +132,10 @@ target_censor(logic, AST, Penalty) :-
     ->  Penalty = 0.0
     ;   Penalty = 1000.0
     ).
+
+target_censor(hardware, AST, Penalty) :-
+    !,
+    hardware:hardware_censor(AST, Penalty).
 
 target_censor(unified, AST, Penalty) :-
     !,
