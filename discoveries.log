@@ -68,3 +68,88 @@
                                                              (+ (* Q2)
                                                                 (NOT P Q1))
                                                              (H 1 Z))
+[NOVELTY] Thread 3 | Domain: QUANTUM | Penalty: 0.60 | AST: (SEQ (H Q1)
+                                                             (SEQ Q1 Q2))
+[NOVELTY] Thread 3 | Domain: QUANTUM | Penalty: 0.60 | AST: (SEQ (H Q1)
+                                                             (SEQ Q1 Q1))
+[NOVELTY] Thread 1 | Domain: THERMO | Penalty: 0.00 | AST: (CARNOT T_HOT T_COLD)
+[NOVELTY] Thread 4 | Domain: HOLOGRAPHY | Penalty: 0.00 | AST: (ENTROPY AREA)
+[NOVELTY] Thread 4 | Domain: HOLOGRAPHY | Penalty: 0.00 | AST: (ENTROPY AREA)
+[NOVELTY] Thread 1 | Domain: CALCULUS | Penalty: 0.00 | AST: (/
+                                                              (DERIV (/ 1 1) X)
+                                                              (/ 0 1))
+[NOVELTY] Thread 1 | Domain: CALCULUS | Penalty: 0.00 | AST: (+
+                                                              (DERIV (/ 1 1) X)
+                                                              (- 1 1))
+[NOVELTY] Thread 1 | Domain: CALCULUS | Penalty: 0.00 | AST: (-
+                                                              (DERIV (/ 1 1) X)
+                                                              (- 1 1))
+[NOVELTY] Thread 3 | Domain: HOLOGRAPHY | Penalty: 0.00 | AST: (INFO_BOUND AREA)
+[NOVELTY] Thread 2 | Domain: CALCULUS | Penalty: 0.00 | AST: (GOLDEN_RATIO_MASS
+                                                              (- (COS ADF-27 X)
+                                                                 ADF-8)
+                                                              ADF-1 0)
+[NOVELTY] Thread 2 | Domain: CALCULUS | Penalty: 0.00 | AST: (GOLDEN_RATIO_MASS
+                                                              (/ (COS ADF-27 X)
+                                                                 ADF-17)
+                                                              ADF-1 0)
+[NOVELTY] Thread 2 | Domain: CALCULUS | Penalty: 0.00 | AST: (QNM_RESONANCE
+                                                              (/ (COS ADF-15 X)
+                                                                 ADF-1)
+                                                              (- ADF-2 0) ADF-1)
+[NOVELTY] Thread 2 | Domain: CALCULUS | Penalty: 0.00 | AST: (HAYWARD_CORE
+                                                              (/ (COS ADF-2 X)
+                                                                 X)
+                                                              (- (+ ADF-5 0) 0)
+                                                              ADF-9)
+[NOVELTY] Thread 2 | Domain: CALCULUS | Penalty: 0.00 | AST: (GOLDEN_RATIO_MASS
+                                                              (* (COS ADF-2 X)
+                                                                 X)
+                                                              (- (+ ADF-5 1) 0)
+                                                              X)
+[NOVELTY] Thread 3 | Domain: QUANTUM | Penalty: 0.60 | AST: (SEQ (H Q2)
+                                                             (CNOT Q2 Q1))
+[NOVELTY] Thread 1 | Domain: UNIFIED | Penalty: 0.00 | AST: (HAYWARD_ROOTS
+                                                             (AND (OR Z)
+                                                                  (* V1))
+                                                             (OR
+                                                              (* ADF-13 M4X1)))
+[NOVELTY] Thread 3 | Domain: UNIFIED | Penalty: 0.00 | AST: (EFFECTIVE_LAMBDA
+                                                             (SIN (AND M2X3)
+                                                                  (-
+                                                                   (DOT M2X3
+                                                                    ADF-11)))
+                                                             (/ (H Q AREA)))
+[NOVELTY] Thread 1 | Domain: UNIFIED | Penalty: 0.00 | AST: (HAYWARD_ROOTS
+                                                             (OR (DERIV Z)
+                                                                 (CNOT V1))
+                                                             (- (SIN Y M4X1)))
+[NOVELTY] Thread 3 | Domain: UNIFIED | Penalty: 0.00 | AST: (HAYWARD_ROOTS
+                                                             (NOT (/ M2X3)
+                                                                  (-
+                                                                   (+ S2 Q1)))
+                                                             (INT
+                                                              (X_GATE Q AREA)))
+[NOVELTY] Thread 3 | Domain: UNIFIED | Penalty: 0.00 | AST: (EFFECTIVE_LAMBDA
+                                                             (SCALE (/ Q)
+                                                              (COS
+                                                               (NORM T V2)))
+                                                             (*
+                                                              (SEQ T
+                                                               (Z_GATE Y X))))
+[NOVELTY] Thread 3 | Domain: UNIFIED | Penalty: 0.00 | AST: (INFO_PARADOX_RESOLVED
+                                                             (SEQ (/ ADF-2)
+                                                              (COS
+                                                               (NORM T V2)))
+                                                             (SEQ
+                                                              (H AREA
+                                                               (Z_GATE Y X))))
+[NOVELTY] Thread 3 | Domain: UNIFIED | Penalty: 0.00 | AST: (INFO_PARADOX_RESOLVED
+                                                             (SEQ (/ Q3)
+                                                              (COS
+                                                               (NORM T V2)))
+                                                             (SEQ
+                                                              (H AREA
+                                                               (Z_GATE Y X))))
+[NOVELTY] Thread 1 | Domain: QUANTUM | Penalty: 0.60 | AST: (SEQ (H Q1)
+                                                             (SEQ Q1 Q1))
