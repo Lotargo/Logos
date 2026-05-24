@@ -1,0 +1,4 @@
+[NOVELTY] Thread 4 | Domain: QUANTUM | Penalty: 0.60 | AST: (SEQ (H Q1)
+                                                             (SEQ Q1 Q2))
+[NOVELTY] Thread 1 | Domain: HARDWARE | Penalty: 7.00 | AST: (OR Q (OR Q P))
+[NOVELTY] Thread 1 | Domain: HARDWARE | Penalty: 7.00 | AST: (OR Q (OR Q P))
