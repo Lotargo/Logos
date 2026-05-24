@@ -33,11 +33,11 @@
      (setf *current-variables* '(q1 q2 q3))
      (setf *current-constants* '(1 0)))
     (:regression
-     (setf *current-operators* '(+ - * /))
-     (setf *current-variables* '(x))
-     (setf *current-constants* '(0 1 2 5 10)))
+     (setf *current-operators* '(add sub mul div))
+     (setf *current-variables* '(m1 m2 r))
+     (setf *current-constants* '(1)))
     (:adversarial
-     (setf *current-operators* '(+ - * /))
+     (setf *current-operators* '(add sub mul div))
      (setf *current-variables* '(x))
      (setf *current-constants* '(0 1 2 5 10)))
     (:curry_howard
@@ -194,9 +194,9 @@
     (:hardware
      (values '(and or implies not gate_and gate_or gate_not) '(p q r s) '(true false)))
     (:regression
-     (values '(+ - * /) '(x) '(0 1 2 5 10)))
+     (values '(add sub mul div) '(m1 m2 r) '(1)))
     (:adversarial
-     (values '(+ - * /) '(x) '(0 1 2 5 10)))
+     (values '(add sub mul div) '(x) '(0 1 2 5 10)))
     (:curry_howard
      (values '(+ - * /) '(x y) '(0 1 2)))
     (:unified
