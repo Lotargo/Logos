@@ -7,6 +7,7 @@
 ;; Load Meta-Evolution extensions
 (load "v7/engine/meta_evolve.lisp")
 (load "v7/engine/ontology_generator.lisp")
+(load "v7/engine/verilog_emitter.lisp")
 
 ;; =======================================================================
 ;; 1. Domains Configuration
@@ -176,6 +177,8 @@
      (values '(entropy info_bound) '(area volume) '(0 1 2 5 10)))
     (:logic
      (values '(and or implies not) '(p q) '(true false)))
+    (:hardware
+     (values '(and or implies not gate_and gate_or gate_not) '(p q r s) '(true false)))
     (:unified
      (values '(+ - * / deriv int sin cos seq h cnot x_gate y_gate z_gate matmul transpose cross dot scale norm gamma add_vel carnot delta_s entropy info_bound and or implies not)
              '(x y z t q1 q2 q3 m2x3 m3x2 m3x3 m4x1 s1 s2 v1 v2 t_hot t_cold area volume p q)
@@ -409,7 +412,16 @@
               (loop for h in hybrids do (format t "  ~A~%" h))
               ;; Generate LaTeX Ontology for the best discovery
               (generate-latex-ontology domain base-ast *discovered-axioms* (car hybrids) total-iterations elapsed-seconds))))
-        (format t "No valid hypotheses found.~%"))))
+        (format t "No valid hypotheses found.~%"))
+
+    ;; Silicon Lowering
+    (when (and winners (member domain '(:hardware :logic)))
+      (let* ((best (car winners))
+             (mod-name (format nil "synth_~A" (string-downcase (symbol-name domain))))
+             (path (format nil "v7/hardware/~A.v" mod-name)))
+        (uiop:run-program "mkdir -p v7/hardware" :ignore-error-status t)
+        (emit-verilog best mod-name path)))
+    ))
 
 (defun detect-cpu-cores ()
   "Attempts to detect the number of logical CPU cores. Fallbacks to 4 if detection fails."
@@ -445,6 +457,7 @@
     (when (contains-operator-p '(matmul transpose cross dot scale norm m2x3 m3x2 m3x3 m4x1 v2_a v2_b v3_a v3_b v4_a) ast) (push :multidim domains))
     (when (contains-operator-p '(deriv int sin cos t) ast) (push :calculus domains))
     (when (contains-operator-p '(and or implies not p q true false) ast) (push :logic domains))
+    (when (contains-operator-p '(gate_and gate_or gate_not r s) ast) (push :hardware domains))
     (let ((unique-domains (remove-duplicates domains)))
       (cond
         ((> (length unique-domains) 1) :unified)
@@ -524,6 +537,9 @@
 
           (format t "~%--- Running Logic Domain ---~%")
           (run-engine-parallel '(and p (not p)) :logic 200 num-threads)
+
+          (format t "~%--- Running Hardware Domain (Silicon Lowering) ---~%")
+          (run-engine-parallel '(and p (or q r)) :hardware 200 num-threads)
 
           (format t "~%--- Running Grand Unified Cross-Domain ---~%")
           (run-engine-parallel '(add (seq (h q2) (cnot q2 q1)) (carnot 0 t_cold)) :unified 200 num-threads)))))
