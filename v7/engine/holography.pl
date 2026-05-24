@@ -1,5 +1,7 @@
 % holography.pl - Constraints for Holographic Principle (AdS/CFT) using clp(r)
-:- module(holography, [holography_censor/1]).
+:- module(holography, [holography_censor/1, valid_holo_structure/1]).
+
+:- dynamic valid_holo_structure/1.
 :- use_module(library(clpr)).
 
 % Surfaces must have strictly positive area
@@ -25,3 +27,4 @@ valid_holo(entropy(S, A)) :-
     { S > 0.0, S =< AreaVal / 4.0 }.
 
 holography_censor(AST) :- valid_holo(AST).
+holography_censor(AST) :- valid_holo_structure(AST).
