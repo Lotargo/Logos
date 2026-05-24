@@ -130,11 +130,11 @@
 (defun get-random-axiom-structure-hslg ()
   "Generates a random Prolog string for the HSLG paradox (Calculus/Unified domain)."
   (let ((templates (list
-                    "valid_calculus_structure(hayward_core(R)) :- atom(R)"
-                    "valid_calculus_structure(qnm_resonance(M, L)) :- atom(M), atom(L)"
-                    "valid_calculus_structure(golden_ratio_mass(S)) :- atom(S)"
-                    "valid_calculus_structure(limit(hayward_core(R), R, 0)) :- atom(R)"
-                    "valid_calculus_structure(limit(golden_ratio_mass(S), S, phi)) :- atom(S)")))
+                    "unified_eval(hayward_core(R), P) :- unified_eval(mul(R, 2.0), P)"
+                    "unified_eval(qnm_resonance(M, L), P) :- unified_eval(add(M, L), P)"
+                    "unified_eval(golden_ratio_mass(S), P) :- unified_eval(mul(S, 1.618), P)"
+                    "unified_eval(limit(hayward_core(R), R, 0), P) :- unified_eval(div(R, 2.0), P)"
+                    "unified_eval(limit(golden_ratio_mass(S), S, phi), P) :- unified_eval(sub(S, 1.0), P)")))
     (random-element templates)))
 
 (defun meta-mutate-axiom-hslg (proc-cell domain current-ast best-penalty check-fn)
@@ -164,13 +164,13 @@
       (values nil nil nil)))
 
 (defun get-random-axiom-structure-hslg-part2 ()
-  "Generates a random Prolog string for the HSLG Part 2 paradox (Thermo/Holography)."
+  "Generates a random Prolog string for the HSLG Part 2 paradox (Thermo/Holography) with semantic mappings."
   (let ((templates (list
-                    "valid_thermo_structure(effective_lambda(L)) :- atom(L)"
-                    "valid_holo_structure(holo_reconstruction(S_BH, S_Baby)) :- atom(S_BH), atom(S_Baby)"
-                    "valid_thermo_structure(hayward_roots(M, L)) :- atom(M), atom(L)"
-                    "valid_holo_structure(info_paradox_resolved(Lambda)) :- atom(Lambda)"
-                    "valid_thermo_structure(sub(add(entropy(S1), entropy(S2)), entropy(S_final))) :- atom(S1), atom(S2), atom(S_final)")))
+                    ;; Semantically maps the new concept to an underlying known algebraic transformation inside unified_eval
+                    "unified_eval(effective_lambda(L), P) :- unified_eval(mul(L, 0.5), P)"
+                    "unified_eval(holo_reconstruction(S_BH, S_Baby), P) :- unified_eval(add(S_BH, S_Baby), P)"
+                    "unified_eval(hayward_roots(M, L), P) :- unified_eval(sub(M, mul(L, 2)), P)"
+                    "unified_eval(info_paradox_resolved(Lambda), P) :- unified_eval(div(Lambda, 2.0), P)")))
     (random-element templates)))
 
 (defun meta-mutate-axiom-hslg-part2 (proc-cell domain current-ast best-penalty check-fn)
