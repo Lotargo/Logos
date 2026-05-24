@@ -1,5 +1,5 @@
 % logic.pl - Constraints for Boolean Logic
-:- module(logic, [logic_censor/1, eval_bool/4]).
+:- module(logic, [logic_censor/2, eval_bool/4]).
 
 is_bool(true).
 is_bool(false).
@@ -89,9 +89,29 @@ is_logic_redundant(xor(A, B)) :- is_logic_redundant(A) ; is_logic_redundant(B).
 is_logic_redundant(implies(A, B)) :- is_logic_redundant(A) ; is_logic_redundant(B).
 is_logic_redundant(not(A)) :- is_logic_redundant(A).
 
-% The logic censor accepts an AST if it is syntactically a bool,
-% NOT a logical contradiction, and NOT algebraic/redundant.
-logic_censor(AST) :-
-    is_bool(AST),
-    \+ is_contradiction(AST),
-    \+ is_logic_redundant(AST).
+% Calculate Hamming distance between evaluated AST and a target truth table (TT, TF, FT, FF)
+% By default, we target a tautology (all true), or this can be parameterized.
+% For simplicity in this demo, let's target (P XOR Q) as an interesting logic function, or just True.
+% Let's use a generic tautology target: true, true, true, true
+hamming_distance(AST, TargetTT, TargetTF, TargetFT, TargetFF, Distance) :-
+    eval_bool(AST, true, true, R1),
+    eval_bool(AST, true, false, R2),
+    eval_bool(AST, false, true, R3),
+    eval_bool(AST, false, false, R4),
+    (R1 == TargetTT -> D1 = 0 ; D1 = 1),
+    (R2 == TargetTF -> D2 = 0 ; D2 = 1),
+    (R3 == TargetFT -> D3 = 0 ; D3 = 1),
+    (R4 == TargetFF -> D4 = 0 ; D4 = 1),
+    Distance is D1 + D2 + D3 + D4.
+
+% The logic censor calculates a continuous penalty gradient based on Hamming distance.
+logic_censor(AST, Penalty) :-
+    (   \+ is_bool(AST)
+    ->  Penalty = 1000.0
+    ;   (   is_logic_redundant(AST)
+        ->  Penalty = 1000.0
+        ;   % Example target: XOR gate logic (false, true, true, false)
+            hamming_distance(AST, false, true, true, false, Dist),
+            Penalty is Dist * 250.0
+        )
+    ).

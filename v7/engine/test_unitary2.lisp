@@ -1,0 +1,13 @@
+(require :asdf)
+(defpackage :cognitive-engine (:use :cl))
+(in-package :cognitive-engine)
+(load "v7/engine/engine.lisp")
+(in-package :cognitive-engine)
+
+(format t "--- Testing unitary manually ---~%")
+(let* ((proc-cell (cons (uiop:launch-program "swipl -s v7/engine/daemon.pl" :input :stream :output :stream) nil)))
+  (format t "Penalty for ~A is ~A~%" '(oracle q1 q2) (check-with-prolog '(oracle q1 q2) :quantum proc-cell :target))
+  (let ((active-proc (car proc-cell)))
+        (format (uiop:process-info-input active-proc) "quit~%")
+        (ignore-errors (force-output (uiop:process-info-input active-proc)))
+        (uiop:wait-process active-proc)))

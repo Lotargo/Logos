@@ -29,7 +29,7 @@
      (setf *current-variables* '(x t))
      (setf *current-constants* '(0 1 -1)))
     (:quantum
-     (setf *current-operators* '(tensor seq h x_gate y_gate z_gate cnot))
+     (setf *current-operators* '(tensor seq h x_gate y_gate z_gate cnot oracle))
      (setf *current-variables* '(q1 q2 q3))
      (setf *current-constants* '(1 0)))
     (:regression
@@ -180,7 +180,7 @@
     (:calculus
      (values '(+ - * / deriv int sin cos) '(x t) '(0 1 -1)))
     (:quantum
-     (values '(seq h cnot) '(q1 q2) nil))
+     (values '(seq h x_gate y_gate z_gate cnot oracle) '(q1 q2) nil))
     (:multidim
      (values '(add sub dot cross scale norm matmul transpose) '(m2x3 m3x2 m3x3 m4x1 s1 s2) '(0 1)))
     (:relativity
@@ -473,7 +473,7 @@
     (when (contains-operator-p '(gamma add_vel v1 v2) ast) (push :relativity domains))
     (when (contains-operator-p '(carnot delta_s t_hot t_cold) ast) (push :thermo domains))
     (when (contains-operator-p '(entropy info_bound area volume) ast) (push :holography domains))
-    (when (contains-operator-p '(tensor seq h x_gate y_gate z_gate cnot q1 q2 q3) ast) (push :quantum domains))
+    (when (contains-operator-p '(tensor seq h x_gate y_gate z_gate cnot oracle q1 q2 q3) ast) (push :quantum domains))
     (when (contains-operator-p '(matmul transpose cross dot scale norm m2x3 m3x2 m3x3 m4x1 v2_a v2_b v3_a v3_b v4_a) ast) (push :multidim domains))
     (when (contains-operator-p '(deriv int sin cos t) ast) (push :calculus domains))
     (when (contains-operator-p '(and or xor implies not p q true false) ast) (push :logic domains))
