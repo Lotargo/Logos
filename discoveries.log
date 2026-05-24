@@ -193,3 +193,47 @@
                                                                 (NOT
                                                                  (+ ADF-3 X)
                                                                  ADF-8)))
+[NOVELTY] Thread 1 | Domain: QUANTUM | Penalty: 0.60 | AST: (SEQ (H Q2)
+                                                             (CNOT Q2 Q1))
+[NOVELTY] Thread 1 | Domain: LOGIC | Penalty: 0.40 | AST: (IMPLIES P (NOT Q))
+[NOVELTY] Thread 2 | Domain: UNIFIED | Penalty: 0.00 | AST: (*
+                                                             (NORM (IMPLIES Q)
+                                                              (COS V2 Q1))
+                                                             (- (+ T 1) Y))
+[NOVELTY] Thread 2 | Domain: UNIFIED | Penalty: 0.00 | AST: (SIN
+                                                             (SIN (IMPLIES Q)
+                                                                  (COS V2 Q1))
+                                                             (- (+ T 1) ADF-17))
+[NOVELTY] Thread 2 | Domain: UNIFIED | Penalty: 0.00 | AST: (ENTROPY
+                                                             (SIN (IMPLIES Q)
+                                                                  (COS V2 Q1))
+                                                             (- (+ T 1) T_COLD))
+[NOVELTY] Thread 2 | Domain: UNIFIED | Penalty: 0.00 | AST: (+
+                                                             (H (SEQ Q)
+                                                              (COS V2 Q1))
+                                                             (- (+ Q2 ADF-1)
+                                                                (- 100 T)))
+[NOVELTY] Thread 2 | Domain: UNIFIED | Penalty: 0.00 | AST: (ENTROPY
+                                                             (H (SEQ Q)
+                                                              (COS V2 Q1))
+                                                             (- (+ Q2 ADF-1)
+                                                                (- 100 T)))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 10.50 | AST: (GATE_OR P
+                                                               (OR R
+                                                                   (GATE_OR
+                                                                    TRUE TRUE)))
+[NOVELTY] Thread 2 | Domain: HARDWARE | Penalty: 10.50 | AST: (OR R
+                                                                  (OR S
+                                                                      (AND P
+                                                                           TRUE)))
+[NOVELTY] Thread 4 | Domain: QUANTUM | Penalty: 0.60 | AST: (SEQ (H Q2)
+                                                             (CNOT Q2 Q1))
+[NOVELTY] Thread 4 | Domain: LOGIC | Penalty: 0.40 | AST: (OR Q (NOT Q))
+[NOVELTY] Thread 4 | Domain: LOGIC | Penalty: 0.40 | AST: (IMPLIES Q (NOT Q))
+[NOVELTY] Thread 1 | Domain: LOGIC | Penalty: 0.40 | AST: (XOR Q (NOT Q))
+[NOVELTY] Thread 4 | Domain: LOGIC | Penalty: 0.40 | AST: (AND Q (NOT Q))
+[NOVELTY] Thread 3 | Domain: UNIFIED | Penalty: 0.00 | AST: (H
+                                                             (DELTA_S (- M3X2)
+                                                              (H Q2 T))
+                                                             (ENTROPY
+                                                              (+ 100 -1) T))
