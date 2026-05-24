@@ -1,2 +1,57 @@
 [NOVELTY] Thread 2 | Domain: QUANTUM | Penalty: 0.60 | AST: (SEQ (H Q1)
                                                              (SEQ Q1 Q1))
+[NOVELTY] Thread 4 | Domain: QUANTUM | Penalty: 0.60 | AST: (SEQ (H Q2)
+                                                             (CNOT Q2 Q1))
+[NOVELTY] Thread 4 | Domain: QUANTUM | Penalty: 0.60 | AST: (SEQ (H Q2)
+                                                             (SEQ Q2 Q1))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 7.00 | AST: (OR P
+                                                                 (GATE_AND Q Q))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 7.00 | AST: (AND P
+                                                                  (GATE_AND Q
+                                                                   Q))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 12.00 | AST: (OR ADF-26
+                                                                  (OR Q Q))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 7.00 | AST: (OR S (OR Q Q))
+[NOVELTY] Thread 4 | Domain: QUANTUM | Penalty: 0.60 | AST: (SEQ (H Q1)
+                                                             (CNOT Q1 Q2))
+[NOVELTY] Thread 4 | Domain: QUANTUM | Penalty: 0.60 | AST: (SEQ (H Q2)
+                                                             (SEQ Q1 Q2))
+[NOVELTY] Thread 2 | Domain: HARDWARE | Penalty: 15.50 | AST: (IMPLIES
+                                                               (GATE_OR S
+                                                                (GATE_AND R S))
+                                                               (GATE_AND Q R))
+[NOVELTY] Thread 2 | Domain: HARDWARE | Penalty: 12.00 | AST: (GATE_AND
+                                                               (GATE_OR S
+                                                                (GATE_AND R S))
+                                                               (GATE_AND Q R))
+[NOVELTY] Thread 1 | Domain: QUANTUM | Penalty: 0.60 | AST: (SEQ (H Q2)
+                                                             (SEQ Q2 Q1))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 7.00 | AST: (AND Q (AND Q R))
+[NOVELTY] Thread 4 | Domain: LOGIC | Penalty: 0.60 | AST: (OR (OR P P) (NOT Q))
+[NOVELTY] Thread 3 | Domain: HARDWARE | Penalty: 12.00 | AST: (OR (OR P FALSE)
+                                                                  (AND Q
+                                                                       (GATE_AND
+                                                                        TRUE
+                                                                        FALSE)))
+[NOVELTY] Thread 3 | Domain: HARDWARE | Penalty: 12.00 | AST: (GATE_OR
+                                                               (OR P FALSE)
+                                                               (OR Q
+                                                                   (GATE_AND
+                                                                    TRUE
+                                                                    FALSE)))
+[NOVELTY] Thread 3 | Domain: HARDWARE | Penalty: 12.00 | AST: (OR (OR P FALSE)
+                                                                  (GATE_OR Q
+                                                                   (GATE_AND
+                                                                    TRUE
+                                                                    FALSE)))
+[NOVELTY] Thread 1 | Domain: HARDWARE | Penalty: 7.00 | AST: (AND S (OR Q P))
+[NOVELTY] Thread 1 | Domain: HARDWARE | Penalty: 7.00 | AST: (GATE_AND S
+                                                              (OR Q P))
+[NOVELTY] Thread 1 | Domain: QUANTUM | Penalty: 0.70 | AST: (SEQ (H Q2)
+                                                             (SEQ (H Q2) Q1))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 14.00 | AST: (AND R
+                                                                   (OR
+                                                                    (IMPLIES
+                                                                     TRUE
+                                                                     FALSE)
+                                                                    R))
