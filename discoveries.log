@@ -55,3 +55,56 @@
                                                                      TRUE
                                                                      FALSE)
                                                                     R))
+[NOVELTY] Thread 1 | Domain: QUANTUM | Penalty: 0.60 | AST: (SEQ (H Q1)
+                                                             (CNOT Q2 Q1))
+[NOVELTY] Thread 1 | Domain: QUANTUM | Penalty: 0.60 | AST: (SEQ (H Q2)
+                                                             (CNOT Q2 Q1))
+[NOVELTY] Thread 4 | Domain: THERMO | Penalty: 0.00 | AST: (CARNOT T_HOT T_COLD)
+[NOVELTY] Thread 4 | Domain: THERMO | Penalty: 0.00 | AST: (CARNOT T_HOT T_COLD)
+[NOVELTY] Thread 2 | Domain: THERMO | Penalty: 0.00 | AST: (CARNOT T_HOT T_COLD)
+[NOVELTY] Thread 2 | Domain: THERMO | Penalty: 0.00 | AST: (CARNOT T_HOT T_COLD)
+[NOVELTY] Thread 4 | Domain: HOLOGRAPHY | Penalty: 0.00 | AST: (ENTROPY AREA)
+[NOVELTY] Thread 1 | Domain: HARDWARE | Penalty: 7.00 | AST: (GATE_OR P
+                                                              (OR Q R))
+[NOVELTY] Thread 1 | Domain: HARDWARE | Penalty: 7.00 | AST: (OR S (OR Q R))
+[NOVELTY] Thread 1 | Domain: UNIFIED | Penalty: 0.00 | AST: (NORM
+                                                             (TRANSPOSE (- V1)
+                                                              (COS Q2 T))
+                                                             (H Z M3X2))
+[NOVELTY] Thread 1 | Domain: UNIFIED | Penalty: 0.00 | AST: (-
+                                                             (TRANSPOSE (- V1)
+                                                              (COS Q2 T))
+                                                             (H Z M3X2))
+[NOVELTY] Thread 1 | Domain: UNIFIED | Penalty: 0.00 | AST: (-
+                                                             (COS (- V1)
+                                                                  (COS T T))
+                                                             (H S2 M3X2))
+[NOVELTY] Thread 1 | Domain: UNIFIED | Penalty: 0.00 | AST: (H
+                                                             (H (- V1)
+                                                              (COS T T))
+                                                             (H S2 M3X2))
+[NOVELTY] Thread 1 | Domain: UNIFIED | Penalty: 0.00 | AST: (H
+                                                             (H (- V1) (* T T))
+                                                             (DELTA_S S2 M3X2))
+[NOVELTY] Thread 3 | Domain: REGRESSION | Penalty: 37.14 | AST: (DIV
+                                                                 (ADD M2
+                                                                  (DIV M1 1))
+                                                                 R)
+[NOVELTY] Thread 4 | Domain: REGRESSION | Penalty: 37.14 | AST: (DIV
+                                                                 (ADD M2
+                                                                  (DIV M1 1))
+                                                                 R)
+[NOVELTY] Thread 4 | Domain: REGRESSION | Penalty: 37.14 | AST: (DIV
+                                                                 (ADD M2
+                                                                  (DIV M1 1))
+                                                                 R)
+[NOVELTY] Thread 1 | Domain: HARDWARE | Penalty: 7.00 | AST: (GATE_AND P
+                                                              (OR Q Q))
+[NOVELTY] Thread 1 | Domain: HARDWARE | Penalty: 7.00 | AST: (GATE_OR P
+                                                              (OR Q Q))
+[NOVELTY] Thread 1 | Domain: HARDWARE | Penalty: 15.50 | AST: (IMPLIES ADF-27
+                                                               (OR Q Q))
+[NOVELTY] Thread 1 | Domain: HARDWARE | Penalty: 12.00 | AST: (GATE_AND ADF-27
+                                                               (OR Q Q))
+[NOVELTY] Thread 1 | Domain: HARDWARE | Penalty: 12.00 | AST: (GATE_OR ADF-27
+                                                               (OR Q Q))
