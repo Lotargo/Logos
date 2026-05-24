@@ -16,10 +16,7 @@ arithmetic_censor(AST, Penalty) :-
                     ->  Penalty = 1000.0 % Strict identity defense: any redundancy kills the branch
                     ;   Penalty = 0.0  % Perfect AST with no redundancies
                     )
-                ;   (   SimplifiedAST == 0, ast_depth(AST, Depth), Depth > 5
-                    ->  Penalty = 1000.0 % Aggressive pruning: Huge tree collapses to 0
-                    ;   Penalty = 1000.0 % Strict identity defense: AST could be simplified, kill the branch
-                    )
+                ;   Penalty = 1000.0 % Strict identity defense: AST could be simplified, kill the branch
                 )
             )
         )

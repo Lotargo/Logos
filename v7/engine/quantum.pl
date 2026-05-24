@@ -82,7 +82,6 @@ is_quantum_redundant(h(h(_))).
 is_quantum_redundant(x_gate(x_gate(_))).
 is_quantum_redundant(y_gate(y_gate(_))).
 is_quantum_redundant(z_gate(z_gate(_))).
-is_quantum_redundant(oracle(oracle(_, _))).
 is_quantum_redundant(seq(A, B)) :- A == B, is_self_inverse(A).
 
 % Propagate redundancy checks
