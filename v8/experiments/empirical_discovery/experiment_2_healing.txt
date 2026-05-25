@@ -3,70 +3,71 @@ Base AST: (DIV (MUL M1 M2) R)
 Domain: REGRESSION
 Iterations: 800
 ----------------------------------------
-=== Starting Parallel Cognitive Engine v7 ===
+=== Starting Parallel Logos Cognitive Engine ===
 Domain: REGRESSION
 Base AST: (DIV (MUL M1 M2) R)
 Threads: 4
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-40 -> (DIV
-                                                                      (MUL
-                                                                       (SUB
-                                                                        ADF-4
-                                                                        ADF-8)
-                                                                       (MUL
-                                                                        ADF-6
-                                                                        ADF-6))
-                                                                      (SUB
-                                                                       (ADD
-                                                                        ADF-4
-                                                                        1)
-                                                                       (ADD M2
-                                                                        (DIV 1
-                                                                         1))))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-41 -> (ADD
-                                                                      (DIV M2
-                                                                       (DIV R
-                                                                        ADF-20))
-                                                                      (MUL
-                                                                       ADF-26
-                                                                       M2))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-42 -> (DIV
-                                                                      (ADD
-                                                                       (DIV M2
-                                                                        ADF-12)
-                                                                       (MUL 1
-                                                                        ADF-38))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-41 -> (SUB
                                                                       (DIV
-                                                                       ADF-13
-                                                                       (MUL
+                                                                       (SUB
+                                                                        ADF-9
+                                                                        (DIV
+                                                                         ADF-14
+                                                                         M2))
+                                                                       ADF-38)
+                                                                      (SUB R
+                                                                       ADF-4))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-42 -> (SUB
+                                                                      (DIV
+                                                                       (ADD M2
+                                                                        M1)
+                                                                       (ADD
+                                                                        ADF-1
+                                                                        1))
+                                                                      (DIV
+                                                                       ADF-1
+                                                                       (SUB
+                                                                        (MUL 1
+                                                                         1)
+                                                                        ADF-22)))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-43 -> (ADD
+                                                                      (ADD
+                                                                       (ADD
                                                                         ADF-4
-                                                                        1)))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-43 -> (MUL
-                                                                      (MUL R
-                                                                       M1)
+                                                                        (DIV 1
+                                                                         1))
+                                                                       (DIV
+                                                                        ADF-7
+                                                                        1))
+                                                                      (SUB
+                                                                       ADF-6
+                                                                       ADF-3))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-44 -> (MUL
+                                                                      (DIV
+                                                                       ADF-12
+                                                                       ADF-25)
                                                                       (MUL
                                                                        (MUL
-                                                                        ADF-10
-                                                                        ADF-25)
-                                                                       (ADD
-                                                                        ADF-7
-                                                                        1)))
+                                                                        (ADD M2
+                                                                         1)
+                                                                        M1)
+                                                                       M1))
 
 ==================================================
-      v7 ENGINE PERFORMANCE DASHBOARD
+      LOGOS ENGINE PERFORMANCE DASHBOARD
 ==================================================
-Total Elapsed Time    : 1.6080 seconds
+Total Elapsed Time    : 0.9200 seconds
 Logical CPU Cores     : 4
 Total ASTs Evaluated  : 3200
-Throughput (AST/sec)  : 1990.05
-Avg Latency per AST   : 0.5025 ms
+Throughput (AST/sec)  : 3478.26
+Avg Latency per AST   : 0.2875 ms
 ==================================================
 
 Found valid hypotheses from Islands:
-  (DIV (MUL (SUB ADF-4 ADF-8) (MUL ADF-6 ADF-6))
-   (SUB (ADD ADF-4 1) (ADD M2 (DIV 1 1))))
-  (ADD (DIV M2 (DIV R ADF-20)) (MUL ADF-26 M2))
-  (DIV (ADD (DIV M2 ADF-12) (MUL 1 ADF-38)) (DIV ADF-13 (MUL ADF-4 1)))
-  (MUL (MUL R M1) (MUL (MUL ADF-10 ADF-25) (ADD ADF-7 1)))
+  (SUB (DIV (SUB ADF-9 (DIV ADF-14 M2)) ADF-38) (SUB R ADF-4))
+  (SUB (DIV (ADD M2 M1) (ADD ADF-1 1)) (DIV ADF-1 (SUB (MUL 1 1) ADF-22)))
+  (ADD (ADD (ADD ADF-4 (DIV 1 1)) (DIV ADF-7 1)) (SUB ADF-6 ADF-3))
+  (MUL (DIV ADF-12 ADF-25) (MUL (MUL (ADD M2 1) M1) M1))
 
 --- Final Synthesis Phase (Island Crossover) ---
 ----------------------------------------

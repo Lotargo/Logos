@@ -1,4 +1,4 @@
-% daemon.pl - Persistent Prolog process for v7 worker threads
+% daemon.pl - Persistent Prolog process for Logos worker threads
 % Reads queries from stdin, evaluates them, prints 'true' or 'false' to stdout.
 
 :- consult('rules.pl').
