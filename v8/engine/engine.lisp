@@ -34,7 +34,9 @@
      (setf *current-constants* '(1 0)))
     (:regression
      (setf *current-operators* '(add sub mul div))
-     (setf *current-variables* '(m1 m2 r))
+     (if (and (boundp '*regression-vars*) *regression-vars*)
+         (setf *current-variables* *regression-vars*)
+         (setf *current-variables* '(m1 m2 r)))
      (setf *current-constants* '(1)))
     (:adversarial
      (setf *current-operators* '(add sub mul div))
@@ -136,6 +138,8 @@
                             (t (string-downcase (symbol-name op))))))
            (format nil "~A(~{~A~^, ~})" prolog-op (mapcar #'lisp-to-prolog args))))))))
 
+(defvar *current-dataset* nil)
+
 (defun check-with-prolog (ast domain proc-cell &optional (mode :target))
   "Sends the AST to the running SWI-Prolog daemon with a 1.0s timeout.
    Returns the penalty score (a float between 0.0 and 1000.0) if successful, or 1000.0 if failed."
@@ -143,6 +147,16 @@
          (prepared-ast (if (eq domain :curry_howard) (generate-proof ast) ast))
          (prolog-term (lisp-to-prolog prepared-ast))
          (query (format nil "censor(~A, ~A, ~A, Penalty)." (string-downcase (symbol-name mode)) (string-downcase (symbol-name domain)) prolog-term)))
+    ;; Re-inject active dataset if regression
+    (when (eq domain :regression)
+      (when (and (boundp '*current-dataset*) *current-dataset*)
+         (let ((ds-query (format nil "retractall(active_dataset(_)), assertz(active_dataset('~A'))." *current-dataset*)))
+           (handler-case
+              (sb-ext:with-timeout 1.0
+                (format (uiop:process-info-input proc) "~A~%" ds-query)
+                (force-output (uiop:process-info-input proc))
+                (read-line (uiop:process-info-output proc) nil :eof))
+              (error (e) nil)))))
     (handler-case
         (sb-ext:with-timeout 1.0 ; 1.0 second (1000 milliseconds)
           (format (uiop:process-info-input proc) "~A~%" query)
@@ -194,7 +208,7 @@
     (:hardware
      (values '(and or implies not gate_and gate_or gate_not) '(p q r s) '(true false)))
     (:regression
-     (values '(add sub mul div) '(m1 m2 r) '(1)))
+     (values '(add sub mul div) (if (and (boundp '*regression-vars*) *regression-vars*) *regression-vars* '(m1 m2 r)) '(1)))
     (:adversarial
      (values '(add sub mul div) '(x) '(0 1 2 5 10)))
     (:curry_howard
@@ -524,4 +538,4 @@
           (format t "~%--- Running Grand Unified Cross-Domain ---~%")
           (run-engine-parallel '(add (seq (h q2) (cnot q2 q1)) (carnot 0 t_cold)) :unified 200 num-threads)))))
 
-(main)
+(unless (boundp '*is-cli*) (main))
