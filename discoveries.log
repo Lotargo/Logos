@@ -96,3 +96,27 @@
 [NOVELTY] Thread 3 | Domain: HARDWARE | Penalty: 7.00 | AST: (OR S (AND Q S))
 [NOVELTY] Thread 3 | Domain: HARDWARE | Penalty: 7.00 | AST: (OR S (AND R S))
 [NOVELTY] Thread 3 | Domain: HARDWARE | Penalty: 7.00 | AST: (OR S (AND R S))
+[NOVELTY] Thread 3 | Domain: HARDWARE | Penalty: 7.00 | AST: (AND S (OR Q R))
+[NOVELTY] Thread 3 | Domain: HARDWARE | Penalty: 10.50 | AST: (IMPLIES S
+                                                               (OR Q R))
+[NOVELTY] Thread 3 | Domain: HARDWARE | Penalty: 7.00 | AST: (OR S (OR Q R))
+[NOVELTY] Thread 3 | Domain: HARDWARE | Penalty: 7.00 | AST: (OR P (OR Q R))
+[NOVELTY] Thread 3 | Domain: HARDWARE | Penalty: 7.00 | AST: (GATE_AND P
+                                                              (OR Q R))
+[NOVELTY] Thread 4 | Domain: LOGIC | Penalty: 0.40 | AST: (OR P (NOT Q))
+[NOVELTY] Thread 1 | Domain: HARDWARE | Penalty: 8.50 | AST: (AND (AND Q P)
+                                                                  (OR Q R))
+[NOVELTY] Thread 1 | Domain: HARDWARE | Penalty: 8.50 | AST: (OR (AND Q P)
+                                                                 (OR Q R))
+[NOVELTY] Thread 2 | Domain: HARDWARE | Penalty: 8.50 | AST: (GATE_AND
+                                                              (AND Q P)
+                                                              (OR Q R))
+[NOVELTY] Thread 2 | Domain: HARDWARE | Penalty: 8.50 | AST: (OR (AND S P)
+                                                                 (OR P R))
+[NOVELTY] Thread 1 | Domain: HARDWARE | Penalty: 7.00 | AST: (GATE_AND P
+                                                              (OR Q R))
+[NOVELTY] Thread 1 | Domain: HARDWARE | Penalty: 7.00 | AST: (AND S (OR Q Q))
+[NOVELTY] Thread 2 | Domain: HARDWARE | Penalty: 7.00 | AST: (OR S (OR Q R))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 7.00 | AST: (OR Q (OR S S))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 7.00 | AST: (GATE_AND Q
+                                                              (OR S S))

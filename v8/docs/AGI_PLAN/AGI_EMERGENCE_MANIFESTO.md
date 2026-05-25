@@ -218,6 +218,8 @@ The implementation of `full_simplify` in `arithmetic.pl` is a critical first ste
 
 The engine must be capable of symbolic integration, differentiation, and solving systems of algebraic equations natively. It must not rely on external libraries (like SymPy or Mathematica), as doing so would break the closed-loop nature of the architecture and introduce unacceptable latencies. The Prolog CAS will serve as the mathematical foundation for evaluating the elegance and correctness of hypothesized physical laws.
 
+**[ВЫПОЛНЕНО / SUCCESSFULLY COMPLETED]** Полноценная система компьютерной алгебры (CAS) успешно встроена в `root_axioms.pl`. Добавлены правила для символьного дифференцирования (`deriv/2`), интегрирования (`int/2`) и изоляции переменных в уравнениях (`solve/2`). Вычисления числовых констант также интегрированы, обеспечивая строгую основу для аналитического решения физических уравнений.
+
 #### 9.4 Robustness in Empirical Data Handling
 
 The Symbolic Regression module (`regression.pl`) must be upgraded to handle real-world, noisy datasets. It must be capable of ingesting CSV data representing complex, multi-dimensional phenomena.

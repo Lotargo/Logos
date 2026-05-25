@@ -34,8 +34,15 @@
       (let ((op (if (and (boundp '*current-operators*) *current-operators*)
                     (random-element *current-operators*)
                     'add)))
-        (cons op (loop repeat (if (member op '(h x_gate y_gate z_gate transpose norm gamma delta_s not sin cos deriv int)) 1 2)
-                       collect (generate-random-ast-subtree (1+ depth) max-depth))))))
+        (if (member op '(deriv int))
+            ;; deriv and int require 2 args: Expr and Var. The second arg must be a variable.
+            (list op
+                  (generate-random-ast-subtree (1+ depth) max-depth)
+                  (if (and (boundp '*current-variables*) *current-variables*)
+                      (random-element *current-variables*)
+                      'x))
+            (cons op (loop repeat (if (member op '(h x_gate y_gate z_gate transpose norm gamma delta_s not sin cos)) 1 2)
+                           collect (generate-random-ast-subtree (1+ depth) max-depth)))))))
 
 (defun inject-prolog-rule (proc-cell rule-str)
   "Sends an assertz command to the Prolog daemon to inject a new rule/fact."
