@@ -13,6 +13,7 @@
 :- consult('regression.pl').
 :- consult('adversarial.pl').
 :- consult('curry_howard.pl').
+:- consult('nlp.pl').
 
 % Dispatcher based on Domain returning float Penalty (0.0 is perfect, 1000.0 is worst)
 
@@ -113,6 +114,11 @@ target_censor(adversarial, AST, Penalty) :-
 target_censor(curry_howard, AST, Penalty) :-
     !,
     curry_censor(AST, Penalty).
+
+target_censor(nlp, AST, Penalty) :-
+    !,
+    % For testing, let's hardcode the target tags to "identity" and "artificial" (answering "What are you?")
+    nlp:nlp_censor(AST, [identity, artificial], Penalty).
 
 target_censor(multidim, AST, Penalty) :-
     !,

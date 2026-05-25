@@ -189,6 +189,8 @@
      (values '(carnot delta_s) '(t_hot t_cold) '(0 100 300 500)))
     (:holography
      (values '(entropy info_bound) '(area volume) '(0 1 2 5 10)))
+    (:nlp
+     (values '(sentence np vp pronoun verb noun det adj greeting) '(i you am are is a the machine human think process data logic hello yes no fast smart) nil))
     (:logic
      (values '(and or xor implies not) '(p q) '(true false)))
     (:hardware
@@ -476,6 +478,7 @@
     (when (contains-operator-p '(tensor seq h x_gate y_gate z_gate cnot oracle q1 q2 q3) ast) (push :quantum domains))
     (when (contains-operator-p '(matmul transpose cross dot scale norm m2x3 m3x2 m3x3 m4x1 v2_a v2_b v3_a v3_b v4_a) ast) (push :multidim domains))
     (when (contains-operator-p '(deriv int sin cos t) ast) (push :calculus domains))
+    (when (contains-operator-p '(sentence np vp pronoun verb noun det adj greeting i you am are is a the machine human think process data logic hello yes no fast smart) ast) (push :nlp domains))
     (when (contains-operator-p '(and or xor implies not p q true false) ast) (push :logic domains))
     (when (contains-operator-p '(gate_and gate_or gate_not r s) ast) (push :hardware domains))
     (when (contains-operator-p '(proof type int) ast) (push :curry_howard domains))
