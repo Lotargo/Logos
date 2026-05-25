@@ -20,6 +20,14 @@ expr(mul(A, B)) :- expr(A), expr(B).
 expr(div(A, B)) :- expr(A), expr(B).
 expr(sin(A)) :- expr(A).
 expr(cos(A)) :- expr(A).
+expr(deriv(A, V)) :- expr(A), atom(V).
+expr(int(A, V)) :- expr(A), atom(V).
+expr(eq(A, B)) :- expr(A), expr(B).
+expr(solve(Eq, V)) :- expr(Eq), atom(V).
+
+% Helper: Variable check
+has_var(Expr, Var) :- Expr == Var, !.
+has_var(Expr, Var) :- compound(Expr), Expr =.. [_|Args], member(Arg, Args), has_var(Arg, Var), !.
 
 % Simplification rules (Property-Based Invariant Defense)
 simplify(add(A, 0), B) :- A = B.
@@ -32,6 +40,49 @@ simplify(mul(A, 1), B) :- A = B.
 simplify(mul(1, A), B) :- A = B.
 simplify(div(A, 1), B) :- A = B.
 simplify(div(0, _), 0).
+
+% Evaluate basic numeric operations directly
+simplify(add(A, B), C) :- number(A), number(B), C is A + B.
+simplify(sub(A, B), C) :- number(A), number(B), C is A - B.
+simplify(mul(A, B), C) :- number(A), number(B), C is A * B.
+simplify(div(A, B), C) :- number(A), number(B), B \= 0, (integer(A), integer(B), A mod B =:= 0 -> C is A // B ; C is A / B).
+
+% Differentiation rules (Computer Algebra System)
+simplify(deriv(C, Var), 0) :- atomic(C), C \== Var.
+simplify(deriv(Var, Var), 1) :- atom(Var).
+simplify(deriv(add(A, B), Var), add(deriv(A, Var), deriv(B, Var))).
+simplify(deriv(sub(A, B), Var), sub(deriv(A, Var), deriv(B, Var))).
+simplify(deriv(mul(C, A), Var), mul(C, deriv(A, Var))) :- atomic(C), C \== Var.
+simplify(deriv(mul(A, C), Var), mul(C, deriv(A, Var))) :- atomic(C), C \== Var.
+simplify(deriv(mul(A, B), Var), add(mul(deriv(A, Var), B), mul(A, deriv(B, Var)))).
+simplify(deriv(sin(A), Var), mul(cos(A), deriv(A, Var))).
+simplify(deriv(cos(A), Var), mul(mul(-1, sin(A)), deriv(A, Var))).
+
+% Integration rules (Computer Algebra System)
+simplify(int(0, _), 0).
+simplify(int(C, Var), mul(C, Var)) :- atomic(C), C \== Var.
+simplify(int(Var, Var), div(mul(Var, Var), 2)) :- atom(Var).
+simplify(int(add(A, B), Var), add(int(A, Var), int(B, Var))).
+simplify(int(sub(A, B), Var), sub(int(A, Var), int(B, Var))).
+simplify(int(mul(C, A), Var), mul(C, int(A, Var))) :- atomic(C), C \== Var.
+simplify(int(mul(A, C), Var), mul(C, int(A, Var))) :- atomic(C), C \== Var.
+simplify(int(cos(Var), Var), sin(Var)).
+simplify(int(sin(Var), Var), mul(-1, cos(Var))).
+
+% Equation Solving (Isolating a variable)
+% solve(eq(LHS, RHS), Var) -> eq(Var, Solution)
+simplify(solve(eq(Var, RHS), Var), eq(Var, RHS)) :- atom(Var), \+ has_var(RHS, Var).
+simplify(solve(eq(LHS, Var), Var), eq(Var, LHS)) :- atom(Var), \+ has_var(LHS, Var).
+simplify(solve(eq(add(A, B), RHS), Var), solve(eq(A, sub(RHS, B)), Var)) :- has_var(A, Var), \+ has_var(B, Var).
+simplify(solve(eq(add(A, B), RHS), Var), solve(eq(B, sub(RHS, A)), Var)) :- has_var(B, Var), \+ has_var(A, Var).
+simplify(solve(eq(sub(A, B), RHS), Var), solve(eq(A, add(RHS, B)), Var)) :- has_var(A, Var), \+ has_var(B, Var).
+simplify(solve(eq(sub(A, B), RHS), Var), solve(eq(B, sub(A, RHS)), Var)) :- has_var(B, Var), \+ has_var(A, Var).
+simplify(solve(eq(mul(A, B), RHS), Var), solve(eq(A, div(RHS, B)), Var)) :- has_var(A, Var), \+ has_var(B, Var).
+simplify(solve(eq(mul(A, B), RHS), Var), solve(eq(B, div(RHS, A)), Var)) :- has_var(B, Var), \+ has_var(A, Var).
+simplify(solve(eq(div(A, B), RHS), Var), solve(eq(A, mul(RHS, B)), Var)) :- has_var(A, Var), \+ has_var(B, Var).
+
+% Division rule for solve
+simplify(solve(eq(div(A, B), RHS), Var), solve(eq(B, div(A, RHS)), Var)) :- has_var(B, Var), \+ has_var(A, Var).
 
 % Recursive simplification logic
 full_simplify(X, X) :- atomic(X), !.
