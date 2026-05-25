@@ -1,0 +1,59 @@
+[NOVELTY] Thread 3 | Domain: HARDWARE | Penalty: 8.50 | AST: (OR (GATE_OR R Q)
+                                                                 (OR R R))
+[NOVELTY] Thread 3 | Domain: HARDWARE | Penalty: 12.00 | AST: (IMPLIES (OR R Q)
+                                                               (OR R R))
+[NOVELTY] Thread 3 | Domain: HARDWARE | Penalty: 8.50 | AST: (OR (OR R Q)
+                                                                 (OR R R))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 12.00 | AST: (OR
+                                                               (AND
+                                                                (GATE_OR TRUE
+                                                                 TRUE)
+                                                                Q)
+                                                               (GATE_AND R R))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 12.00 | AST: (GATE_OR
+                                                               (AND
+                                                                (AND S TRUE) Q)
+                                                               (OR R R))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 12.00 | AST: (GATE_OR
+                                                               (AND
+                                                                (AND S TRUE) Q)
+                                                               (OR R R))
+[NOVELTY] Thread 1 | Domain: HARDWARE | Penalty: 12.00 | AST: (OR
+                                                               (AND
+                                                                (AND S TRUE) Q)
+                                                               (OR Q R))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 12.00 | AST: (GATE_OR
+                                                               (AND (OR S TRUE)
+                                                                    Q)
+                                                               (OR R R))
+[NOVELTY] Thread 1 | Domain: HARDWARE | Penalty: 8.50 | AST: (AND (OR Q R)
+                                                                  (OR Q R))
+[NOVELTY] Thread 1 | Domain: LOGIC | Penalty: 0.40 | AST: (OR P (NOT Q))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 10.50 | AST: (OR S
+                                                                  (GATE_OR P
+                                                                   (OR FALSE
+                                                                       S)))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 12.00 | AST: (AND S
+                                                                   (OR
+                                                                    (AND TRUE
+                                                                         TRUE)
+                                                                    (OR FALSE
+                                                                        S)))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 12.00 | AST: (AND S
+                                                                   (GATE_AND
+                                                                    (AND TRUE
+                                                                         S)
+                                                                    (OR FALSE
+                                                                        S)))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 12.00 | AST: (OR P
+                                                                  (OR
+                                                                   (AND TRUE S)
+                                                                   (OR FALSE
+                                                                       S)))
+[NOVELTY] Thread 2 | Domain: HARDWARE | Penalty: 7.00 | AST: (OR Q (OR R Q))
+[NOVELTY] Thread 1 | Domain: LOGIC | Penalty: 0.40 | AST: (OR Q (NOT Q))
+[NOVELTY] Thread 4 | Domain: LOGIC | Penalty: 0.40 | AST: (OR Q (NOT P))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 7.00 | AST: (OR R
+                                                                 (GATE_AND P R))
+[NOVELTY] Thread 4 | Domain: HARDWARE | Penalty: 10.50 | AST: (OR R
+                                                                  (IMPLIES Q R))
