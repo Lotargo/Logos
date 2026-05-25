@@ -136,6 +136,8 @@
                             (t (string-downcase (symbol-name op))))))
            (format nil "~A(~{~A~^, ~})" prolog-op (mapcar #'lisp-to-prolog args))))))))
 
+(defvar *nlp-target-tags* "[identity, artificial]")
+
 (defun check-with-prolog (ast domain proc-cell &optional (mode :target))
   "Sends the AST to the running SWI-Prolog daemon with a 1.0s timeout.
    Returns the penalty score (a float between 0.0 and 1000.0) if successful, or 1000.0 if failed."
@@ -223,6 +225,11 @@
            (actual-iters 0)
            (stagnation-counter 0)
            (novelty-discoveries 0))
+      (when (eq domain :nlp)
+         (let ((query (format nil "retractall(current_nlp_target(_)), assertz(current_nlp_target(~A))." *nlp-target-tags*)))
+            (format (uiop:process-info-input proc) "~A~%" query)
+            (force-output (uiop:process-info-input proc))
+            (read-line (uiop:process-info-output proc) nil :eof)))
       (let ((current-ast base-ast))
         (loop for i from 1 to iterations
               while (or (> best-penalty 0.0) (eq current-mode :novelty))

@@ -260,3 +260,10 @@
                                                                       (IMPLIES
                                                                        Q
                                                                        FALSE)))
+[NOVELTY] Thread 4 | Domain: QUANTUM | Penalty: 0.60 | AST: (SEQ (H Q2)
+                                                             (CNOT Q2 Q1))
+[NOVELTY] Thread 1 | Domain: THERMO | Penalty: 0.00 | AST: (CARNOT T_HOT T_COLD)
+[NOVELTY] Thread 3 | Domain: LOGIC | Penalty: 0.40 | AST: (OR Q (NOT P))
+[NOVELTY] Thread 2 | Domain: LOGIC | Penalty: 0.40 | AST: (OR Q (NOT Q))
+[NOVELTY] Thread 3 | Domain: LOGIC | Penalty: 0.60 | AST: (OR (OR Q P) (NOT Q))
+[NOVELTY] Thread 1 | Domain: HARDWARE | Penalty: 7.00 | AST: (OR R (OR Q R))

@@ -115,10 +115,13 @@ target_censor(curry_howard, AST, Penalty) :-
     !,
     curry_censor(AST, Penalty).
 
+:- dynamic current_nlp_target/1.
+current_nlp_target([identity, artificial]). % Default
+
 target_censor(nlp, AST, Penalty) :-
     !,
-    % For testing, let's hardcode the target tags to "identity" and "artificial" (answering "What are you?")
-    nlp:nlp_censor(AST, [identity, artificial], Penalty).
+    current_nlp_target(TargetTags),
+    nlp:nlp_censor(AST, TargetTags, Penalty).
 
 target_censor(multidim, AST, Penalty) :-
     !,
@@ -224,6 +227,13 @@ unified_eval(AST, Penalty) :-
     !,
     logic:logic_censor(AST, Penalty).
 
+% NLP sub-expressions
+unified_eval(AST, Penalty) :-
+    is_nlp_expr(AST),
+    !,
+    current_nlp_target(TargetTags),
+    nlp:nlp_censor(AST, TargetTags, Penalty).
+
 % Arithmetic operators (recursive traversal + soft Occam's Razor)
 unified_eval(add(A, B), Penalty) :-
     !,
@@ -328,3 +338,14 @@ is_logic_expr(xor(_, _)).
 is_logic_expr(implies(_, _)).
 is_logic_expr(not(_)).
 
+is_nlp_expr(sentence(_, _)).
+is_nlp_expr(np(_)).
+is_nlp_expr(np(_, _)).
+is_nlp_expr(vp(_)).
+is_nlp_expr(vp(_, _)).
+is_nlp_expr(pronoun(_)).
+is_nlp_expr(verb(_)).
+is_nlp_expr(noun(_)).
+is_nlp_expr(det(_)).
+is_nlp_expr(adj(_)).
+is_nlp_expr(greeting(_)).

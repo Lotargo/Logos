@@ -73,7 +73,12 @@ nlp_censor(AST, TargetTags, Penalty) :-
         ->  SemanticScore is MatchCount / TargetLen
         ;   SemanticScore = 0.0
         ),
-        BasePenalty is 1000.0 * (1.0 - SemanticScore),
+        % Anti-Cheat: Penalize semantic noise (tags that are not in target)
+        length(SentenceTags, TotalTags),
+        NoiseCount is TotalTags - MatchCount,
+        NoisePenalty is NoiseCount * 50.0,
+
+        BasePenalty is (1000.0 * (1.0 - SemanticScore)) + NoisePenalty,
 
         % Occam's Razor: Reward shorter, elegant sentences if semantics are fully met
         ast_size(AST, Size),
