@@ -2,6 +2,10 @@
 :- use_module(library(csv)).
 :- use_module(root_axioms).
 
+% Dynamic flag to allow Lisp to set the active dataset
+:- dynamic active_dataset/1.
+active_dataset('v8/engine/anomaly_data.csv'). % Default fallback
+
 % Manually evaluate an AST by substituting variables (m1, m2, r)
 eval_with_context(m1, M1, _, _, M1) :- !.
 eval_with_context(m2, _, M2, _, M2) :- !.
@@ -50,7 +54,8 @@ regression_censor(AST, Penalty) :-
     (   Redundancies > 0
     ->  Penalty = 1000.0
     ;   % Read CSV and calculate error
-        (   catch(csv_read_file('v8/engine/gravity_data.csv', Rows, [functor(row), arity(4)]), _, fail)
+        active_dataset(CsvFile),
+        (   catch(csv_read_file(CsvFile, Rows, [functor(row), arity(4)]), _, fail)
         ->  calculate_error(AST, Rows, TotalError),
             (   TotalError > 1000.0
             ->  Penalty = 1000.0
