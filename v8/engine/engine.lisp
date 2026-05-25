@@ -387,7 +387,7 @@
 
 (defun run-engine-parallel (base-ast domain iterations num-threads)
   (setf *discovered-axioms* nil)
-  (format t "=== Starting Parallel Cognitive Engine v7 ===~%")
+  (format t "=== Starting Parallel Logos Cognitive Engine ===~%")
   (format t "Domain: ~A~%" domain)
   (format t "Base AST: ~A~%" base-ast)
   (format t "Threads: ~D~%" num-threads)
@@ -413,7 +413,7 @@
         (format t "[ADF MANAGER] Extracted and registered dynamic subroutine: ~A -> ~A~%" adf-sym w)))
     
     (format t "~%==================================================~%")
-    (format t "      v7 ENGINE PERFORMANCE DASHBOARD~%")
+    (format t "      LOGOS ENGINE PERFORMANCE DASHBOARD~%")
     (format t "==================================================~%")
     (format t "Total Elapsed Time    : ~,4F seconds~%" elapsed-seconds)
     (format t "Logical CPU Cores     : ~D~%" num-threads)
