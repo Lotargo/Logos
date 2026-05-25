@@ -237,9 +237,3 @@
                                                               (H Q2 T))
                                                              (ENTROPY
                                                               (+ 100 -1) T))
-[NOVELTY] Thread 2 | Domain: HARDWARE | Penalty: 7.00 | AST: (AND P
-                                                                  (GATE_OR P S))
-[NOVELTY] Thread 2 | Domain: HARDWARE | Penalty: 7.00 | AST: (OR P
-                                                                 (GATE_OR P S))
-[NOVELTY] Thread 1 | Domain: LOGIC | Penalty: 0.60 | AST: (OR (OR P Q) (NOT P))
-[NOVELTY] Thread 2 | Domain: HARDWARE | Penalty: 7.00 | AST: (AND R (OR S P))
