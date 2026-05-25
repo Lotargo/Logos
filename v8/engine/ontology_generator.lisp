@@ -1,8 +1,8 @@
 (in-package :cognitive-engine)
 
 (defun ensure-papers-directory-exists ()
-  "Creates the v7/papers directory if it does not exist."
-  (ensure-directories-exist "v7/papers/"))
+  "Creates the v8/papers directory if it does not exist."
+  (ensure-directories-exist "v8/papers/"))
 
 (defun generate-latex-ontology (domain base-ast discovered-axioms best-hybrid iterations elapsed-time)
   "Generates a .tex whitepaper describing the evolutionary process and discovered meta-axioms."
@@ -10,7 +10,7 @@
   (let* ((timestamp (multiple-value-bind (second minute hour date month year)
                         (get-decoded-time)
                       (format nil "~4,'0D~2,'0D~2,'0D_~2,'0D~2,'0D~2,'0D" year month date hour minute second)))
-         (filename (format nil "v7/papers/discovery_~A_~A.tex" (string-downcase (symbol-name domain)) timestamp)))
+         (filename (format nil "v8/papers/discovery_~A_~A.tex" (string-downcase (symbol-name domain)) timestamp)))
     (with-open-file (stream filename :direction :output :if-exists :supersede :if-does-not-exist :create)
       (format stream "\\documentclass{article}~%")
       (format stream "\\usepackage[utf8]{inputenc}~%")
