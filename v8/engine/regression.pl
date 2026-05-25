@@ -1,5 +1,6 @@
 % regression.pl - Empirical Symbolic Regression using data from CSV
 :- use_module(library(csv)).
+:- use_module(root_axioms).
 
 % Manually evaluate an AST by substituting variables (m1, m2, r)
 eval_with_context(m1, M1, _, _, M1) :- !.
@@ -44,30 +45,35 @@ calculate_error(AST, [row(M1, M2, R_val, TargetF)|T], Error) :-
 
 % Entry point for regression domain censor
 regression_censor(AST, Penalty) :-
-    % Include basic Occam's Razor penalty to penalize bloated trees like m1 * m2 / r / r + 0
-    (   catch(csv_read_file('v7/engine/gravity_data.csv', Rows, [functor(row), arity(4)]), _, fail)
-    ->  calculate_error(AST, Rows, TotalError),
-        (   TotalError > 1000.0
-        ->  Penalty = 1000.0
-        ;   % Add a small ast_size penalty if error is extremely low (meaning we found it, but want the simplest one)
-            ast_size(AST, Size),
-            (TotalError < 0.1 -> Penalty is TotalError + (Size * 0.01) ; Penalty = TotalError)
+    % First, apply Occam's Razor from root_axioms to ensure no trivial bloat
+    root_axioms:count_redundancies(AST, Redundancies),
+    (   Redundancies > 0
+    ->  Penalty = 1000.0
+    ;   % Read CSV and calculate error
+        (   catch(csv_read_file('v8/engine/gravity_data.csv', Rows, [functor(row), arity(4)]), _, fail)
+        ->  calculate_error(AST, Rows, TotalError),
+            (   TotalError > 1000.0
+            ->  Penalty = 1000.0
+            ;   % Add a small ast_size penalty if error is extremely low
+                regression_ast_size(AST, Size),
+                (TotalError < 0.1 -> Penalty is TotalError + (Size * 0.01) ; Penalty = TotalError)
+            )
+        ;   Penalty = 1000.0 % Fallback if file read fails
         )
-    ;   Penalty = 1000.0 % Fallback if file read fails
     ).
 
 % Simple AST node counter
-ast_size(AST, Size) :-
+regression_ast_size(AST, Size) :-
     (   atomic(AST)
     ->  Size = 1
     ;   compound(AST)
     ->  AST =.. [_|Args],
-        map_ast_size(Args, ArgSizes),
+        regression_map_ast_size(Args, ArgSizes),
         sum_list(ArgSizes, Sum),
         Size is Sum + 1
     ).
 
-map_ast_size([], []).
-map_ast_size([H|T], [S|ST]) :-
-    ast_size(H, S),
-    map_ast_size(T, ST).
+regression_map_ast_size([], []).
+regression_map_ast_size([H|T], [S|ST]) :-
+    regression_ast_size(H, S),
+    regression_map_ast_size(T, ST).
