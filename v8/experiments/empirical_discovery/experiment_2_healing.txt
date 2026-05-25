@@ -1,0 +1,73 @@
+=== EXPERIMENT: Experiment 2: Broken Formula (Healing) ===
+Base AST: (DIV (MUL M1 M2) R)
+Domain: REGRESSION
+Iterations: 800
+----------------------------------------
+=== Starting Parallel Cognitive Engine v7 ===
+Domain: REGRESSION
+Base AST: (DIV (MUL M1 M2) R)
+Threads: 4
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-40 -> (DIV
+                                                                      (MUL
+                                                                       (SUB
+                                                                        ADF-4
+                                                                        ADF-8)
+                                                                       (MUL
+                                                                        ADF-6
+                                                                        ADF-6))
+                                                                      (SUB
+                                                                       (ADD
+                                                                        ADF-4
+                                                                        1)
+                                                                       (ADD M2
+                                                                        (DIV 1
+                                                                         1))))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-41 -> (ADD
+                                                                      (DIV M2
+                                                                       (DIV R
+                                                                        ADF-20))
+                                                                      (MUL
+                                                                       ADF-26
+                                                                       M2))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-42 -> (DIV
+                                                                      (ADD
+                                                                       (DIV M2
+                                                                        ADF-12)
+                                                                       (MUL 1
+                                                                        ADF-38))
+                                                                      (DIV
+                                                                       ADF-13
+                                                                       (MUL
+                                                                        ADF-4
+                                                                        1)))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-43 -> (MUL
+                                                                      (MUL R
+                                                                       M1)
+                                                                      (MUL
+                                                                       (MUL
+                                                                        ADF-10
+                                                                        ADF-25)
+                                                                       (ADD
+                                                                        ADF-7
+                                                                        1)))
+
+==================================================
+      v7 ENGINE PERFORMANCE DASHBOARD
+==================================================
+Total Elapsed Time    : 1.6080 seconds
+Logical CPU Cores     : 4
+Total ASTs Evaluated  : 3200
+Throughput (AST/sec)  : 1990.05
+Avg Latency per AST   : 0.5025 ms
+==================================================
+
+Found valid hypotheses from Islands:
+  (DIV (MUL (SUB ADF-4 ADF-8) (MUL ADF-6 ADF-6))
+   (SUB (ADD ADF-4 1) (ADD M2 (DIV 1 1))))
+  (ADD (DIV M2 (DIV R ADF-20)) (MUL ADF-26 M2))
+  (DIV (ADD (DIV M2 ADF-12) (MUL 1 ADF-38)) (DIV ADF-13 (MUL ADF-4 1)))
+  (MUL (MUL R M1) (MUL (MUL ADF-10 ADF-25) (ADD ADF-7 1)))
+
+--- Final Synthesis Phase (Island Crossover) ---
+----------------------------------------
+EXPERIMENT COMPLETED.
