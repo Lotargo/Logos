@@ -1,0 +1,50 @@
+=== EXPERIMENT: Experiment 3: Paradigm Shift (Anomaly) ===
+Base AST: (ADD M1 M2)
+Domain: REGRESSION
+Iterations: 500
+----------------------------------------
+=== Starting Parallel Logos Cognitive Engine ===
+Domain: REGRESSION
+Base AST: (ADD M1 M2)
+Threads: 4
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-8 -> (*
+                                                                     (DIV
+                                                                      (INT Q2
+                                                                       V1)
+                                                                      T)
+                                                                     (*
+                                                                      (+ Y V3)
+                                                                      Z))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-9 -> (SCALE
+                                                                     (DIV Z
+                                                                      (/ Z
+                                                                         ADF-3)))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-10 -> (+ Y)
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-11 -> (/
+                                                                      (INT
+                                                                       (+ X X)
+                                                                       X)
+                                                                      (ADD
+                                                                       (DERIV T
+                                                                        V3)
+                                                                       ADF-1))
+
+==================================================
+      LOGOS ENGINE PERFORMANCE DASHBOARD
+==================================================
+Total Elapsed Time    : 0.4308 seconds
+Logical CPU Cores     : 4
+Total ASTs Evaluated  : 2000
+Throughput (AST/sec)  : 4642.77
+Avg Latency per AST   : 0.2154 ms
+==================================================
+
+Found valid hypotheses from Islands:
+  (* (DIV (INT Q2 V1) T) (* (+ Y V3) Z))
+  (SCALE (DIV Z (/ Z ADF-3)))
+  (+ Y)
+  (/ (INT (+ X X) X) (ADD (DERIV T V3) ADF-1))
+
+--- Final Synthesis Phase (Island Crossover) ---
+----------------------------------------
+EXPERIMENT COMPLETED.

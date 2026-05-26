@@ -1,4 +1,7 @@
 (require :asdf)
+(defpackage :cognitive-engine (:use :cl))
+(defparameter cognitive-engine::*is-cli* t)
+
 (defpackage :cognitive-engine-breaker (:use :cl))
 (in-package :cognitive-engine-breaker)
 

@@ -14,39 +14,37 @@
 ;; 1. Domains Configuration
 ;; =======================================================================
 
-(defvar *current-operators* '(+ - * /))
-(defvar *current-variables* '(x y z))
-(defvar *current-constants* '(0 1 2 5 10))
+(defvar *unified-operators* '(+ - * / add sub mul div deriv int sin cos seq matrix row matmul transpose cross dot scale norm gamma add_vel carnot delta_s entropy info_bound and or implies not))
+(defvar *unified-variables* '(x y z t q1 q2 q3 m2x3 m3x2 m3x3 m4x1 s1 s2 v1 v2 t_hot t_cold area volume p q))
+(defvar *unified-constants* '(0 1 2 5 10 -1 0.1 0.5 0.8 0.9 1.2 100 300 500 true false 0.70710678 -0.70710678))
+
+(defvar *current-operators* *unified-operators*)
+(defvar *current-variables* *unified-variables*)
+(defvar *current-constants* *unified-constants*)
+
+(defun detect-regression-vars (csv-file)
+  "Reads the first line of the CSV file and returns a list of generic symbols (v1 v2 ... vn)."
+  (let ((path (or csv-file "v8/engine/anomaly_data.csv")))
+    (handler-case
+        (with-open-file (stream path :direction :input)
+          (let ((first-line (read-line stream nil nil)))
+            (if first-line
+                (let* ((comma-count (count #\, first-line))
+                       (num-vars comma-count))
+                  (loop for i from 1 to num-vars
+                        collect (intern (format nil "V~D" i))))
+                '(v1 v2 v3))))
+      (error () '(v1 v2 v3)))))
 
 (defun set-domain (domain-name)
-  (case domain-name
-    (:arithmetic
-     (setf *current-operators* '(+ - * /))
-     (setf *current-variables* '(x y z))
-     (setf *current-constants* '(0 1 2 5 10)))
-    (:calculus
-     (setf *current-operators* '(+ - * / deriv int sin cos))
-     (setf *current-variables* '(x t))
-     (setf *current-constants* '(0 1 -1)))
-    (:quantum
-     (setf *current-operators* '(tensor seq h x_gate y_gate z_gate cnot oracle))
-     (setf *current-variables* '(q1 q2 q3))
-     (setf *current-constants* '(1 0)))
-    (:regression
-     (setf *current-operators* '(add sub mul div))
-     (if (and (boundp '*regression-vars*) *regression-vars*)
-         (setf *current-variables* *regression-vars*)
-         (setf *current-variables* '(m1 m2 r)))
-     (setf *current-constants* '(1)))
-    (:adversarial
-     (setf *current-operators* '(add sub mul div))
-     (setf *current-variables* '(x))
-     (setf *current-constants* '(0 1 2 5 10)))
-    (:curry_howard
-     (setf *current-operators* '(+ - * /))
-     (setf *current-variables* '(x y))
-     (setf *current-constants* '(0 1 2)))
-    (t (error "Unknown domain"))))
+  (declare (ignore domain-name))
+  (setf *current-operators* *unified-operators*)
+  (setf *current-variables*
+        (append (if (and (boundp '*regression-vars*) *regression-vars*)
+                    *regression-vars*
+                    (detect-regression-vars (and (boundp '*current-dataset*) *current-dataset*)))
+                *unified-variables*))
+  (setf *current-constants* *unified-constants*))
 
 ;; =======================================================================
 ;; 2. Lisp: Generator and Mutator of DNA
@@ -55,32 +53,40 @@
 (defun random-element (list)
   (nth (random (length list)) list))
 
+(defun op-arity (op)
+  (if (member op '(h x_gate y_gate z_gate transpose norm gamma delta_s not oracle))
+      1
+      2))
+
 (defun mutate (ast)
   "Mutates the AST by randomly changing operators, variables, or numbers, and occasionally growing."
   (if (atom ast)
       (if (< (random 100) 15) ; 15% chance to grow an atom into a subtree
           (let ((op (and *current-operators* (random-element *current-operators*))))
-            (if op
-                (cons op (loop repeat (if (member op '(h x_gate y_gate z_gate transpose norm gamma delta_s)) 1 2)
-                               collect (if (< (random 10) 5)
-                                           (if *current-variables* (random-element *current-variables*) 0)
-                                           (if *current-constants* (random-element *current-constants*) 0))))
-                ast))
+            (cond
+              ((eq op 'matrix)
+               '(matrix (row 1.0 0.0) (row 0.0 1.0)))
+              ((eq op 'row)
+               '(row 1.0 0.0))
+              (op
+               (cons op (loop repeat (op-arity op)
+                              collect (if (< (random 10) 5)
+                                          (if *current-variables* (random-element *current-variables*) 0)
+                                          (if *current-constants* (random-element *current-constants*) 0)))))
+              (t ast)))
           (if (numberp ast)
               (if *current-constants* (random-element *current-constants*) ast)
               (if *current-variables* (random-element *current-variables*) ast)))
       (let ((op (car ast))
             (args (cdr ast)))
         (if (< (random 10) 4) ; 40% chance to mutate the operator
-            (if *current-operators*
-                (cons (random-element *current-operators*) args)
+            (if (and *current-operators* (not (member op '(matrix row))))
+                (cons (random-element (remove 'row (remove 'matrix *current-operators*))) args)
                 ast)
             ;; Otherwise, mutate a random child node
             (if args
                 (let ((mutated-args (copy-list args))
                       (idx (random (length args))))
-                  ;; For thermodynamics `0` is technically a number, so make sure
-                  ;; random mutations don't get stuck if we just randomly pick a leaf
                   (if (and (atom (nth idx mutated-args)) (< (random 10) 5))
                       (setf (nth idx mutated-args) (if *current-variables* (random-element *current-variables*) (nth idx mutated-args)))
                       (setf (nth idx mutated-args) (mutate (nth idx mutated-args))))
@@ -147,13 +153,16 @@
          (prepared-ast (if (eq domain :curry_howard) (generate-proof ast) ast))
          (prolog-term (lisp-to-prolog prepared-ast))
          (query (format nil "censor(~A, ~A, ~A, Penalty)." (string-downcase (symbol-name mode)) (string-downcase (symbol-name domain)) prolog-term)))
-    ;; Re-inject active dataset if regression
+    ;; Re-inject active dataset and active variables if regression
     (when (eq domain :regression)
       (when (and (boundp '*current-dataset*) *current-dataset*)
-         (let ((ds-query (format nil "retractall(active_dataset(_)), assertz(active_dataset('~A'))." *current-dataset*)))
+         (let* ((actual-vars (remove-if (lambda (v) (search "ADF" (symbol-name v))) *current-variables*))
+                (combined-query (format nil "retractall(active_dataset(_)), assertz(active_dataset('~A')), retractall(regression_vars(_)), assertz(regression_vars([~{~A~^, ~}]))." 
+                                      *current-dataset* 
+                                      (mapcar (lambda (v) (string-downcase (symbol-name v))) actual-vars))))
            (handler-case
               (sb-ext:with-timeout 1.0
-                (format (uiop:process-info-input proc) "~A~%" ds-query)
+                (format (uiop:process-info-input proc) "~A~%" combined-query)
                 (force-output (uiop:process-info-input proc))
                 (read-line (uiop:process-info-output proc) nil :eof))
               (error (e) nil)))))
@@ -188,36 +197,13 @@
 ;; =======================================================================
 
 (defun get-domain-config (domain-name)
-  (case domain-name
-    (:arithmetic
-     (values '(+ - * /) '(x y z) '(0 1 2 5 10)))
-    (:calculus
-     (values '(+ - * / deriv int sin cos) '(x t) '(0 1 -1)))
-    (:quantum
-     (values '(seq h x_gate y_gate z_gate cnot oracle) '(q1 q2) nil))
-    (:multidim
-     (values '(add sub dot cross scale norm matmul transpose) '(m2x3 m3x2 m3x3 m4x1 s1 s2) '(0 1)))
-    (:relativity
-     (values '(gamma add_vel) '(v1 v2) '(0 0.1 0.5 0.8 0.9 1.2)))
-    (:thermo
-     (values '(carnot delta_s) '(t_hot t_cold) '(0 100 300 500)))
-    (:holography
-     (values '(entropy info_bound) '(area volume) '(0 1 2 5 10)))
-    (:logic
-     (values '(and or xor implies not) '(p q) '(true false)))
-    (:hardware
-     (values '(and or implies not gate_and gate_or gate_not) '(p q r s) '(true false)))
-    (:regression
-     (values '(add sub mul div) (if (and (boundp '*regression-vars*) *regression-vars*) *regression-vars* '(m1 m2 r)) '(1)))
-    (:adversarial
-     (values '(add sub mul div) '(x) '(0 1 2 5 10)))
-    (:curry_howard
-     (values '(+ - * /) '(x y) '(0 1 2)))
-    (:unified
-     (values '(+ - * / deriv int sin cos seq h cnot x_gate y_gate z_gate matmul transpose cross dot scale norm gamma add_vel carnot delta_s entropy info_bound and or implies not)
-             '(x y z t q1 q2 q3 m2x3 m3x2 m3x3 m4x1 s1 s2 v1 v2 t_hot t_cold area volume p q)
-             '(0 1 2 5 10 -1 0.1 0.5 0.8 0.9 1.2 100 300 500 true false)))
-    (t (error (format nil "Unknown domain: ~A" domain-name)))))
+  (declare (ignore domain-name))
+  (values *unified-operators*
+          (append (if (and (boundp '*regression-vars*) *regression-vars*)
+                      *regression-vars*
+                      (detect-regression-vars (and (boundp '*current-dataset*) *current-dataset*)))
+                  *unified-variables*)
+          *unified-constants*))
 
 (defun worker-loop (base-ast domain iterations thread-id migration-pools migration-mutexes)
   (multiple-value-bind (ops vars consts) (get-domain-config domain)

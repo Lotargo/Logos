@@ -1,0 +1,40 @@
+=== EXPERIMENT: Experiment 1: Ideal Formula (Confirmation) ===
+Base AST: (DIV (MUL M1 M2) (MUL R R))
+Domain: REGRESSION
+Iterations: 5
+----------------------------------------
+=== Starting Parallel Logos Cognitive Engine ===
+Domain: REGRESSION
+Base AST: (DIV (MUL M1 M2) (MUL R R))
+Threads: 4
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-1 -> (DIV
+                                                                     (MUL M1
+                                                                      V2)
+                                                                     (MUL R R))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-2 -> (DIV
+                                                                     (AND M1
+                                                                          M2)
+                                                                     (MUL R R))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-3 -> (DIV
+                                                                     (MUL M1
+                                                                      M2)
+                                                                     (MUL R R))
+
+==================================================
+      LOGOS ENGINE PERFORMANCE DASHBOARD
+==================================================
+Total Elapsed Time    : 0.2381 seconds
+Logical CPU Cores     : 4
+Total ASTs Evaluated  : 20
+Throughput (AST/sec)  : 83.99
+Avg Latency per AST   : 11.9056 ms
+==================================================
+
+Found valid hypotheses from Islands:
+  (DIV (MUL M1 V2) (MUL R R))
+  (DIV (AND M1 M2) (MUL R R))
+  (DIV (MUL M1 M2) (MUL R R))
+
+--- Final Synthesis Phase (Island Crossover) ---
+----------------------------------------
+EXPERIMENT COMPLETED.
