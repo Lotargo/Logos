@@ -2,7 +2,7 @@
 (defpackage :cognitive-engine (:use :cl))
 (defparameter cognitive-engine::*is-cli* t)
 
-(load "v8/engine/engine.lisp")
+(load "v8/src/engine.lisp")
 
 (ensure-directories-exist "v8/experiments/empirical_discovery/")
 
@@ -28,7 +28,7 @@
 
 ;; Run Experiment 1
 (format t "Starting Experiment 1...~%")
-(set-dataset "v8/engine/gravity_data.csv")
+(set-dataset "v8/data/gravity_data.csv")
 (run-and-log "Experiment 1: Ideal Formula (Confirmation)"
              '(div (mul m1 m2) (mul r r))
              :regression
@@ -37,7 +37,7 @@
 
 ;; Run Experiment 2
 (format t "Starting Experiment 2...~%")
-(set-dataset "v8/engine/gravity_data.csv")
+(set-dataset "v8/data/gravity_data.csv")
 (run-and-log "Experiment 2: Broken Formula (Healing)"
              '(div (mul m1 m2) r)
              :regression
@@ -46,7 +46,7 @@
 
 ;; Run Experiment 3: Paradigm Shift (Anomaly Data)
 (format t "Starting Experiment 3...~%")
-(set-dataset "v8/engine/anomaly_data.csv")
+(set-dataset "v8/data/anomaly_data.csv")
 (run-and-log "Experiment 3: Paradigm Shift (Anomaly)"
              '(add m1 m2)
              :regression

@@ -4,7 +4,7 @@
 (in-package :cognitive-engine)
 (defvar *current-operators* nil)
 
-(load "v8/engine/engine.lisp")
+(load "v8/src/engine.lisp")
 
 (in-package :cognitive-engine)
 (format t "--- Running Standalone Meta-Axiomatic Hardcore Test: WARP DRIVE ---~%")
