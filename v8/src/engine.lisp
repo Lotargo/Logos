@@ -5,10 +5,10 @@
 (in-package :cognitive-engine)
 
 ;; Load Meta-Evolution extensions
-(load "v8/engine/meta_evolve.lisp")
-(load "v8/engine/ontology_generator.lisp")
-(load "v8/engine/verilog_emitter.lisp")
-(load "v8/engine/curry_howard.lisp")
+(load "v8/src/meta_evolve.lisp")
+(load "v8/src/ontology_generator.lisp")
+(load "v8/src/verilog_emitter.lisp")
+(load "v8/src/curry_howard.lisp")
 
 ;; =======================================================================
 ;; 1. Domains Configuration
@@ -24,7 +24,7 @@
 
 (defun detect-regression-vars (csv-file)
   "Reads the first line of the CSV file and returns a list of generic symbols (v1 v2 ... vn)."
-  (let ((path (or csv-file "v8/engine/anomaly_data.csv")))
+  (let ((path (or csv-file "v8/data/anomaly_data.csv")))
     (handler-case
         (with-open-file (stream path :direction :input)
           (let ((first-line (read-line stream nil nil)))
@@ -178,7 +178,7 @@
       (sb-ext:timeout ()
         (format t "[TIMEOUT] Prolog daemon hung on query: ~A. Forcefully restarting...~%" query)
         (ignore-errors (uiop:terminate-process proc :urgent t))
-        (let ((new-proc (uiop:launch-program (list "swipl" "-q" "-s" "v8/engine/daemon.pl")
+        (let ((new-proc (uiop:launch-program (list "swipl" "-q" "-s" "v8/prolog/daemon.pl")
                                              :input :stream
                                              :output :stream)))
           (setf (car proc-cell) new-proc))
@@ -186,7 +186,7 @@
       (error (e)
         (format t "[ERROR] Prolog daemon pipe error: ~A. Restarting daemon...~%" e)
         (ignore-errors (uiop:terminate-process proc :urgent t))
-        (let ((new-proc (uiop:launch-program (list "swipl" "-q" "-s" "v8/engine/daemon.pl")
+        (let ((new-proc (uiop:launch-program (list "swipl" "-q" "-s" "v8/prolog/daemon.pl")
                                              :input :stream
                                              :output :stream)))
           (setf (car proc-cell) new-proc))
@@ -211,7 +211,7 @@
     (let* ((*current-operators* ops)
            (*current-variables* (append vars (mapcar #'car *adf-library*)))
            (*current-constants* consts)
-           (proc (uiop:launch-program (list "swipl" "-q" "-s" "v8/engine/daemon.pl")
+           (proc (uiop:launch-program (list "swipl" "-q" "-s" "v8/prolog/daemon.pl")
                                       :input :stream
                                       :output :stream))
            (proc-cell (list proc))
@@ -322,7 +322,7 @@
     (let* ((*current-operators* ops)
            (*current-variables* (append vars (mapcar #'car *adf-library*)))
            (*current-constants* consts)
-           (proc (uiop:launch-program (list "swipl" "-q" "-s" "v8/engine/daemon.pl")
+           (proc (uiop:launch-program (list "swipl" "-q" "-s" "v8/prolog/daemon.pl")
                                       :input :stream
                                       :output :stream))
            (proc-cell (list proc))

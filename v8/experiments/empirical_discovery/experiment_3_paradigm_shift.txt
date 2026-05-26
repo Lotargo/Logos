@@ -6,44 +6,106 @@ Iterations: 500
 === Starting Parallel Logos Cognitive Engine ===
 Domain: REGRESSION
 Base AST: (ADD M1 M2)
-Threads: 4
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-8 -> (*
-                                                                     (DIV
-                                                                      (INT Q2
-                                                                       V1)
+Threads: 12
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-24 -> (/
+                                                                      (OR V3
+                                                                          V1)
+                                                                      (-
+                                                                       (OR 0
+                                                                           ADF-23)
+                                                                       X))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-25 -> (*
+                                                                      (MATRIX
+                                                                       (ROW Z
+                                                                        AREA)
+                                                                       (ROW P
+                                                                        (SEQ
+                                                                         ADF-13
+                                                                         M3X3)))
                                                                       T)
-                                                                     (*
-                                                                      (+ Y V3)
-                                                                      Z))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-9 -> (SCALE
-                                                                     (DIV Z
-                                                                      (/ Z
-                                                                         ADF-3)))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-10 -> (+ Y)
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-11 -> (/
-                                                                      (INT
-                                                                       (+ X X)
-                                                                       X)
-                                                                      (ADD
-                                                                       (DERIV T
-                                                                        V3)
-                                                                       ADF-1))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-26 -> (*
+                                                                      (MATRIX
+                                                                       (ROW 0.8
+                                                                        1)
+                                                                       (ROW T
+                                                                        (/ X)))
+                                                                      (ROW
+                                                                       (SEQ
+                                                                        (INVENTED_OP_1987
+                                                                         1
+                                                                         M2X3))
+                                                                       V3))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-27 -> (SEQ
+                                                                      (DOT Q2
+                                                                       (NORM
+                                                                        M4X1
+                                                                        500))
+                                                                      (+
+                                                                       (NOT Q
+                                                                            ADF-2)))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-28 -> (* P Y
+                                                                        (DIV
+                                                                         S1))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-29 -> (+
+                                                                      (MUL TRUE
+                                                                       M3X2)
+                                                                      (DIV
+                                                                       ADF-22
+                                                                       ADF-9))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-30 -> (CARNOT Q
+                                                                      V3 (+ Q1))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-31 -> (/ Z
+                                                                        (OR Q1
+                                                                            Q)
+                                                                        Q2)
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-32 -> (MUL
+                                                                      (/ Y Q)
+                                                                      (ROW Q
+                                                                       (NORM
+                                                                        ADF-18))
+                                                                      Z)
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-33 -> (+
+                                                                      (/ V2
+                                                                         (ROW T
+                                                                          Y))
+                                                                      (SEQ
+                                                                       (MUL Q3
+                                                                        M3X2)
+                                                                       Y))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-34 -> (*
+                                                                      (*
+                                                                       (SIN
+                                                                        ADF-23
+                                                                        Z)
+                                                                       (SIN 1
+                                                                            S1)))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-35 -> (MATMUL
+                                                                      ADF-1)
 
 ==================================================
       LOGOS ENGINE PERFORMANCE DASHBOARD
 ==================================================
-Total Elapsed Time    : 0.4308 seconds
-Logical CPU Cores     : 4
-Total ASTs Evaluated  : 2000
-Throughput (AST/sec)  : 4642.77
-Avg Latency per AST   : 0.2154 ms
+Total Elapsed Time    : 0.6301 seconds
+Logical CPU Cores     : 12
+Total ASTs Evaluated  : 6000
+Throughput (AST/sec)  : 9522.39
+Avg Latency per AST   : 0.1050 ms
 ==================================================
 
 Found valid hypotheses from Islands:
-  (* (DIV (INT Q2 V1) T) (* (+ Y V3) Z))
-  (SCALE (DIV Z (/ Z ADF-3)))
-  (+ Y)
-  (/ (INT (+ X X) X) (ADD (DERIV T V3) ADF-1))
+  (/ (OR V3 V1) (- (OR 0 ADF-23) X))
+  (* (MATRIX (ROW Z AREA) (ROW P (SEQ ADF-13 M3X3))) T)
+  (* (MATRIX (ROW 0.8 1) (ROW T (/ X)))
+     (ROW (SEQ (INVENTED_OP_1987 1 M2X3)) V3))
+  (SEQ (DOT Q2 (NORM M4X1 500)) (+ (NOT Q ADF-2)))
+  (* P Y (DIV S1))
+  (+ (MUL TRUE M3X2) (DIV ADF-22 ADF-9))
+  (CARNOT Q V3 (+ Q1))
+  (/ Z (OR Q1 Q) Q2)
+  (MUL (/ Y Q) (ROW Q (NORM ADF-18)) Z)
+  (+ (/ V2 (ROW T Y)) (SEQ (MUL Q3 M3X2) Y))
+  (* (* (SIN ADF-23 Z) (SIN 1 S1)))
+  (MATMUL ADF-1)
 
 --- Final Synthesis Phase (Island Crossover) ---
 ----------------------------------------

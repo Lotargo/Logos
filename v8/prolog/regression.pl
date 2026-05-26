@@ -4,7 +4,7 @@
 
 % Dynamic flag to allow Lisp to set the active dataset
 :- dynamic active_dataset/1.
-active_dataset('v8/engine/anomaly_data.csv'). % Default fallback
+active_dataset('v8/data/anomaly_data.csv'). % Default fallback
 
 % We'll use a dynamic predicate for bindings so we can evaluate arbitrary variables
 :- dynamic current_binding/2.
