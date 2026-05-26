@@ -63,7 +63,7 @@
 
 ;; Run the engine on regression domain for 1000 iterations to see if it hangs or outputs anything useful
 (handler-case
-    (cognitive-engine::run-engine-parallel '(add x1 x2) :regression 1000 4)
+    (cognitive-engine::run-engine-parallel '(add x1 x2) :regression 1000 (cognitive-engine::detect-cpu-cores))
   (error (e) (format t "Engine crashed during extreme noise search: ~A~%" e)))
 
 (format t "~%========================================================~%")

@@ -22,7 +22,7 @@
 
     ;; Redirect standard output to both console and file
     (let ((*standard-output* (make-broadcast-stream *standard-output* stream)))
-      (cognitive-engine::run-engine-parallel ast domain iterations 4))
+      (cognitive-engine::run-engine-parallel ast domain iterations (cognitive-engine::detect-cpu-cores)))
     (format stream "----------------------------------------~%")
     (format stream "EXPERIMENT COMPLETED.~%")))
 
