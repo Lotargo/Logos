@@ -403,18 +403,31 @@
     ))
 
 (defun detect-cpu-cores ()
-  "Attempts to detect the number of logical CPU cores. Fallbacks to 4 if detection fails."
+  "Attempts to detect the total number of logical CPU threads (SMT/Hyperthreading included).
+   Works across Windows, Linux, and macOS."
   (let ((env-cores (uiop:getenv "NUMBER_OF_PROCESSORS")))
     (if env-cores
         (or (ignore-errors (parse-integer env-cores)) 4)
-        (let ((proc-cores (ignore-errors
-                            (with-open-file (s "/proc/cpuinfo" :if-does-not-exist nil)
-                              (if s
-                                  (loop for line = (read-line s nil nil)
-                                        while line
-                                        count (search "processor" line))
-                                  nil)))))
-          (or proc-cores 4)))))
+        ;; On Unix systems (Linux, macOS)
+        (let ((nproc-out (ignore-errors
+                          (uiop:run-program '("nproc") :output :string :error-status-wrapper nil)))
+              (sysctl-out (ignore-errors
+                           (uiop:run-program '("sysctl" "-n" "hw.logicalcpu") :output :string :error-status-wrapper nil))))
+          (cond
+            ((and nproc-out (not (string= nproc-out "")))
+             (or (ignore-errors (parse-integer (string-trim '(#\Space #\Tab #\Newline #\Return) nproc-out))) 4))
+            ((and sysctl-out (not (string= sysctl-out "")))
+             (or (ignore-errors (parse-integer (string-trim '(#\Space #\Tab #\Newline #\Return) sysctl-out))) 4))
+            (t
+             ;; Fallback to /proc/cpuinfo if nproc/sysctl aren't available
+             (let ((proc-cores (ignore-errors
+                                 (with-open-file (s "/proc/cpuinfo" :if-does-not-exist nil)
+                                   (if s
+                                       (loop for line = (read-line s nil nil)
+                                             while line
+                                             count (search "processor" line))
+                                       nil)))))
+               (or proc-cores 4))))))))
 
 (defun contains-operator-p (operators ast)
   "Recursively checks if the AST contains any of the given operators/symbols."
