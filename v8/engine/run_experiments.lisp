@@ -1,14 +1,16 @@
 (require :asdf)
+(defpackage :cognitive-engine (:use :cl))
+(defparameter cognitive-engine::*is-cli* t)
 
 (load "v8/engine/engine.lisp")
+
+(ensure-directories-exist "v8/experiments/empirical_discovery/")
 
 (defpackage :cognitive-engine-experiments (:use :cl))
 (in-package :cognitive-engine-experiments)
 
 (defun set-dataset (file)
-  ;; Directly use run-program to inject the dynamic assertion before running engine
-  ;; Replace slashes with pipes in sed so it doesn't break the expression
-  (uiop:run-program (format nil "sed -i \"s|active_dataset('.*').|active_dataset('~A').|g\" v8/engine/regression.pl" file)))
+  (setf cognitive-engine::*current-dataset* file))
 
 (defun run-and-log (name ast domain iterations file)
   (with-open-file (stream file :direction :output :if-exists :supersede :if-does-not-exist :create)

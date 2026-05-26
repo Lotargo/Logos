@@ -58,24 +58,54 @@ bind_vars([Var|Vars], [Val|Vals]) :-
 clear_bindings :-
     retractall(current_binding(_, _)).
 
-% We deduce what the columns are based on the active dataset filename
-dataset_vars('v8/engine/gravity_data.csv', [m1, m2, r], targetF).
-dataset_vars('v8/engine/anomaly_data.csv', [x1, x2, x3], targetY).
-dataset_vars('v8/engine/regression_data.csv', [x], targetY).
-dataset_vars('v8/engine/kepler_data.csv', [a], targetT2).
-dataset_vars('v8/engine/relativity_data.csv', [v, c], targetGamma).
+:- dynamic regression_vars/1.
+:- dynamic dataset_stats/3. % dataset_stats(CsvFile, TargetVariance, Lambda)
 
-% General rule for unknown datasets (just use v1..vn)
-dataset_vars(File, Vars, targetVal) :-
-    \+ (dataset_vars_known(File, _, _)),
-    Vars = [v1, v2, v3], targetVal = val.
+% Generate a generic variable list [v1, v2, ..., vN]
+generate_var_list(0, []) :- !.
+generate_var_list(N, Vars) :-
+    N > 0,
+    N1 is N - 1,
+    generate_var_list(N1, Rest),
+    atom_concat(v, N, Var),
+    append(Rest, [Var], Vars).
 
-dataset_vars_known('v8/engine/gravity_data.csv', _, _).
-dataset_vars_known('v8/engine/anomaly_data.csv', _, _).
-dataset_vars_known('v8/engine/regression_data.csv', _, _).
-dataset_vars_known('v8/engine/kepler_data.csv', _, _).
-dataset_vars_known('v8/engine/relativity_data.csv', _, _).
+% Get active variables dynamically (custom variables asserted by Lisp, or fallback)
+get_vars(CsvFile, Arity, Vars) :-
+    (   regression_vars(V), length(V, NumVars), NumVars is Arity - 1
+    ->  Vars = V
+    ;   NumVars is Arity - 1,
+        generate_var_list(NumVars, Vars)
+    ).
 
+% Calculate target variance and scale lambda dynamically
+get_dataset_lambda(CsvFile, Lambda) :-
+    dataset_stats(CsvFile, _, Lambda), !.
+get_dataset_lambda(CsvFile, Lambda) :-
+    (   catch(csv_read_file(CsvFile, Rows, [functor(row)]), _, fail),
+        Rows = [_|_]
+    ->  maplist(get_row_target, Rows, Targets),
+        sum_list(Targets, Sum),
+        length(Targets, N),
+        (   N > 0
+        ->  Mean is Sum / N,
+            maplist(sq_diff(Mean), Targets, SqDiffs),
+            sum_list(SqDiffs, SumSqDiff),
+            Var is SumSqDiff / N,
+            % Scale lambda proportionally with variance
+            Lambda is 0.01 * (1.0 + sqrt(Var)),
+            assertz(dataset_stats(CsvFile, Var, Lambda))
+        ;   Lambda = 0.01
+        )
+    ;   Lambda = 0.01
+    ).
+
+get_row_target(Row, Target) :-
+    Row =.. [row|Vals],
+    last(Vals, Target).
+
+sq_diff(Mean, Val, SqDiff) :-
+    SqDiff is (Val - Mean) * (Val - Mean).
 
 % Calculate sum of squared errors against CSV rows
 calculate_error(_, [], _, 0.0).
@@ -102,15 +132,18 @@ regression_censor(AST, Penalty) :-
     ->  Penalty = 1000.0
     ;   % Read CSV and calculate error
         active_dataset(CsvFile),
-        dataset_vars(CsvFile, Vars, _),
-        length(Vars, NumVars), Arity is NumVars + 1,
-        (   catch(csv_read_file(CsvFile, Rows, [functor(row), arity(Arity)]), _, fail)
-        ->  calculate_error(AST, Rows, Vars, TotalError),
-            (   TotalError > 1000.0
-            ->  Penalty = 1000.0
-            ;   % Add a small ast_size penalty if error is extremely low
-                regression_ast_size(AST, Size),
-                (TotalError < 0.1 -> Penalty is TotalError + (Size * 0.01) ; Penalty = TotalError)
+        (   catch(csv_read_file(CsvFile, Rows, [functor(row)]), _, fail)
+        ->  (   Rows = [FirstRow|_]
+            ->  functor(FirstRow, row, Arity),
+                get_vars(CsvFile, Arity, Vars),
+                calculate_error(AST, Rows, Vars, TotalError),
+                (   TotalError > 1000.0
+                ->  Penalty = 1000.0
+                ;   regression_ast_size(AST, Size),
+                    get_dataset_lambda(CsvFile, Lambda),
+                    Penalty is TotalError + (Size * Lambda)
+                )
+            ;   Penalty = 1000.0
             )
         ;   Penalty = 1000.0 % Fallback if file read fails
         )

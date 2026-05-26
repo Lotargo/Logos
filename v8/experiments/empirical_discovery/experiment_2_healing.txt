@@ -1,0 +1,65 @@
+=== EXPERIMENT: Experiment 2: Broken Formula (Healing) ===
+Base AST: (DIV (MUL M1 M2) R)
+Domain: REGRESSION
+Iterations: 800
+----------------------------------------
+=== Starting Parallel Logos Cognitive Engine ===
+Domain: REGRESSION
+Base AST: (DIV (MUL M1 M2) R)
+Threads: 4
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-4 -> (*
+                                                                     (-
+                                                                      (/ Q3
+                                                                         (ROW
+                                                                          1.0
+                                                                          0.0))
+                                                                      Y)
+                                                                     (+
+                                                                      (OR Q V3)
+                                                                      (INFO_BOUND
+                                                                       Z V1))
+                                                                     (+ V2
+                                                                        (DIV V1
+                                                                         T)))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-5 -> (+
+                                                                     (ADD
+                                                                      (-
+                                                                       (GAMMA
+                                                                        ADF-2
+                                                                        Z)
+                                                                       T)
+                                                                      (OR (/ P)
+                                                                          P)))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-6 -> (*
+                                                                     (AND T
+                                                                          (SIN
+                                                                           (CARNOT
+                                                                            V2
+                                                                            Z)
+                                                                           V1)))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-7 -> (-
+                                                                     (/ (DIV Y)
+                                                                        (-
+                                                                         ADF-2
+                                                                         V1)))
+
+==================================================
+      LOGOS ENGINE PERFORMANCE DASHBOARD
+==================================================
+Total Elapsed Time    : 0.6326 seconds
+Logical CPU Cores     : 4
+Total ASTs Evaluated  : 3200
+Throughput (AST/sec)  : 5058.60
+Avg Latency per AST   : 0.1977 ms
+==================================================
+
+Found valid hypotheses from Islands:
+  (* (- (/ Q3 (ROW 1.0 0.0)) Y) (+ (OR Q V3) (INFO_BOUND Z V1))
+     (+ V2 (DIV V1 T)))
+  (+ (ADD (- (GAMMA ADF-2 Z) T) (OR (/ P) P)))
+  (* (AND T (SIN (CARNOT V2 Z) V1)))
+  (- (/ (DIV Y) (- ADF-2 V1)))
+
+--- Final Synthesis Phase (Island Crossover) ---
+----------------------------------------
+EXPERIMENT COMPLETED.

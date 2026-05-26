@@ -47,6 +47,47 @@ simplify(sub(A, B), C) :- number(A), number(B), C is A - B.
 simplify(mul(A, B), C) :- number(A), number(B), C is A * B.
 simplify(div(A, B), C) :- number(A), number(B), B \= 0, (integer(A), integer(B), A mod B =:= 0 -> C is A // B ; C is A / B).
 
+% Substitutes Var with Replacement in Expr
+substitute(Var, Replacement, Expr, Replacement) :- Expr == Var, !.
+substitute(_, _, Expr, Expr) :- atomic(Expr), !.
+substitute(Var, Replacement, Expr, Replaced) :-
+    Expr =.. [Op|Args],
+    maplist(substitute(Var, Replacement), Args, ReplacedArgs),
+    Replaced =.. [Op|ReplacedArgs].
+
+% Derivative from first principles (Limit definition)
+simplify(deriv(F, Var), limit(div(sub(F_h, F), Var_h), Var_h, 0)) :-
+    atom(Var),
+    % Choose a fresh variable name for h (e.g. h_val) to avoid clashes
+    Var_h = h_val,
+    substitute(Var, add(Var, Var_h), F, F_h).
+
+% Trigonometric expansion axioms
+simplify(sin(add(X, Y)), add(mul(sin(X), cos(Y)), mul(cos(X), sin(Y)))).
+simplify(cos(add(X, Y)), sub(mul(cos(X), cos(Y)), mul(sin(X), sin(Y)))).
+
+% Algebraic grouping rules to isolate limits
+simplify(sub(add(mul(sin(X), cos(H)), mul(cos(X), sin(H))), sin(X)),
+         add(mul(sin(X), sub(cos(H), 1)), mul(cos(X), sin(H)))).
+simplify(sub(sub(mul(cos(X), cos(H)), mul(sin(X), sin(H))), cos(X)),
+         add(mul(cos(X), sub(cos(H), 1)), mul(mul(-1, sin(X)), sin(H)))).
+
+% Distributing division over addition and multiplication
+simplify(div(add(A, B), C), add(div(A, C), div(B, C))).
+simplify(div(mul(A, B), C), mul(A, div(B, C))) :- \+ has_var(A, C).
+
+% Limit evaluation and distribution rules as H -> 0
+simplify(limit(add(A, B), H, Val), add(limit(A, H, Val), limit(B, H, Val))).
+simplify(limit(sub(A, B), H, Val), sub(limit(A, H, Val), limit(B, H, Val))).
+simplify(limit(mul(A, B), H, Val), mul(limit(A, H, Val), limit(B, H, Val))).
+simplify(limit(div(A, B), H, Val), div(limit(A, H, Val), limit(B, H, Val))) :- \+ has_var(B, H).
+
+simplify(limit(X, H, _), X) :- \+ has_var(X, H).
+
+% Special continuous limit derivatives
+simplify(limit(div(sin(H), H), H, 0), 1).
+simplify(limit(div(sub(cos(H), 1), H), H, 0), 0).
+
 % Differentiation rules (Computer Algebra System)
 simplify(deriv(C, Var), 0) :- atomic(C), C \== Var.
 simplify(deriv(Var, Var), 1) :- atom(Var).
@@ -55,8 +96,6 @@ simplify(deriv(sub(A, B), Var), sub(deriv(A, Var), deriv(B, Var))).
 simplify(deriv(mul(C, A), Var), mul(C, deriv(A, Var))) :- atomic(C), C \== Var.
 simplify(deriv(mul(A, C), Var), mul(C, deriv(A, Var))) :- atomic(C), C \== Var.
 simplify(deriv(mul(A, B), Var), add(mul(deriv(A, Var), B), mul(A, deriv(B, Var)))).
-simplify(deriv(sin(A), Var), mul(cos(A), deriv(A, Var))).
-simplify(deriv(cos(A), Var), mul(mul(-1, sin(A)), deriv(A, Var))).
 
 % Integration rules (Computer Algebra System)
 simplify(int(0, _), 0).
@@ -66,8 +105,6 @@ simplify(int(add(A, B), Var), add(int(A, Var), int(B, Var))).
 simplify(int(sub(A, B), Var), sub(int(A, Var), int(B, Var))).
 simplify(int(mul(C, A), Var), mul(C, int(A, Var))) :- atomic(C), C \== Var.
 simplify(int(mul(A, C), Var), mul(C, int(A, Var))) :- atomic(C), C \== Var.
-simplify(int(cos(Var), Var), sin(Var)).
-simplify(int(sin(Var), Var), mul(-1, cos(Var))).
 
 % Equation Solving (Isolating a variable)
 % solve(eq(LHS, RHS), Var) -> eq(Var, Solution)
@@ -166,19 +203,12 @@ logic_censor(AST, Penalty) :-
 % Part 3: Quantum Unitarity (Information Conservation)
 % =======================================================================
 
-gate_matrix(h(_), [[0.70710678, 0.70710678], [0.70710678, -0.70710678]]).
-gate_matrix(x_gate(_), [[0.0, 1.0], [1.0, 0.0]]).
-gate_matrix(y_gate(_), [[0.0, -1.0], [1.0, 0.0]]).
-gate_matrix(z_gate(_), [[1.0, 0.0], [0.0, -1.0]]).
-gate_matrix(cnot(_, _), [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 1.0, 0.0]]).
-gate_matrix(oracle(_, _), [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, -1.0]]).
-
-build_unitary(X, M) :- gate_matrix(X, M), !.
+build_unitary(matrix(row(A, B), row(C, D)), [[A, B], [C, D]]) :-
+    number(A), number(B), number(C), number(D), !.
 build_unitary(seq(A, B), M) :-
     build_unitary(A, M_A), build_unitary(B, M_B),
     length(M_A, L_A), length(M_B, L_B),
     ( L_A =:= L_B -> matrix_multiply(M_B, M_A, M) ; M = [[1.0, 0.0], [0.0, 1.0]] ).
-build_unitary(tensor(_, _), [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]]).
 build_unitary(_, [[1.0, 0.0], [0.0, 1.0]]).
 
 dot_product([], [], 0.0).

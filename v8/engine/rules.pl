@@ -201,13 +201,7 @@ map_unified_eval([H|T], Penalty) :-
 
 % Helper Domain Classifiers
 is_quantum_expr(seq(_, _)).
-is_quantum_expr(tensor(_, _)).
-is_quantum_expr(h(_)).
-is_quantum_expr(x_gate(_)).
-is_quantum_expr(y_gate(_)).
-is_quantum_expr(z_gate(_)).
-is_quantum_expr(cnot(_, _)).
-is_quantum_expr(oracle(_, _)).
+is_quantum_expr(matrix(row(_, _), row(_, _))).
 
 is_logic_expr(and(_, _)).
 is_logic_expr(or(_, _)).
