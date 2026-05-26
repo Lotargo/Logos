@@ -57,10 +57,8 @@
 (format t "Attempting to find an equation for a highly non-linear, noisy dataset.~%")
 (setf *regression-vars* '(x1 x2 x3))
 (setf *current-dataset* "v8/engine/extreme_noise_data.csv")
-;; We inject the dataset into Prolog
-(uiop:run-program "sed -i \"s|active_dataset('.*').|active_dataset('v8/engine/extreme_noise_data.csv').|g\" v8/engine/regression.pl")
 
-;; Run the engine on regression domain for 5000 iterations to see if it hangs or outputs anything useful
+;; Run the engine on regression domain for 1000 iterations to see if it hangs or outputs anything useful
 (handler-case
     (cognitive-engine::run-engine-parallel '(add x1 x2) :regression 1000 4)
   (error (e) (format t "Engine crashed during extreme noise search: ~A~%" e)))
