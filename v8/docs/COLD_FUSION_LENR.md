@@ -100,7 +100,8 @@ def simulate_lenr():
     print(f"Simulation chart saved to {chart_path}")
 
 if __name__ == "__main__":
-    simulate_lenr()```
+    simulate_lenr()
+```
 
 ### 3.2 Visualization of Results
 The chart clearly demonstrates that while the standard model predicts zero reaction, the dynamically mapped V8 AST aligns with the resonance spikes observed in experimental anomalies.
