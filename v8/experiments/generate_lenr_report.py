@@ -35,7 +35,7 @@ def generate_lenr_report():
         f.write("```python\n")
         with open("v8/experiments/simulate_lenr.py", "r", encoding="utf-8") as sim_file:
             f.write(sim_file.read())
-        f.write("```\n\n")
+        f.write("\n```\n\n")
 
         f.write("### 3.2 Visualization of Results\n")
         f.write("The chart clearly demonstrates that while the standard model predicts zero reaction, the dynamically mapped V8 AST aligns with the resonance spikes observed in experimental anomalies.\n\n")
