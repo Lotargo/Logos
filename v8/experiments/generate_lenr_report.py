@@ -81,7 +81,6 @@ def generate_lenr_report():
 
         f.write("## Conclusion\n")
         f.write("By independently deriving a phonon-coupled screening formula without relying on hardcoded heuristics, Logos V8 has proven its capability to transcend human bias in theoretical physics. It provides a mathematically sound, dynamically parsed pathway to explaining Low-Energy Nuclear Reactions, opening the door for targeted laboratory validation and offering a robust counter-argument to classical Hot Fusion constraints.\n")
-        f.write("By independently deriving a phonon-coupled screening formula, Logos V8 has proven its capability to transcend human bias in theoretical physics. It provides a mathematically sound, non-hardcoded pathway to explaining Low-Energy Nuclear Reactions, opening the door for targeted laboratory validation.\n")
 
 if __name__ == "__main__":
     generate_lenr_report()
