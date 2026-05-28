@@ -5,91 +5,67 @@
 
 ---
 
-## 1. Проблема: строковый IPC между модулями ИИ
+## 1. Проблема: строковый IPC между агентами
 
-Текущий пайплайн коммуникации Sonata → Logos:
+Текущий пайплайн коммуникации между узлами/агентами (Logos A → Logos B):
 
 ```
-Free Pascal (Sonata GPU)
-  → tensor outputs (float32)
-  → сериализация в JSON/строку
-  → pipe/stdin
-  → SBCL Lisp (Logos)
+Отправляющий узел (Lisp)
+  → Сериализация AST в строку (S-expressions)
+  → pipe/socket
+  → Принимающий узел (Logos)
     → read-from-string (парсинг)
     → AST construction
     → cons cells allocation
     → GC
   → Prolog term generation
-  → pipe назад
-  → Pascal StrToFloat (парсинг)
-  → float penalty
 ```
 
 **Измеримые проблемы**:
 
-- Каждый шаг — парсинг строки: `O(n)` по длине сообщения
-- Аллокации cons cells → GC latency (SBCL generational GC ~1-3ms на сообщение)
-- Формат (JSON, S-expressions) спроектирован для **человеческой читаемости**, не для машинной эффективности
-- schema update = правка кода человеком
+- Каждый шаг — парсинг строки: `O(n)` по длине сообщения.
+- Аллокации cons cells → GC latency (SBCL generational GC ~1-3ms на сообщение).
+- Строковые форматы (S-expressions, JSON) спроектированы для **человеческой читаемости**, а не для машинной эффективности.
+- Потеря строгой структуры и отсутствие быстрой бинарной семантической проверки.
 
 ---
 
 ## 2. NSPL: бинарное кодирование смысла
 
-NSPL — не язык, а **битовая упаковка семантики** в фиксированный record.
+NSPL (Neuro-Symbolic Propositional Logic) — не просто язык программирования, а **битовая упаковка семантики** в бинарные пакеты. Коммуникация происходит через LTP (Lisp Transport Protocol) с использованием байтовых массивов.
 
-### Структура NeuroID
+### Структура NeuroID (Гибкий бинарный формат)
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│                   NeuroID (28 bytes)                  │
+│                   NeuroID (N bytes)                  │
 ├────────────────┬──────────────────┬──────────────────┤
-│ Semantic Core  │ Context Shell    │ Flags            │
-│  (UInt64)      │   (UInt128)      │    (UInt32)      │
-│  8 bytes       │   16 bytes       │    4 bytes       │
+│ Semantic Core  │ Context Shell    │ Payload/AST      │
+│  (UInt64)      │   (UInt64)       │  (Variable len)  │
+│  8 bytes       │   8 bytes        │  N - 16 bytes    │
 ├────────────────┼──────────────────┼──────────────────┤
-│ Идентификатор  │ Параметры        │ Битовые флаги    │
-│ понятия в      │ контекста        │ (аффект,         │
-│ таксономии     │ (интенсивность,  │  приоритет,      │
-│                │  длительность)   │  режим)          │
+│ Идентификатор  │ Параметры        │ Битовые флаги и  │
+│ домена и типа  │ (длина, id, и др)│ закодированный   │
+│ операции       │                  │ AST              │
 └────────────────┴──────────────────┴──────────────────┘
 ```
 
-### Битовая разметка
+### Пример разметки (в Lisp)
 
-```pascal
-type
-  TNeuroID = packed record
-    SemanticCore: UInt64;
-      // bits 0-15:   категория (0x1F = state, 0x2A = action, 0x3B = relation)
-      // bits 16-31:  подкатегория
-      // bits 32-47:  уточнение
-      // bits 48-63:  reserved для иерархии
-    ContextShell: UInt128;
-      // Intesity, Duration, Count, ...
-    Flags: UInt32;
-      // bit 0:    priority (high/low)
-      // bit 1-3:  mode (query/command/report)
-      // bit 4-7:  affect valence
-  end;
+```lisp
+;; 0x01: Домен :arithmetic, 0x2A: Операция :add
+(defstruct nspl-packet
+  (domain-id 0 :type (unsigned-byte 8))
+  (op-id 0 :type (unsigned-byte 8))
+  (payload-length 0 :type (unsigned-byte 16))
+  (data (make-array 0 :element-type '(unsigned-byte 8))))
 ```
 
-### Пример
+В отличие от S-expressions в виде строк, бинарный NSPL:
 
-```pascal
-// 0x2A01: действие:поиск, объект:ресурс, приоритет:высокий
-NeuroID := TNeuroID(
-  SemanticCore:  $2A01_0001_0000_0001,  // action:search:resource
-  ContextShell:  $0000_0000_0000_0005,  // count=5, urgency=0.8
-  Flags:         $80000001              // high priority, positive
-);
-```
-
-В отличие от JSON, NeuroID:
-
-- Не требует парсинга — `TNeuroID` читается как record
-- Занимает 28 байт вместо ~200 для `{"action":"search","object":"resource"}`
-- Проверяется компилятором на уровне типа, не runtime schema
+- Занимает минимальное количество байт в памяти и при передаче.
+- Использует побайтовое чтение без вызова дорогостоящего строкового парсера `read-from-string`.
+- Сразу перенаправляется на Prolog-демон для проверки осмысленности (защита от "абракадабры").
 
 ---
 
@@ -99,7 +75,7 @@ Logos — **не** нейросеть и **не** LLM. Это комбинаци
 
 1. **Genetic programming engine** (SBCL Common Lisp) — эволюционный поиск AST
 2. **Formal verification layer** (SWI-Prolog) — проверка AST на математические аксиомы
-3. **IPC bridge** (Free Pascal → pipe → SBCL)
+3. **IPC bridge** (NSPL Binary Protocol → LTP → Prolog)
 
 ### Что Logos проверяет (и не проверяет)
 
@@ -120,27 +96,22 @@ Logos — **не** нейросеть и **не** LLM. Это комбинаци
 
 ## 4. Пересечение NSPL + Logos: что реально работает
 
-### 4.1 NSPL как compressed pipe protocol (Low effort, high impact)
+### 4.1 NSPL как compressed binary protocol (Low effort, high impact)
 
 Замена строкового IPC на бинарный:
 
-```pascal
-type
-  TNeuroIDMessage = packed record
-    MsgType: UInt8;     // 0=Censor, 1=Reflect, 2=MetaQuery
-    Domain: UInt8;      // 0=Arithmetic, 1=Quantum, 2=NLP, ...
-    Mode: UInt8;        // 0=Target, 1=Novelty
-    Reserved: UInt8;    // alignment
-    Payload: TNeuroID;  // 28 bytes
-  end; // = 32 bytes total
+```lisp
+;; Байт 0: Тип сообщения (0=Censor, 1=Reflect)
+;; Байт 1: Домен (0=Arithmetic, 1=Logic, ...)
+;; Байт 2-3: Длина Payload
+;; Байт 4+: Payload (кодированный AST)
 ```
 
 **Измеримый эффект**:
 
-- ~200 байт строки → 32 байта packed record (6.25× сжатие)
-- Парсинг: `read-from-string` (SBCL) → type punning (zero-cost)
-- GC: аллокации строк + cons cells → stack-allocated record
-- Валидация: runtime schema → compile-time type check
+- ~200 байт строки → ~16-32 байта (сжатие на порядок).
+- Парсинг: `read-from-string` → побайтовое извлечение через смещения.
+- GC: уменьшение аллокаций строк.
 
 ### 4.2 NeuroID как ключ для Prolog-верификации
 
@@ -197,19 +168,9 @@ Night phase:
 
 **Это не консолидация знаний в человеческом смысле**. Это data compression: удаление избыточности в словаре на основе статистики использования.
 
-### 4.5 TNeuroID bridge Sonata ↔ Logos (long-term)
+### 4.5 Узел ↔ Узел (LTP Communication)
 
-```
-Float embedding (768 bytes) → Quantize → TNeuroID (28 bytes)
-  → TBitLinear ternary matmul
-  → TLogosBridge.WriteBinary(TNeuroIDMessage)
-  → pipe
-  → Logos: read record → censor
-  → penalty pipe back
-  → Adam optimizer
-```
-
-**Что это даёт**: единый формат данных от эмбеддинга до верификации, без конверсий.
+Logos A может напрямую формировать знания и передавать их Logos B через LTP (Lisp Transport Protocol). Logos B валидирует сообщение, отсекая бессмыслицу через Prolog `nspl_invariants.pl`.
 
 ---
 
@@ -252,23 +213,17 @@ Float embedding (768 bytes) → Quantize → TNeuroID (28 bytes)
 
 ## 7. Практический план
 
-### Phase A: NSPL pipe protocol — сейчас (Low, ~120 строк)
+### Phase A: NSPL Serialization в Lisp
 
-- `sonata_logos.pas`: `TNeuroIDMessage` packed record, `WriteBinary`/`ReadBinary`
-- `engine.lisp`: `bridge-loop` — бинарное чтение + dispatch
-- `rules.pl`: `verify_neuroid/2` routing predicate
+- Написать `v9/src/nspl.lisp` с функциями сериализации и десериализации AST в бинарные потоки байт.
 
-### Phase B: Formal verification via NeuroID — после Phase A (Medium, ~150 строк)
+### Phase B: Prolog Invariants
 
-- Prolog `nspl_invariants.pl`: декларация инвариантов системы
-- `meta_evolve.lisp`: `nspl-mutate` для генерации новых кодов
-- Sleep cycle: pruning + merging по статистике использования
+- Создать `v9/prolog/nspl_invariants.pl`, чтобы валидировать байтовые сообщения. Logos должен понимать, что ему прислали осмысленные данные (например, валидные операторы для указанного домена), а не просто случайный мусор.
 
-### Phase C: TNeuroID bridge — исследование (High, ~300 строк)
+### Phase C: LTP Node Communication
 
-- `TEmbedding` → опциональный выход в TNeuroID
-- `TBitLinear` × TNeuroID
-- End-to-end: forward → NeuroID → pipe → censor → penalty → backward
+- Написать тесты/симуляцию двух агентов (Logos A и Logos B), которые обмениваются байтовыми сообщениями через LTP и используют `nspl_invariants.pl` для проверки валидности.
 
 ---
 
