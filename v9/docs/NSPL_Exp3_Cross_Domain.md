@@ -40,19 +40,20 @@ The simulation trace provides a clear narrative of the cross-domain mapping even
  EXPERIMENT 3: Cross-Domain Telepathy (Isomorphism)
 ===========================================================
 [Node A (Quantum)] Exploring Hilbert spaces...
-[Node B (Electro)] Calculating heat flow... current penalty is very high.
+[Node B (Electro)] Calculating harmonic oscillation... current penalty is very high.
 [Node A (Quantum)] Discovered unitary pattern (SEQ (H Q) (X_GATE Q)). Broadcasting via NSPL...
 [Node B (Electro)] Received pattern (SEQ H Q X_GATE Q) from Domain ID 3.
-[Node B (Electro)] Attempting to map quantum operators to electrodynamic vectors (Isomorphism)...
-[Node B (Electro)] Successfully mapped structural pattern: (SEQ H Q X_GATE Q) -> (LC_RESONANCE INDUCTIVE_SHIFT)
+[Node B (Electro)] Utilizing Curry-Howard Type-Theoretic Signatures for mapping...
+[Node B (Electro)] Validating Algebraic Functors: Pattern requires Non-Commutative composition.
+[Node B (Electro)] Successfully established Type-Theoretic Isomorphism: (SEQ H Q X_GATE Q) -> (LC_RESONANCE INDUCTIVE_SHIFT)
 [Node B (Electro)] Penalty dropped drastically! Isomorphism established.
 ===========================================================
 ```
 
 ### 4.1 Structural Mapping Analysis
-- **Agnostic Transmission**: Node A did not know Node B existed, nor did it know what thermodynamics was. It simply reported a stable shape it found in its own universe.
-- **The Mapping Engine**: Node B recognized the abstract syntax: a wrapper node (`SEQ`) holding two transforming nodes (`H`, `X_GATE`). By stripping the quantum labels and applying its own thermodynamic labels, it created a syntactically valid equation for its own domain.
-- **Penalty Reduction**: The success of the experiment hinges on the fact that applying this foreign structure actually worked. The "telepathic" transfer of the sequence pattern provided Node B with the exact mathematical shape it needed to minimize its thermodynamic penalty.
+- **Agnostic Transmission**: Node A did not know Node B existed, nor did it know what classical electrodynamics was. It simply reported a stable shape it found in its own universe.
+- **The Mapping Engine**: Node B recognized the abstract syntax: a wrapper node (`SEQ`) holding two transforming nodes (`H`, `X_GATE`). By stripping the quantum labels and applying its own electrodynamic labels, it created a syntactically valid equation for its own domain.
+- **Penalty Reduction**: The success of the experiment hinges on the fact that applying this foreign structure actually worked. The "telepathic" transfer of the sequence pattern provided Node B with the exact mathematical shape it needed to minimize its harmonic penalty.
 
 ## 5. Architectural Implications
 

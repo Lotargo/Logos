@@ -48,12 +48,17 @@ The terminal trace captured the precise moment of adversarial engagement and sub
 [Node A (Generator)] Proposed Equation: (DIV M R)
 [Node A (Generator)] Sending equation to Adversary via NSPL...
 [Node B (Adversary)] Intercepted AST: (DIV M R)
-[Node B (Adversary)] VULNERABILITY DETECTED! 'r' can approach 0.
-[Node B (Adversary)] Generating edge-case packet (r = 0)...
+[Node B (Adversary)] CLP(R) Solver Analysis: {Denominator = 0}. Real root found: 0.0
+[Node B (Adversary)] VULNERABILITY DETECTED! Denominator can hit 0.
+[Node B (Adversary)] Generating edge-case packet (0.0)...
 [Node A (Generator)] Received edge-case from Adversary: (0)
-[Node A (Generator)] FATAL ERROR: Division by zero detected at (0)! Penalty = 1000.0
-[Node A (Generator)] Adversarial Singularity Healing triggered... evolving topology...
-[Node A (Generator)] New Regularized Equation: (DIV M (ADD (MUL R R) L_P))... resists r=0 attack (regularized). No singularity found.
+[Node A (Generator)] FATAL ERROR: HARDWARE DIVISION-BY-ZERO detected at (0)! Penalty = 1000.0
+[Node A (Generator)] Adversarial Singularity Healing triggered... applying dimensional censor constraints...
+[Node A (Generator)] New Regularized Equation: (DIV M (ADD (MUL R R) L_P))
+[Node A (Generator)] Sending healed equation...
+[Node B (Adversary)] Intercepted AST: (DIV M ADD MUL R R L_P)
+[Node B (Adversary)] CLP(R) Solver Analysis: {Denominator = 0}. No real roots exist.
+[Node B (Adversary)] AST (DIV M ADD MUL R R L_P) resists all real boundary attacks. No singularity found.
 ===========================================================
 ```
 
