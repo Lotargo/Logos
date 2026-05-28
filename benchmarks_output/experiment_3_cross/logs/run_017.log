@@ -1,0 +1,49 @@
+===========================================================
+ EXPERIMENT 3: Cross-Domain Telepathy (Isomorphism)
+===========================================================
+[Node A (Quantum)] Exploring Hilbert spaces...
+[Node B (Electro)] Calculating harmonic oscillation... current penalty is very high.
+[Node A (Quantum)] Discovered pattern (SEQ (Y_GATE Q) (Z_GATE Q)). Broadcasting via NSPL...
+[Node B (Electro)] Received pattern (SEQ UNKNOWN Q UNKNOWN Q) from Domain ID 3.
+[Node B (Electro)] Utilizing Curry-Howard Type-Theoretic Signatures for mapping...
+[Node B (Electro)] Collision Resolution picked Functor: (MAGNETIC_FLUX
+                                                         HALL_EFFECT)
+[Node B (Electro)] NEGATIVE TRANSFER DETECTED! Math is valid, but physics penalty increased. Rejecting.
+[Node A (Quantum)] Discovered pattern (SEQ (Y_GATE Q) (Z_GATE Q)). Broadcasting via NSPL...
+[Node B (Electro)] Received pattern (SEQ UNKNOWN Q UNKNOWN Q) from Domain ID 3.
+[Node B (Electro)] Utilizing Curry-Howard Type-Theoretic Signatures for mapping...
+[Node B (Electro)] Collision Resolution picked Functor: (MAGNETIC_FLUX
+                                                         HALL_EFFECT)
+[Node B (Electro)] NEGATIVE TRANSFER DETECTED! Math is valid, but physics penalty increased. Rejecting.
+[Node A (Quantum)] Discovered pattern (SEQ (Y_GATE Q) (Z_GATE Q)). Broadcasting via NSPL...
+[Node B (Electro)] Received pattern (SEQ UNKNOWN Q UNKNOWN Q) from Domain ID 3.
+[Node B (Electro)] Utilizing Curry-Howard Type-Theoretic Signatures for mapping...
+[Node B (Electro)] Collision Resolution picked Functor: (MAGNETIC_FLUX
+                                                         HALL_EFFECT)
+[Node B (Electro)] NEGATIVE TRANSFER DETECTED! Math is valid, but physics penalty increased. Rejecting.
+[Node A (Quantum)] Discovered pattern (SEQ (Y_GATE Q) (Z_GATE Q)). Broadcasting via NSPL...
+[Node B (Electro)] Received pattern (SEQ UNKNOWN Q UNKNOWN Q) from Domain ID 3.
+[Node B (Electro)] Utilizing Curry-Howard Type-Theoretic Signatures for mapping...
+[Node B (Electro)] Collision Resolution picked Functor: (MAGNETIC_FLUX
+                                                         HALL_EFFECT)
+[Node B (Electro)] NEGATIVE TRANSFER DETECTED! Math is valid, but physics penalty increased. Rejecting.
+[Node A (Quantum)] Discovered pattern (SEQ (H Q) (X_GATE Q)). Broadcasting via NSPL...
+[Node B (Electro)] Received pattern (SEQ H Q X_GATE Q) from Domain ID 3.
+[Node B (Electro)] Utilizing Curry-Howard Type-Theoretic Signatures for mapping...
+[Node B (Electro)] Collision Resolution picked Functor: (RC_DECAY
+                                                         CAPACITIVE_LOAD)
+[Node B (Electro)] NEGATIVE TRANSFER DETECTED! Math is valid, but physics penalty increased. Rejecting.
+[Node A (Quantum)] Discovered pattern (SEQ (H Q) (X_GATE Q)). Broadcasting via NSPL...
+[Node B (Electro)] Received pattern (SEQ H Q X_GATE Q) from Domain ID 3.
+[Node B (Electro)] Utilizing Curry-Howard Type-Theoretic Signatures for mapping...
+[Node B (Electro)] Collision Resolution picked Functor: (RC_DECAY
+                                                         CAPACITIVE_LOAD)
+[Node B (Electro)] NEGATIVE TRANSFER DETECTED! Math is valid, but physics penalty increased. Rejecting.
+[Node A (Quantum)] Discovered pattern (SEQ (H Q) (X_GATE Q)). Broadcasting via NSPL...
+[Node B (Electro)] Received pattern (SEQ H Q X_GATE Q) from Domain ID 3.
+[Node B (Electro)] Utilizing Curry-Howard Type-Theoretic Signatures for mapping...
+[Node B (Electro)] Collision Resolution picked Functor: (LC_RESONANCE
+                                                         INDUCTIVE_SHIFT)
+[Node B (Electro)] Validating Physics... Penalty dropped drastically! True Isomorphism established.
+===========================================================
+METRICS_OUTPUT: translation_attempts=7 valid_functors=1 hit_rate_percent=14.29 negative_transfers=6

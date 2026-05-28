@@ -3,13 +3,28 @@
 (load "v9/src/nspl.lisp")
 (use-package :nspl)
 
+(setf *random-state* (make-random-state t))
+
 ;; In-memory mock network pipe for LTP
 (defvar *ltp-queue* nil)
 (defvar *ltp-mutex* (sb-thread:make-mutex :name "ltp-mutex"))
+(defvar *packets-lost* 0)
+(defvar *node-b-cycles* 0)
+(defvar *node-b-solved* nil)
 
 (defun ltp-send (byte-vector)
-  (sb-thread:with-mutex (*ltp-mutex*)
-    (push byte-vector *ltp-queue*)))
+  ;; Simulate 5% packet drop rate
+  (if (< (random 1.0) 0.05)
+      (progn
+        (sb-thread:with-mutex (*ltp-mutex*)
+          (incf *packets-lost*))
+        (format t "[NETWORK] Packet dropped by simulated latency/loss layer.~%"))
+      ;; Simulate network latency (50-150ms)
+      (sb-thread:make-thread
+       (lambda ()
+         (sleep (+ 0.05 (random 0.1)))
+         (sb-thread:with-mutex (*ltp-mutex*)
+           (push byte-vector *ltp-queue*))))))
 
 (defun ltp-receive ()
   (sb-thread:with-mutex (*ltp-mutex*)
@@ -27,9 +42,10 @@
          (packet (ast-to-nspl :quantum discovery))
          (bytes (serialize-nspl packet)))
     (format t "[Node A] EUREKA! Found stable building block: ~A~%" discovery)
-    (format t "[Node A] Broadcasting discovery via NSPL to Swarm...~%")
-    (ltp-send bytes)
-    (sleep 5)))
+    (loop while (not *node-b-solved*) do
+      (format t "[Node A] Broadcasting discovery via NSPL to Swarm...~%")
+      (ltp-send bytes)
+      (sleep (max 0.2 (random 0.5))))))
 
 ;; --- Node B: The "Senior" Architect ---
 ;; Working on a complex problem, listens to the network for help.
@@ -49,15 +65,17 @@
 
 (defun node-b-worker ()
   (format t "[Node B] Struggling to synthesize Grover's Algorithm from scratch...~%")
+  (setf *node-b-cycles* 0)
+  (setf *node-b-solved* nil)
   (let ((proc (uiop:launch-program (list "swipl" "-q" "-s" "v9/prolog/daemon.pl")
                                    :input :stream
                                    :output :stream))
-        (library nil)
-        (solved nil))
+        (library nil))
     (let ((proc-cell (list proc)))
-      (loop while (not solved) do
-        (format t "[Node B] Attempting random mutations (Penalty: 840.5)...~%")
-        (sleep 1)
+      (loop while (not *node-b-solved*) do
+        (incf *node-b-cycles*)
+        (format t "[Node B] Attempting random mutations (Cycle ~D, Penalty: 840.5)...~%" *node-b-cycles*)
+        (sleep 0.1)
 
         ;; Check Network
         (let ((bytes (ltp-receive)))
@@ -79,9 +97,9 @@
                       (format t "[Node B] Injecting macro into main hypothesis space...~%")
                       (sleep 1)
                       (format t "[Node B] SUCCESS! Complex algorithm solved utilizing swarm intelligence.~%")
-                      (setf solved t))
+                      (setf *node-b-solved* t))
                     (format t "[Node B] Rejected incoming data. Prolog penalty: ~A~%" penalty))))))
-        (sleep 1))
+        (sleep 0.1))
 
       (format (uiop:process-info-input proc) "quit~%")
       (ignore-errors (force-output (uiop:process-info-input proc)))
@@ -92,10 +110,16 @@
   (format t " EXPERIMENT 1: Cooperative Evolution (Swarm Intelligence)~%")
   (format t "===========================================================~%")
   (setf *ltp-queue* nil)
-  (let ((thread-a (sb-thread:make-thread #'node-a-worker :name "Node-A"))
-        (thread-b (sb-thread:make-thread #'node-b-worker :name "Node-B")))
-    (sb-thread:join-thread thread-a)
-    (sb-thread:join-thread thread-b)
-    (format t "===========================================================~%")))
+  (setf *packets-lost* 0)
+  (let ((start-time (get-internal-real-time)))
+    (let ((thread-a (sb-thread:make-thread #'node-a-worker :name "Node-A"))
+          (thread-b (sb-thread:make-thread #'node-b-worker :name "Node-B")))
+      (sb-thread:join-thread thread-a)
+      (sb-thread:join-thread thread-b)
+      (let* ((end-time (get-internal-real-time))
+             (time-sec (/ (- end-time start-time) internal-time-units-per-second)))
+        (format t "===========================================================~%")
+        (format t "METRICS_OUTPUT: cycles_to_converge=~D time_sec=~F lost_packets=~D~%"
+                *node-b-cycles* time-sec *packets-lost*)))))
 
 (run-experiment)
