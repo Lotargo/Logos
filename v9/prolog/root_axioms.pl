@@ -4,7 +4,9 @@
     % Boolean Logic (Core Information processing)
     logic_censor/2, eval_bool/4, is_bool/1, is_logic_redundant/1,
     % Quantum Unitarity (Information Conservation)
-    is_unitary_ast/1, build_unitary/2
+    is_unitary_ast/1, build_unitary/2,
+    % Information Theory
+    kl_divergence/3, shannon_entropy/2
 ]).
 
 % =======================================================================
@@ -245,3 +247,33 @@ is_unitary_ast(AST) :-
     build_unitary(AST, U), transpose(U, UT),
     matrix_multiply(U, UT, Product), round_matrix(Product, RoundedProduct),
     is_identity_matrix(RoundedProduct).
+
+% =======================================================================
+% Part 4: Information Theory (Compression & Entropy)
+% =======================================================================
+
+% Calculate Shannon Entropy for a probability distribution list: H = - sum(P * log2(P))
+shannon_entropy(Dist, Entropy) :-
+    maplist(entropy_term, Dist, Terms),
+    sum_list(Terms, Sum),
+    Entropy is -Sum.
+
+entropy_term(0, 0.0) :- !.
+entropy_term(0.0, 0.0) :- !.
+entropy_term(P, Term) :-
+    P > 0.0,
+    Term is P * (log(P) / log(2)).
+
+% Calculate KL Divergence D_KL(P || Q) = sum(P * log2(P / Q))
+kl_divergence(P_Dist, Q_Dist, Div) :-
+    maplist(kl_term, P_Dist, Q_Dist, Terms),
+    sum_list(Terms, Div).
+
+kl_term(0, _, 0.0) :- !.
+kl_term(0.0, _, 0.0) :- !.
+% If P > 0 and Q is 0, divergence is infinite, but we can return a large penalty value
+kl_term(P, 0, 1000.0) :- P > 0.0, !.
+kl_term(P, 0.0, 1000.0) :- P > 0.0, !.
+kl_term(P, Q, Term) :-
+    P > 0.0, Q > 0.0,
+    Term is P * (log(P / Q) / log(2)).
