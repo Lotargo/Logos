@@ -91,10 +91,10 @@ $$ x_{adv} = \arg\max_{x \in \Omega} \mathcal{L}_G(H, x) $$
 
 When Node B (Adversary) detects `(DIV M R)`, it recognizes the singularity at $R=0$. It crafts the NSPL packet representing $x_{adv} = 0$.
 
-Upon receiving $x_{adv}$, Node A evaluates $\lim_{R \rightarrow 0} \frac{M}{R} = \infty$, triggering a Lisp floating-point exception, mapped to $Penalty = 1000.0$.
+Upon receiving $x_{adv}$, Node A evaluates the AST natively. It does not calculate limits; rather, the hardware Floating-Point Unit (FPU) hits a mathematical singularity, throwing a Lisp `DIVISION-BY-ZERO` runtime condition. The Lisp condition system catches this exception, mapped to $Penalty = 1000.0$.
 
 To survive, Node A must evolve a regularized hypothesis $H'$. It applies a topological transformation $T$, injecting a cutoff constant $C$:
-$$ H'(R) = T(H(R)) = \frac{M}{R + C} $$
+$$ H'(R) = T(H(R)) = \frac{M}{R^2 + C^2} $$
 
 Now, when the Adversary attacks with $R=0$:
 $$ \mathcal{L}_G(H', 0) = \left(\frac{M}{C}\right)^2 < \infty $$
@@ -112,23 +112,14 @@ Consider the payload:
 
 The entire attack payload is 6 bytes. A gigabit network can transmit approximately 20 million attacks per second. If the Adversary were a massive GPU cluster, it could fuzz the Generator's Lisp equations at unprecedented speeds, completely saturating the mathematical boundaries of the hypothesis space. This proves the necessity of the NSPL binary protocol; traditional string-based JSON IPC would choke the network bandwidth and CPU parsers before reaching 1% of this throughput.
 
-## 9. Dynamic Extensibility of the Censor Logic
 
-The true power of the Adversarial Node relies on the fact that the Prolog censor (`nspl_invariants.pl`) is not a static ruleset. Because Logos can inject novel axioms into Prolog using `assertz/1`, the Adversary can adapt its attack vectors as the Generator learns.
+## 9. Dynamic Extensibility via CLP(R)
 
-If the Generator constantly relies on adding $+1$ to bypass singularities, the Adversary can autonomously update its internal threat library to penalize lazy topological regularization. The interaction becomes an arms race:
-1. Generator uses $+1$ trick.
-2. Adversary creates a new edge case where $R = -1$, exposing the singularity again.
-3. Generator realizes $ADD$ is insufficient and invents a non-linear regularizer, e.g., $ABS(R) + 1$, or $R^2 + C$.
+The true power of the Adversarial Node relies on the fact that it is not reliant on static syntax rules. Because the Adversary uses CLP(R), it dynamically adapts to the Generator's defenses.
 
-This forces the Generator to adopt absolute mathematical robustness, eventually arriving at proper relativistic or quantum cutoffs without human intervention.
+If the Generator attempts a lazy topological patch that passes dimensional checks, such as $M / (R - L_p)$, the Adversary does not need a new hardcoded rule to break it. The CLP(R) solver simply processes the new denominator: `{R - L_p = 0} \implies R = L_p`. The Adversary instantly generates a new NSPL attack packet with the value of $L_p$.
 
-```prolog
-%% Example dynamic injection by Adversarial Node:
-%% If we detect a lazy add, we penalize.
-validate_domain_semantics(arithmetic, [div, _M, [add, _R, 1]], 1000.0) :-
-    assertz(vulnerability_logged(lazy_regularization)).
-```
+This forces the Generator into a relentless evolutionary arms race, driving it away from linear shifts and toward absolute mathematical robustness (like squared sums or absolute values) where the CLP(R) engine mathematically proves no real roots exist.
 
 ## 10. Summary of Outcomes and Impact
 
@@ -145,7 +136,7 @@ When the Adversarial Node detects a vulnerability, it utilizes a formal Proof-by
 
 The Logos Lisp mutator does not possess explicit knowledge of calculus limits. Instead, it relies on topological deformations. By wrapping the vulnerable variable $R$ into a protective functor $F(R)$, it restructures the tree.
 
-If $F(R) = ADD(R, 1)$, the new formula becomes $M/(R+1)$. While this heals the singularity at $R=0$, the Adversary will eventually learn to attack with $R=-1$.
+Crucially, the simple topological patch $F(R) = ADD(R, 1)$ would be immediately rejected by Prolog's Dimensional Censor. One cannot physically add meters ($R$) to a dimensionless scalar ($1$). Thus, the Generator is forced to evolve dimensionally consistent topologies, such as adding the square of a length constant (like the Planck length, $L_p$): $F(R) = R^2 + L_p^2$.
 
 To achieve true resilience, the evolutionary process must converge on a non-linear topology, such as a squared additive constant:
 $$ H^*(R) = \frac{M}{ADD(MUL(R, R), 1)} $$
