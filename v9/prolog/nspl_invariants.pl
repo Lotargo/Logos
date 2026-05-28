@@ -46,7 +46,7 @@ validate_domain_semantics(logic, [Op | _Args], 0.0) :-
 
 %% Quantum Domain
 validate_domain_semantics(quantum, [Op | _Args], 0.0) :-
-    member(Op, [h, x_gate, cnot]).
+    member(Op, [h, x_gate, cnot, seq]).
 
 %% Fallback if domain semantics are violated
 validate_domain_semantics(_, _, 1000.0).
