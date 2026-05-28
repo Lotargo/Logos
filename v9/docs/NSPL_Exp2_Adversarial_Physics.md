@@ -21,7 +21,7 @@ The experiment was executed over 20 independent runs to evaluate the consistency
 
 In 100% of the recorded runs, the Generator successfully applied a topological regularization (e.g., adding a Planck-scale cutoff constant like $L_p^2$) to mathematically bypass the singularity.
 
-![AST Complexity](../benchmarks_output/experiment_2_gan/ast_complexity.png)
+![AST Complexity](../../benchmarks_output/experiment_2_gan/ast_complexity.png)
 *(Figure 1: Comparison of initial AST complexity versus the successfully healed AST.)*
 
 ## 4. Parsimony Pressure (Occam's Razor)

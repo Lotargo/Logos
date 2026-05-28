@@ -39,7 +39,7 @@ The experiment was executed over 20 independent runs to capture variance and avo
 
 The extremely low standard deviation in convergence time ({std_time:.4f}s) demonstrates the deterministic stability of the Lisp-Prolog integration. Even when packets are dropped, Node A's continued broadcast cycle ensures Node B eventually receives the critical subroutines.
 
-![Convergence Time Distribution](../benchmarks_output/experiment_1_coop/convergence_time_boxplot.png)
+![Convergence Time Distribution](../../benchmarks_output/experiment_1_coop/convergence_time_boxplot.png)
 *(Figure 1: Boxplot of convergence time across 20 runs, showing minimal variance.)*
 
 ## 4. Hardware Verification Context (Important Limitation)
