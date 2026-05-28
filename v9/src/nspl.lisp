@@ -140,7 +140,10 @@
 (defun ast-to-nspl (domain ast)
   "Converts a domain and a Lisp AST into an NSPL binary packet."
   (let* ((domain-id (or (cdr (assoc domain *domain-to-id*)) 0))
-         (op-id (if (listp ast) (or (gethash (car ast) *sym-to-byte*) 0) 0))
+         (op-sym (if (listp ast)
+                     (intern (string-upcase (symbol-name (car ast))) :nspl)
+                     nil))
+         (op-id (if op-sym (or (gethash op-sym *sym-to-byte*) 0) 0))
          (bytes (ast-node-to-bytes ast))
          (payload (make-array (length bytes) :element-type '(unsigned-byte 8) :initial-contents bytes)))
     (make-nspl-packet :domain-id domain-id
