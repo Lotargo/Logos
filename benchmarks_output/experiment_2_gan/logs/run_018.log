@@ -1,0 +1,21 @@
+===========================================================
+ EXPERIMENT 2: Adversarial Physics (Logic GANs)
+===========================================================
+[Node B (Adversary)] Online. Searching for singularities in incoming NSPL streams...
+[Node A (Generator)] Formulating physics equation...
+[Node A (Generator)] Proposed Equation: (DIV M R) (Hash: 1740894876078637600)
+[Node A (Generator)] Sending equation to Adversary via NSPL...
+[Node B (Adversary)] Intercepted AST: (DIV M R)
+[Node B (Adversary)] CLP(R) Solver Analysis: {Denominator = 0}. Real root found: 0.0
+[Node B (Adversary)] VULNERABILITY DETECTED! Denominator can hit 0.
+[Node B (Adversary)] Generating edge-case packet (0.0) for target hash 1740894876078637600...
+[Node A (Generator)] Received edge-case from Adversary: (0) (verified against target hash 1740894876078637600)
+[Node A (Generator)] FATAL ERROR: HARDWARE DIVISION-BY-ZERO detected at (0)!
+[Node A (Generator)] Adversarial Singularity Healing triggered... applying dimensional censor constraints...
+[Node A (Generator)] New Regularized Equation: (DIV M (ADD (MUL R R) L_P)) (Size: 7, Parsimony Penalty: 0.70)
+[Node A (Generator)] Sending healed equation (Hash: 2292230337959217383)...
+[Node B (Adversary)] Intercepted AST: (DIV M ADD MUL R R L_P)
+[Node B (Adversary)] CLP(R) Solver Analysis: {Denominator = 0}. No real (R) roots exist.
+[Node B (Adversary)] AST (DIV M ADD MUL R R L_P) resists all real boundary attacks. No singularity found.
+===========================================================
+METRICS_OUTPUT: adversarial_rounds=1 final_ast_size=7 time_sec=1.212
