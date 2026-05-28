@@ -1,0 +1,71 @@
+=== EXPERIMENT: Experiment 6: Adversarial Singularity Healing ===
+Base AST: (DIV M (MUL R R))
+Domain: REGRESSION
+Iterations: 1500
+----------------------------------------
+=== Starting Parallel Logos Cognitive Engine ===
+Domain: REGRESSION
+Base AST: (DIV M (MUL R R))
+Threads: 4
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-1 -> (INT
+                                                                     (ADD AREA
+                                                                      (/ T_HOT
+                                                                         S1))
+                                                                     (DIV
+                                                                      (* V1 T)
+                                                                      (NORM
+                                                                       (DIV S2
+                                                                        500)
+                                                                       (OR 2
+                                                                           2))))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-2 -> (/
+                                                                     (TRANSPOSE
+                                                                      (DOT V1
+                                                                       M3X2)
+                                                                      P)
+                                                                     (/
+                                                                      (+ Q3 Q)
+                                                                      (SUB V2
+                                                                       S2)))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-3 -> (DIV
+                                                                     (COS
+                                                                      (ADD_VEL
+                                                                       (IMPLIES
+                                                                        1.2 V1)
+                                                                       V1)
+                                                                      (- V3
+                                                                         V1))
+                                                                     (ENTROPY
+                                                                      (SIN T P)
+                                                                      T))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-4 -> (SEQ
+                                                                     (DIV
+                                                                      (/
+                                                                       (/ Y
+                                                                          V3)))
+                                                                     (CROSS
+                                                                      (+ P Q3)
+                                                                      (INT
+                                                                       (+ AREA
+                                                                          S1)
+                                                                       Y)))
+
+==================================================
+      LOGOS ENGINE PERFORMANCE DASHBOARD
+==================================================
+Total Elapsed Time    : 10.3960 seconds
+Logical CPU Cores     : 4
+Total ASTs Evaluated  : 6000
+Throughput (AST/sec)  : 577.15
+Avg Latency per AST   : 1.7327 ms
+==================================================
+
+Found valid hypotheses from Islands:
+  (INT (ADD AREA (/ T_HOT S1)) (DIV (* V1 T) (NORM (DIV S2 500) (OR 2 2))))
+  (/ (TRANSPOSE (DOT V1 M3X2) P) (/ (+ Q3 Q) (SUB V2 S2)))
+  (DIV (COS (ADD_VEL (IMPLIES 1.2 V1) V1) (- V3 V1)) (ENTROPY (SIN T P) T))
+  (SEQ (DIV (/ (/ Y V3))) (CROSS (+ P Q3) (INT (+ AREA S1) Y)))
+
+--- Final Synthesis Phase (Island Crossover) ---
+----------------------------------------
+EXPERIMENT COMPLETED.

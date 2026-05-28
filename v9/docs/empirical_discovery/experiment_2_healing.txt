@@ -1,0 +1,74 @@
+=== EXPERIMENT: Experiment 2: Broken Formula (Healing) ===
+Base AST: (DIV (MUL M1 M2) R)
+Domain: REGRESSION
+Iterations: 800
+----------------------------------------
+=== Starting Parallel Logos Cognitive Engine ===
+Domain: REGRESSION
+Base AST: (DIV (MUL M1 M2) R)
+Threads: 4
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-41 -> (SUB
+                                                                      (DIV
+                                                                       (SUB
+                                                                        ADF-9
+                                                                        (DIV
+                                                                         ADF-14
+                                                                         M2))
+                                                                       ADF-38)
+                                                                      (SUB R
+                                                                       ADF-4))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-42 -> (SUB
+                                                                      (DIV
+                                                                       (ADD M2
+                                                                        M1)
+                                                                       (ADD
+                                                                        ADF-1
+                                                                        1))
+                                                                      (DIV
+                                                                       ADF-1
+                                                                       (SUB
+                                                                        (MUL 1
+                                                                         1)
+                                                                        ADF-22)))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-43 -> (ADD
+                                                                      (ADD
+                                                                       (ADD
+                                                                        ADF-4
+                                                                        (DIV 1
+                                                                         1))
+                                                                       (DIV
+                                                                        ADF-7
+                                                                        1))
+                                                                      (SUB
+                                                                       ADF-6
+                                                                       ADF-3))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-44 -> (MUL
+                                                                      (DIV
+                                                                       ADF-12
+                                                                       ADF-25)
+                                                                      (MUL
+                                                                       (MUL
+                                                                        (ADD M2
+                                                                         1)
+                                                                        M1)
+                                                                       M1))
+
+==================================================
+      LOGOS ENGINE PERFORMANCE DASHBOARD
+==================================================
+Total Elapsed Time    : 0.9200 seconds
+Logical CPU Cores     : 4
+Total ASTs Evaluated  : 3200
+Throughput (AST/sec)  : 3478.26
+Avg Latency per AST   : 0.2875 ms
+==================================================
+
+Found valid hypotheses from Islands:
+  (SUB (DIV (SUB ADF-9 (DIV ADF-14 M2)) ADF-38) (SUB R ADF-4))
+  (SUB (DIV (ADD M2 M1) (ADD ADF-1 1)) (DIV ADF-1 (SUB (MUL 1 1) ADF-22)))
+  (ADD (ADD (ADD ADF-4 (DIV 1 1)) (DIV ADF-7 1)) (SUB ADF-6 ADF-3))
+  (MUL (DIV ADF-12 ADF-25) (MUL (MUL (ADD M2 1) M1) M1))
+
+--- Final Synthesis Phase (Island Crossover) ---
+----------------------------------------
+EXPERIMENT COMPLETED.

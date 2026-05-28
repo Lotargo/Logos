@@ -1,0 +1,5 @@
+discoveries.log
+hardware/synth_*.v
+papers/*.tex
+*.log
+v8/experiments/empirical_discovery/*.txt
