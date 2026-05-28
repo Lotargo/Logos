@@ -32,7 +32,7 @@ The experiment rigorously tracks both successful isomorphisms and "Negative Tran
 It is scientifically crucial to report that Logos does not possess a magic ability to perfectly map domains on the first try. As the data shows, **Negative Transfer** occurs frequently ({mean_neg:.1f} times per cycle on average).
 A Negative Transfer happens when the Translation Matrix selects a functor that perfectly matches the mathematical Type-Signature (e.g., it is a valid non-commutative binary operator), but when injected into the active physics simulation, the Prolog penalty function increases. This indicates the math was valid, but the physics was nonsensical. The system must reject the hypothesis and attempt the next candidate in the collision pool.
 
-![Translation Outcomes](../benchmarks_output/experiment_3_cross/translation_outcomes.png)
+![Translation Outcomes](../../benchmarks_output/experiment_3_cross/translation_outcomes.png)
 *(Figure 1: Ratio of Successful Isomorphisms to Negative Transfers, demonstrating the trial-and-error nature of the resolution process.)*
 
 ## 4. Isomorphism vs. Homomorphism Limitation
