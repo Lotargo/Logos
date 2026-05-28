@@ -1,0 +1,51 @@
+=== EXPERIMENT: Experiment 4: Schrodinger Equation ===
+Base AST: (ADD P V)
+Domain: REGRESSION
+Iterations: 800
+----------------------------------------
+=== Starting Parallel Logos Cognitive Engine ===
+Domain: REGRESSION
+Base AST: (ADD P V)
+Threads: 4
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-1 -> (AND
+                                                                     (*
+                                                                      (DIV V2
+                                                                       V2)
+                                                                      V1)
+                                                                     Y)
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-2 -> (INT
+                                                                     (SIN
+                                                                      (* Q
+                                                                         M3X2))
+                                                                     (SIN V2 P))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-3 -> (-
+                                                                     (GAMMA Y
+                                                                      V2)
+                                                                     (* (* Y P)
+                                                                        (CARNOT
+                                                                         1.2
+                                                                         300)))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-4 -> (-
+                                                                     (- (/ Z))
+                                                                     (DELTA_S P
+                                                                      Y))
+
+==================================================
+      LOGOS ENGINE PERFORMANCE DASHBOARD
+==================================================
+Total Elapsed Time    : 3.6800 seconds
+Logical CPU Cores     : 4
+Total ASTs Evaluated  : 3200
+Throughput (AST/sec)  : 869.57
+Avg Latency per AST   : 1.1500 ms
+==================================================
+
+Found valid hypotheses from Islands:
+  (AND (* (DIV V2 V2) V1) Y)
+  (INT (SIN (* Q M3X2)) (SIN V2 P))
+  (- (GAMMA Y V2) (* (* Y P) (CARNOT 1.2 300)))
+  (- (- (/ Z)) (DELTA_S P Y))
+
+--- Final Synthesis Phase (Island Crossover) ---
+----------------------------------------
+EXPERIMENT COMPLETED.
