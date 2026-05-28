@@ -105,6 +105,22 @@ target_censor(curry_howard, AST, Penalty) :-
     !,
     curry_censor(AST, Penalty).
 
+target_censor(homomorphism, AST, Penalty) :-
+    !,
+    % Homomorphism evaluation via KL Divergence information loss checking.
+    % We wait for the actual AST shape from the Lisp side. For now, assume
+    % we can extract P and Q from the AST list. E.g., AST = homomorphism(P, Q)
+    % or generic structural lists.
+    (   AST = homomorphism(P, Q) % Placeholder pattern
+    ->  root_axioms:kl_divergence(P, Q, Div),
+        Threshold = 0.5, % Placeholder threshold
+        (   Div > Threshold
+        ->  Penalty = 1000.0
+        ;   Penalty = Div
+        )
+    ;   Penalty = 1000.0
+    ).
+
 target_censor(logic, AST, Penalty) :-
     !,
     root_axioms:logic_censor(AST, Penalty).
