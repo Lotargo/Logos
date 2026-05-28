@@ -16,7 +16,7 @@ The experiment rigorously tracks both successful isomorphisms and "Negative Tran
 
 *   **Average Translation Attempts per Cycle:** 5.7
 *   **Mean Negative Transfers (Failures) per Cycle:** 4.7
-*   **Successful Hit Rate:** 17.9%
+*   **Successful Hit Rate:** 17.5%
 
 ### 3.1 The Reality of Negative Transfer
 It is scientifically crucial to report that Logos does not possess a magic ability to perfectly map domains on the first try. As the data shows, **Negative Transfer** occurs frequently (4.7 times per cycle on average).
@@ -33,8 +33,8 @@ However, in applied physics, systems frequently require **Homomorphisms** (mappi
 While mapping a quantum harmonic oscillator to a classical LC circuit is a profound demonstration of symbolic unification, we must refrain from hyperbole. This experiment **does not** prove that Logos can spontaneously solve stock market prediction or protein folding based on these simple 3-node mappings. The appropriate conclusion is that this methodology mathematically validates the *foundational mechanism* required to scale toward complex multivariate systems, provided the computing cluster can scale proportionally.
 
 ## 6. Section 13: Cross-Domain Translation Metrics
-*   **Hit Rate:** 17.9% of mathematically valid functors resulted in physical penalty reduction.
-*   **Negative Transfer Rate:** 82.1% of translations were rejected by the local domain censor despite perfect algebraic signatures.
+*   **Hit Rate:** 17.5% of mathematically valid functors resulted in physical penalty reduction.
+*   **Negative Transfer Rate:** 82.5% of translations were rejected by the local domain censor despite perfect algebraic signatures.
 *   **Resolution Strategy:** Sequential/Probabilistic candidate selection.
 
 ## 7. Deep Dive: The Curry-Howard Implementation
