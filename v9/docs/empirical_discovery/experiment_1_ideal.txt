@@ -1,0 +1,44 @@
+=== EXPERIMENT: Experiment 1: Ideal Formula (Confirmation) ===
+Base AST: (DIV (MUL M1 M2) (MUL R R))
+Domain: REGRESSION
+Iterations: 5
+----------------------------------------
+=== Starting Parallel Logos Cognitive Engine ===
+Domain: REGRESSION
+Base AST: (DIV (MUL M1 M2) (MUL R R))
+Threads: 4
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-38 -> (DIV
+                                                                      (MUL M1
+                                                                       M2)
+                                                                      (MUL R
+                                                                       ADF-2))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-39 -> (DIV
+                                                                      (MUL
+                                                                       ADF-16
+                                                                       M2)
+                                                                      (MUL
+                                                                       ADF-24
+                                                                       R))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-40 -> (DIV
+                                                                      (MUL M1
+                                                                       M2)
+                                                                      (MUL R R))
+
+==================================================
+      LOGOS ENGINE PERFORMANCE DASHBOARD
+==================================================
+Total Elapsed Time    : 0.1440 seconds
+Logical CPU Cores     : 4
+Total ASTs Evaluated  : 20
+Throughput (AST/sec)  : 138.89
+Avg Latency per AST   : 7.2000 ms
+==================================================
+
+Found valid hypotheses from Islands:
+  (DIV (MUL M1 M2) (MUL R ADF-2))
+  (DIV (MUL ADF-16 M2) (MUL ADF-24 R))
+  (DIV (MUL M1 M2) (MUL R R))
+
+--- Final Synthesis Phase (Island Crossover) ---
+----------------------------------------
+EXPERIMENT COMPLETED.

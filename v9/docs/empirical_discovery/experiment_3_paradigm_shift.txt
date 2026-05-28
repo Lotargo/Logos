@@ -1,0 +1,56 @@
+=== EXPERIMENT: Experiment 3: Paradigm Shift (Anomaly) ===
+Base AST: (ADD M1 M2)
+Domain: REGRESSION
+Iterations: 500
+----------------------------------------
+=== Starting Parallel Logos Cognitive Engine ===
+Domain: REGRESSION
+Base AST: (ADD M1 M2)
+Threads: 4
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-45 -> (MUL
+                                                                      (SUB
+                                                                       (DIV
+                                                                        ADF-40
+                                                                        ADF-41)
+                                                                       ADF-5)
+                                                                      (MUL
+                                                                       (SUB 1
+                                                                        1)
+                                                                       1))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-46 -> (ADD
+                                                                      (SUB M1
+                                                                       1)
+                                                                      (ADD
+                                                                       (ADD
+                                                                        ADF-20
+                                                                        M2)
+                                                                       ADF-6))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-47 -> (ADD
+                                                                      ADF-34
+                                                                      ADF-43)
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-48 -> (MUL
+                                                                      (SUB 1 1)
+                                                                      (DIV M1
+                                                                       (DIV
+                                                                        ADF-4
+                                                                        1)))
+
+==================================================
+      LOGOS ENGINE PERFORMANCE DASHBOARD
+==================================================
+Total Elapsed Time    : 0.6320 seconds
+Logical CPU Cores     : 4
+Total ASTs Evaluated  : 2000
+Throughput (AST/sec)  : 3164.55
+Avg Latency per AST   : 0.3160 ms
+==================================================
+
+Found valid hypotheses from Islands:
+  (MUL (SUB (DIV ADF-40 ADF-41) ADF-5) (MUL (SUB 1 1) 1))
+  (ADD (SUB M1 1) (ADD (ADD ADF-20 M2) ADF-6))
+  (ADD ADF-34 ADF-43)
+  (MUL (SUB 1 1) (DIV M1 (DIV ADF-4 1)))
+
+--- Final Synthesis Phase (Island Crossover) ---
+----------------------------------------
+EXPERIMENT COMPLETED.
