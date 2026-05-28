@@ -61,6 +61,9 @@
     (setf (gethash 'nspl::seq h) 107)
     (setf (gethash 'nspl::m h) 108)
     (setf (gethash 'nspl::r h) 109)
+    (setf (gethash 'nspl::l_p h) 110)
+    (setf (gethash 'nspl::lc_resonance h) 111)
+    (setf (gethash 'nspl::inductive_shift h) 112)
     h))
 
 (defun ast-node-to-bytes (node)
@@ -99,6 +102,9 @@
         ((= b 107) 'seq)
         ((= b 108) 'm)
         ((= b 109) 'r)
+        ((= b 110) 'l_p)
+        ((= b 111) 'lc_resonance)
+        ((= b 112) 'inductive_shift)
         (t 'unknown)))
 
 (defvar *byte-to-sym*
@@ -140,7 +146,7 @@
 (defun ast-to-nspl (domain ast)
   "Converts a domain and a Lisp AST into an NSPL binary packet."
   (let* ((domain-id (or (cdr (assoc domain *domain-to-id*)) 0))
-         (op-sym (if (listp ast)
+         (op-sym (if (and (listp ast) (symbolp (car ast)))
                      (intern (string-upcase (symbol-name (car ast))) :nspl)
                      nil))
          (op-id (if op-sym (or (gethash op-sym *sym-to-byte*) 0) 0))

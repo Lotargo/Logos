@@ -1,4 +1,5 @@
-:- module(nspl_invariants, [verify_nspl_packet/3]).
+:- module(nspl_invariants, [verify_nspl_packet/3, find_singularity/2]).
+:- use_module(library(clpr)).
 
 %% =======================================================================
 %% NSPL Invariants Validation for Prolog
@@ -24,6 +25,7 @@ validate_domain(2, logic).
 validate_domain(3, quantum).
 validate_domain(4, relativity).
 validate_domain(5, thermo).
+validate_domain(6, electro).
 
 %% Basic Syntax checking:
 %% - Must be a list
@@ -48,5 +50,31 @@ validate_domain_semantics(logic, [Op | _Args], 0.0) :-
 validate_domain_semantics(quantum, [Op | _Args], 0.0) :-
     member(Op, [h, x_gate, cnot, seq]).
 
+%% Electro Domain
+validate_domain_semantics(electro, [Op | _Args], 0.0) :-
+    member(Op, [lc_resonance, inductive_shift]).
+
 %% Fallback if domain semantics are violated
 validate_domain_semantics(_, _, 1000.0).
+
+%% =======================================================================
+%% Adversarial CLP(R) Singularity Solver
+%% =======================================================================
+
+% Extracts the denominator from an arithmetic AST and uses CLP(R) to find a real root
+find_singularity([div, _Numerator, DenominatorAST], RootValue) :-
+    ast_to_clp(DenominatorAST, ClpExpr, RootVar),
+    { ClpExpr = 0 },  % Constrain the denominator to equal 0
+    RootValue = RootVar.
+
+find_singularity(_, no_singularity).
+
+% Helper to convert AST list format into Prolog arithmetic expression format.
+% Also tracks the extracted variable for reporting.
+ast_to_clp([add, A, B], ExprA + ExprB, Var) :- ast_to_clp(A, ExprA, Var1), ast_to_clp(B, ExprB, Var2), (var(Var1) -> Var = Var2 ; Var = Var1).
+ast_to_clp([sub, A, B], ExprA - ExprB, Var) :- ast_to_clp(A, ExprA, Var1), ast_to_clp(B, ExprB, Var2), (var(Var1) -> Var = Var2 ; Var = Var1).
+ast_to_clp([mul, A, B], ExprA * ExprB, Var) :- ast_to_clp(A, ExprA, Var1), ast_to_clp(B, ExprB, Var2), (var(Var1) -> Var = Var2 ; Var = Var1).
+ast_to_clp([div, A, B], ExprA / ExprB, Var) :- ast_to_clp(A, ExprA, Var1), ast_to_clp(B, ExprB, Var2), (var(Var1) -> Var = Var2 ; Var = Var1).
+ast_to_clp(r, Var, Var).     % Bind the actual variable
+ast_to_clp(l_p, 1, _).       % Mock positive constant (L_p = 1)
+ast_to_clp(Num, Num, _) :- number(Num).

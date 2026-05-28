@@ -17,6 +17,8 @@ daemon :-
             ->  format('~w~n', [Penalty])
             ;   Query = nspl_invariants:verify_nspl_packet(_, _, Penalty)
             ->  format('~w~n', [Penalty])
+            ;   Query = nspl_invariants:find_singularity(_, Root)
+            ->  format('~w~n', [Root])
             ;   write('0.0\n')
             )
         ;   write('1000.0\n')
