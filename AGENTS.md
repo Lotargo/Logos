@@ -9,6 +9,7 @@ This document outlines the rules and best practices for me (the primary develope
   - Codebase research, log analysis, and identifying problematic areas.
   - Writing basic unit tests or boilerplate code.
 - **Context Preservation:** Do not pollute your own context with large, trivial tasks. Use the sub-agent to handle these while you focus on core business logic.
+- **Agent Research = CLI Utility:** When the user requests launching agents for research (e.g., "run agents to investigate...", "scan the codebase..."), this specifically refers to the `opencode` CLI utility, not internal assistant tools.
 
 ## 2. Unblocking & Consultation
 
