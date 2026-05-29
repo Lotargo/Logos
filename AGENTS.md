@@ -125,7 +125,55 @@ wait
 - ❌ Forgetting `DO NOT modify any files` in research/test prompts
 - ❌ Waiting idly for agents — code while they work
 
-## 10. Automated Dataset Generation
+## 10. Platform-Specific Notes
+
+### Windows (PowerShell 5.1)
+
+**Known issue:** If `OPENCODE_SERVER_PASSWORD` is set (e.g., by OpenCode Desktop), `opencode run` fails with `Session not found` ([bug #24747](https://github.com/anomalyco/opencode/issues/24747)). Always clear the variable before calling:
+
+```powershell
+$env:OPENCODE_SERVER_PASSWORD=""; $env:OPENCODE_SERVER_USERNAME=""
+opencode run --model "opencode/deepseek-v4-flash-free" "Your prompt here"
+```
+
+PowerShell 5.1 does not support `&` for background jobs. Use `Start-Job` instead:
+
+```powershell
+$env:OPENCODE_SERVER_PASSWORD=""; $env:OPENCODE_SERVER_USERNAME=""
+$j1 = Start-Job -ScriptBlock { param($d) Set-Location $d; opencode run --model "opencode/deepseek-v4-flash-free" "Task 1. DO NOT modify any files." } -ArgumentList (Get-Location).Path
+$j2 = Start-Job -ScriptBlock { param($d) Set-Location $d; opencode run --model "opencode/deepseek-v4-flash-free" "Task 2. DO NOT modify any files." } -ArgumentList (Get-Location).Path
+$j1, $j2 | Wait-Job | Receive-Job
+```
+
+For convenience, create a wrapper function in your PowerShell profile:
+
+```powershell
+function opencode-run { $env:OPENCODE_SERVER_PASSWORD=""; $env:OPENCODE_SERVER_USERNAME=""; opencode run @args }
+```
+
+### Linux / macOS (bash / zsh)
+
+The same `OPENCODE_SERVER_PASSWORD` issue applies. Use a wrapper or clear the variable inline:
+
+```bash
+# Wrapper function (add to ~/.bashrc or ~/.zshrc)
+opencode-run() {
+  OPENCODE_SERVER_PASSWORD="" OPENCODE_SERVER_USERNAME="" opencode run "$@"
+}
+
+# One-liner with env prefix
+OPENCODE_SERVER_PASSWORD="" OPENCODE_SERVER_USERNAME="" opencode run --model "opencode/deepseek-v4-flash-free" "Your prompt here" &
+```
+
+Parallel dispatch with `&` works natively:
+
+```bash
+OPENCODE_SERVER_PASSWORD="" opencode run --pure "Task 1" > /tmp/t1.log 2>&1 &
+OPENCODE_SERVER_PASSWORD="" opencode run --pure "Task 2" > /tmp/t2.log 2>&1 &
+wait
+```
+
+## 11. Automated Dataset Generation
 
 After completing a complex task, delegate lesson creation to `opencode`:
 
