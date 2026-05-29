@@ -1,88 +1,147 @@
 # OpenCode CLI Agent Collaboration Guidelines
 
-This document outlines the rules and best practices for me (the primary developer agent) to delegate tasks to the local `opencode` CLI assistant. The primary goal of utilizing `opencode` is to offload routine tasks, preserve my context window for complex architectural decisions, and accelerate development via parallel execution.
+## 1. Core Architecture
 
-## 1. Task Delegation
+You (the primary agent) are the **sole architect and coder**. The `opencode` CLI agents are your **support crew** — they research, test, document, and advise, but **NEVER write production code**.
 
-- **Routine Work:** Delegate routine and repetitive tasks to `opencode`. This includes:
-  - Generating documentation (e.g., populating the `docs/` directory).
-  - Codebase research, log analysis, and identifying problematic areas.
-  - Writing basic unit tests or boilerplate code.
-- **Context Preservation:** Do not pollute your own context with large, trivial tasks. Use the sub-agent to handle these while you focus on core business logic.
-- **Agent Research = CLI Utility:** When the user requests launching agents for research (e.g., "run agents to investigate...", "scan the codebase..."), this specifically refers to the `opencode` CLI utility, not internal assistant tools.
+**Why:** `opencode` runs smaller models in isolated, stateless sessions with no inter-agent communication. They cannot coordinate with each other, share context, or safely merge concurrent edits. You are the single source of truth.
 
-## 2. Unblocking & Consultation
+## 2. Session Tracking
 
-If you encounter a dead end, a confusing bug, or are unsure of the best approach:
+All sessions are tracked in `.brains/sessions/` using the format `YYYY-MM-DD-NNNN` (e.g., `2026-05-29-0001`).
 
-- **Consult `opencode` first** instead of pausing development or bothering the user immediately.
-- The user may be unavailable or lack the specific technical context. The `opencode` agent can scan the project and offer hypotheses or immediate solutions.
+Each session directory contains:
 
-## 3. Session Management (Context Isolation)
-
-- **New Task = New Session:** Always use fresh, independent sessions for new tasks. Avoid conversational modes that carry over state unless strictly necessary.
-- Using isolated commands prevents context contamination and "hallucinations" in the smaller sub-models.
-
-## 4. Swarm Mode (Concurrent Execution)
-
-- **Parallel Processing:** You act as the orchestrator of a "swarm" of agents. You can run multiple `opencode` CLI commands simultaneously using bash background processes (`&`).
-- Use this capability for parallel refactoring, generating multiple documents at once, or running independent tests.
-
-## 5. Model Selection
-
-`opencode` supports selecting different models. Choose the right tool for the job.
-
-**Available Free Models:**
-
-- `Big Pickle` (Free)
-- `DeepSeek V4 Flash Free` (Free)
-- `MiMo V2.5 Free` (Free)
-- `Nemotron 3 Super Free` (Free)
-
-**Recommendations:**
-
-- For **documentation generation** and text-heavy tasks, explicitly use `DeepSeek V4 Flash Free` or `MiMo V2.5 Free`.
-
----
-
-## Example Commands
-
-Below are standard commands to be used consistently:
-
-```bash
-# Launch multiple agents in the background
-opencode run --pure "Write unit tests for src/core.rs" > /tmp/tests_core.log 2>&1 &
-opencode run --pure "Write unit tests for src/utils.rs" > /tmp/tests_utils.log 2>&1 &
-wait # Wait for the swarm to finish
+```
+.brains/sessions/2026-05-29-0001/
+├── plans/          # Detailed implementation plan (created BEFORE work begins)
+├── tasks/          # Checklist with progress marks: [ ] → [/] → [x]
+└── walkthrough/    # Post-completion summary of what was done and why
 ```
 
-**4. Consulting for debugging (Unblocking):**
+**Workflow:**
+
+1. Create the session directory and write the plan **before** delegating any work.
+2. Update `tasks/` as you progress.
+3. Write the walkthrough **after** verification is complete.
+
+Agents can reference the plan file in their prompts for context alignment.
+
+## 3. What Agents Do (and Don't)
+
+**Delegate to `opencode`:**
+
+- Codebase research and analysis
+- Web search for docs, APIs, and solutions
+- Running tests and reporting results
+- Generating documentation
+- Git history analysis (bisect, blame, log)
+- Environment setup and validation
+
+**NEVER delegate to `opencode`:**
+
+- Writing or modifying source code
+- Architectural decisions
+- Fixing bugs in production files
+- Refactoring
+- Database migrations
+- Anything requiring cross-file coordination
+
+## 4. Parallel Dispatch Pattern
+
+Fire off support agents in parallel with `&`, then continue your own coding work. Review their output when notifications arrive.
 
 ```bash
-opencode run --pure "I am getting a 'Connection refused' error on port 3317 when running cargo test. Scan the codebase and tell me why this might be happening."
+# Research + Test + Doc agents in parallel while you code
+opencode run --pure "Analyze src/core.rs: list all exported functions, their args, and call sites. DO NOT modify any files." > /tmp/research_core.log 2>&1 &
+opencode run --pure "Run: cargo test. Report all failures with full output. DO NOT modify any files." > /tmp/test_results.log 2>&1 &
+opencode run --pure "Search the web for '[relevant technical topic]'. Summarize findings. DO NOT modify any files." > /tmp/web_research.log 2>&1 &
+wait
+# Now read /tmp/*.log and incorporate findings into your work
 ```
 
-## 6. Automated Dataset Generation (Self-Learning)
+**Key rules:**
 
-After completing a complex task (e.g., refactoring, fixing a non-trivial bug, or implementing a new architectural pattern), you must orchestrate the generation of an AI training lesson. This serves as a self-documenting dataset for future RAG or model fine-tuning.
+- Every agent prompt MUST include `DO NOT modify any files` (except doc writers targeting `docs/`).
+- Always redirect output to `/tmp/` log files for later review.
+- Use `wait` only when you need results before proceeding. Otherwise, let them run and check later.
 
-- **Process:** Upon successful completion and code review of a task, delegate the creation of the lesson to the `opencode` agent.
-- **Language:** The lesson **MUST be written entirely in English**. English is the primary language for AI training; using it ensures the highest quality dataset and prevents degradation in models that may not perform as well in other languages.
-- **Verification:** Once the sub-agent generates the lesson, you (the primary agent) **MUST read and verify** the JSON file. This serves two crucial purposes:
-  1. It sharply restores your context to a "combat-ready" state.
-  2. It forces you to evaluate the correctness of the solution one final time (acting as a secondary review layer).
-- **Storage:** Save all generated lessons in the hidden directory: `.dataset/lessons/`.
-- **Naming Convention:** Use descriptive snake_case names with a `.json` extension (e.g., `mcp_protocol_refactoring.json`).
-- **Format Requirements:** The sub-agent MUST output strictly in JSON format. The JSON structure should be:
+## 5. Brainstorming & Consultation
+
+When you hit a wall — a confusing bug, an unclear API, or a design dilemma — **consult `opencode` before asking the user**.
+
+```bash
+# Stuck on a bug? Ask for hypotheses.
+opencode run --pure "I'm debugging [file]. [Description of the problem]. Here is the relevant code: [paste snippet]. What could cause this? List 3-5 hypotheses ranked by likelihood. DO NOT modify any files."
+
+# Need a second opinion on architecture?
+opencode run --pure "I'm considering two approaches for [task]: (A) [approach A], (B) [approach B]. What are the trade-offs? DO NOT modify any files."
+```
+
+**When to escalate to the user:** Only after you've consulted an agent AND still lack clarity on a business/product decision (not a technical one).
+
+## 6. Delegate-First Rule
+
+You MUST delegate research, web lookups, test runs, and codebase analysis to `opencode` agents **before** doing it yourself. Do your own research only when an agent's output was incorrect or insufficient.
+
+**Rationale:** Your context window is expensive. Preserve it for architecture and coding. Let agents burn their disposable contexts on information gathering.
+
+When delegating web research, always instruct agents to verify that documentation and solutions are **current as of today's date**. Outdated patterns from previous years are a common failure mode. Include phrasing like: "Find the latest official documentation as of [current year]. Ignore deprecated approaches."
+
+## 7. Model Selection
+
+- For **documentation generation** and text-heavy tasks, use `DeepSeek V4 Flash Free` or `MiMo V2.5 Free`.
+- For **code analysis and debugging hypotheses**, use `Big Pickle`.
+- For **simple lookups and web search summaries**, use any free model.
+
+## 8. Common Patterns
+
+**Git detective — find where a bug was introduced:**
+
+```bash
+opencode run --pure "Run 'git log --oneline -20 -- [file]' and 'git diff HEAD~5 -- [file]'. Identify which commit likely introduced the [issue]. DO NOT modify any files." > /tmp/git_detective.log 2>&1 &
+```
+
+**Prep environment while you plan:**
+
+```bash
+opencode run --pure "Check that [required tools] are installed and accessible from PATH. Report versions. If any are missing, list installation commands for this OS. DO NOT modify any files." > /tmp/env_check.log 2>&1 &
+```
+
+**Multi-agent research swarm:**
+
+```bash
+opencode run --pure "Search the web for '[topic A]'. Summarize with code examples. DO NOT modify any files." > /tmp/web_topic_a.log 2>&1 &
+opencode run --pure "Search the web for '[topic B]'. Summarize with code examples. DO NOT modify any files." > /tmp/web_topic_b.log 2>&1 &
+opencode run --pure "Analyze [file]: explain what each function does. DO NOT modify any files." > /tmp/research_file.log 2>&1 &
+wait
+```
+
+## 9. Anti-Patterns
+
+- ❌ Letting an agent "fix" code it found during research
+- ❌ Skipping the plan — always write `.brains/sessions/*/plans/` first
+- ❌ Sending a huge prompt with 5 tasks — one agent = one atomic task
+- ❌ Forgetting `DO NOT modify any files` in research/test prompts
+- ❌ Waiting idly for agents — code while they work
+
+## 10. Automated Dataset Generation
+
+After completing a complex task, delegate lesson creation to `opencode`:
+
+- **Storage:** `.dataset/lessons/` with snake_case `.json` names.
+- **Language:** English only.
+- **Schema:**
   ```json
   {
-    "topic": "Short descriptive topic of the lesson",
-    "instruction": "The initial problem statement or prompt",
-    "context": "Brief overview of the codebase state before the fix or the technical constraints",
-    "response": "Detailed explanation of the solution, including before/after code snippets"
+    "topic": "Short descriptive topic",
+    "instruction": "The initial problem statement",
+    "context": "Codebase state before the fix",
+    "response": "Detailed solution with before/after code"
   }
   ```
-- **Example Command:**
-  ```bash
-  opencode run --pure --model "deepseek v4 flash free" "Generate an AI training lesson in JSON format about how we refactored the MCP server in src/api.rs. Ensure the text is written entirely in English. Save it to .dataset/lessons/mcp_refactoring.json following the exact JSON schema defined in AGENTS.md."
-  ```
+- **After generation:** You MUST read and verify the JSON file yourself.
+
+```bash
+opencode run --pure --model "deepseek v4 flash free" "Generate an AI training lesson in JSON format about [topic]. Write in English. Save to .dataset/lessons/[name].json using the schema from AGENTS.md."
+```
