@@ -94,5 +94,5 @@ These novel experiments further solidify the First-Principle Neuro-Symbolic arch
     print("Report generated successfully.")
 
 if __name__ == "__main__":
-    generate_charts("v8/docs/assets")
-    generate_report("v8/docs/empirical_discovery")
+    generate_charts("v9/docs/assets")
+    generate_report("v9/docs/empirical_discovery")

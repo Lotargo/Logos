@@ -1,7 +1,7 @@
 import random
 import csv
 
-with open('v8/engine/kepler_data.csv', 'w', newline='') as f:
+with open('v9/data/kepler_data.csv', 'w', newline='') as f:
     writer = csv.writer(f)
     for _ in range(10):
         a = random.uniform(1.0, 10.0)

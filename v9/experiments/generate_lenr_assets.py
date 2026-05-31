@@ -4,7 +4,7 @@ import os
 from mpl_toolkits.mplot3d import Axes3D
 
 def generate_assets():
-    assets_dir = "v8/docs/assets"
+    assets_dir = "v9/docs/assets"
     os.makedirs(assets_dir, exist_ok=True)
 
     # --- 1. 3D Resonance Island ---

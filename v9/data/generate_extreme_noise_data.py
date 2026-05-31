@@ -4,7 +4,7 @@ import random
 
 # Generate a highly non-linear dataset with significant noise
 # Target: Y = 5 * sin(X1) + X2^2 - 10 * exp(-X3) + NOISE
-with open('v8/engine/extreme_noise_data.csv', 'w', newline='') as f:
+with open('v9/data/extreme_noise_data.csv', 'w', newline='') as f:
     writer = csv.writer(f)
     # 50 rows of data
     for _ in range(50):
@@ -21,4 +21,4 @@ with open('v8/engine/extreme_noise_data.csv', 'w', newline='') as f:
 
         writer.writerow([round(x1, 4), round(x2, 4), round(x3, 4), round(target_y, 4)])
 
-print("Generated v8/engine/extreme_noise_data.csv")
+print("Generated v9/data/extreme_noise_data.csv")

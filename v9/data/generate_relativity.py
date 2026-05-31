@@ -2,7 +2,7 @@ import random
 import csv
 import math
 
-with open('v8/engine/relativity_data.csv', 'w', newline='') as f:
+with open('v9/data/relativity_data.csv', 'w', newline='') as f:
     writer = csv.writer(f)
     c = 3.0
     for _ in range(10):

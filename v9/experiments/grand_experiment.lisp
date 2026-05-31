@@ -1,7 +1,7 @@
 (require :asdf)
 (defpackage :cognitive-engine (:use :cl))
 (in-package :cognitive-engine)
-(load "v8/src/engine.lisp")
+(load "v9/src/engine.lisp")
 (in-package :cognitive-engine)
 
 (defun run-grand-experiment ()

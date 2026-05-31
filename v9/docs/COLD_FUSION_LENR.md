@@ -31,7 +31,7 @@ import numpy as np
 import os
 
 def simulate_lenr():
-    assets_dir = "v8/docs/assets"
+    assets_dir = "v9/docs/assets"
     os.makedirs(assets_dir, exist_ok=True)
 
     # Simulate variables
@@ -53,7 +53,7 @@ def simulate_lenr():
     # We dynamically parse the last successful hypothesis to simulate physical mapping.
     v8_prob = np.zeros_like(temperature)
     try:
-        with open("v8/experiments/lenr_results.log", "r") as log_file:
+        with open("v9/experiments/lenr_results.log", "r") as log_file:
             log_lines = log_file.readlines()
 
         # We search for the extracted dynamic subroutines (ADFs) or final hypotheses.
