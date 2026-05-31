@@ -7,12 +7,12 @@
 (defvar *current-dataset* nil)
 (defvar *regression-vars* nil)
 
-(load "v8/src/engine.lisp")
+(load "v9/src/engine.lisp")
 
 (defun run-adversarial-lenr ()
   (format t "Starting Adversarial Falsification (Red Team) for LENR Theory...~%")
 
-  (with-open-file (*standard-output* "v8/experiments/adversarial_lenr.log"
+  (with-open-file (*standard-output* "v9/experiments/adversarial_lenr.log"
                                      :direction :output
                                      :if-exists :supersede
                                      :if-does-not-exist :create)
@@ -24,7 +24,7 @@
     (format t "Testing against: Near Absolute Zero, Extreme Plasma, Micro-Fractures, Math Paradoxes~%~%")
 
     (setf *regression-vars* '(E V L S))
-    (setf *current-dataset* "v8/data/extreme_lenr_data.csv")
+    (setf *current-dataset* "v9/data/extreme_lenr_data.csv")
 
     ;; We use the exact base operators that derived the formula, plus some adversarial noise injectors
     (let ((*current-operators* '(+ - * / sin cos exp sqr sqrt deriv int info_bound seq matrix row))
@@ -40,6 +40,6 @@
     (format t "ADVERSARIAL EXPERIMENT COMPLETED~%")
     (format t "========================================================~%"))
 
-  (format t "Adversarial test complete. Results saved to v8/experiments/adversarial_lenr.log~%"))
+  (format t "Adversarial test complete. Results saved to v9/experiments/adversarial_lenr.log~%"))
 
 (run-adversarial-lenr)

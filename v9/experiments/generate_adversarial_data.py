@@ -34,6 +34,6 @@ def generate_singularity_data(filepath):
         writer.writerows(data)
 
 if __name__ == "__main__":
-    os.makedirs("v8/data", exist_ok=True)
-    generate_singularity_data("v8/data/adversarial_singularity.csv")
+    os.makedirs("v9/data", exist_ok=True)
+    generate_singularity_data("v9/data/adversarial_singularity.csv")
     print("Adversarial Singularity dataset generated successfully.")

@@ -60,7 +60,7 @@ def generate_phonon_resonance_data(filepath):
         writer.writerows(data)
 
 if __name__ == "__main__":
-    os.makedirs("v8/data", exist_ok=True)
-    generate_tunneling_data("v8/data/tunneling_data.csv")
-    generate_phonon_resonance_data("v8/data/phonon_resonance.csv")
+    os.makedirs("v9/data", exist_ok=True)
+    generate_tunneling_data("v9/data/tunneling_data.csv")
+    generate_phonon_resonance_data("v9/data/phonon_resonance.csv")
     print("LENR datasets generated successfully.")

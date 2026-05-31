@@ -46,7 +46,7 @@ def generate_entropy_data(filepath):
         writer.writerows(data)
 
 if __name__ == "__main__":
-    os.makedirs("v8/data", exist_ok=True)
-    generate_schrodinger_data("v8/data/schrodinger_data.csv")
-    generate_entropy_data("v8/data/holographic_entropy_data.csv")
+    os.makedirs("v9/data", exist_ok=True)
+    generate_schrodinger_data("v9/data/schrodinger_data.csv")
+    generate_entropy_data("v9/data/holographic_entropy_data.csv")
     print("New experiment datasets generated successfully.")

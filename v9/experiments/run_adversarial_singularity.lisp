@@ -2,9 +2,9 @@
 (defpackage :cognitive-engine (:use :cl))
 (defparameter cognitive-engine::*is-cli* t)
 
-(load "v8/src/engine.lisp")
+(load "v9/src/engine.lisp")
 
-(ensure-directories-exist "v8/experiments/empirical_discovery/")
+(ensure-directories-exist "v9/experiments/empirical_discovery/")
 
 (defpackage :cognitive-engine-experiments (:use :cl))
 (in-package :cognitive-engine-experiments)
@@ -28,7 +28,7 @@
 
 ;; Run Experiment 6: Adversarial Singularity
 (format t "Starting Experiment 6: Adversarial Singularity Healing...~%")
-(set-dataset "v8/data/adversarial_singularity.csv")
+(set-dataset "v9/data/adversarial_singularity.csv")
 
 ;; We start with standard Newtonian gravity which will crash on R=0
 ;; The engine MUST discover (div m (add (mul r r) (mul l l))) to survive
@@ -36,4 +36,4 @@
              '(div m (mul r r))
              :regression
              1500
-             "v8/experiments/empirical_discovery/experiment_6_singularity.txt")
+             "v9/experiments/empirical_discovery/experiment_6_singularity.txt")

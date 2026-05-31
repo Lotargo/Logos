@@ -2,9 +2,9 @@
 (defpackage :cognitive-engine (:use :cl))
 (defparameter cognitive-engine::*is-cli* t)
 
-(load "v8/src/engine.lisp")
+(load "v9/src/engine.lisp")
 
-(ensure-directories-exist "v8/experiments/empirical_discovery/")
+(ensure-directories-exist "v9/experiments/empirical_discovery/")
 
 (defpackage :cognitive-engine-experiments (:use :cl))
 (in-package :cognitive-engine-experiments)
@@ -28,18 +28,18 @@
 
 ;; Run Experiment 4: Schrodinger Equation (Energy)
 (format t "Starting Experiment 4: Schrodinger Equation...~%")
-(set-dataset "v8/data/schrodinger_data.csv")
+(set-dataset "v9/data/schrodinger_data.csv")
 (run-and-log "Experiment 4: Schrodinger Equation"
              '(add p v)
              :regression
              800
-             "v8/experiments/empirical_discovery/experiment_4_schrodinger.txt")
+             "v9/experiments/empirical_discovery/experiment_4_schrodinger.txt")
 
 ;; Run Experiment 5: Bekenstein-Hawking Entropy
 (format t "Starting Experiment 5: Holographic Entropy...~%")
-(set-dataset "v8/data/holographic_entropy_data.csv")
+(set-dataset "v9/data/holographic_entropy_data.csv")
 (run-and-log "Experiment 5: Bekenstein-Hawking Entropy"
              '(div a 2)
              :regression
              500
-             "v8/experiments/empirical_discovery/experiment_5_entropy.txt")
+             "v9/experiments/empirical_discovery/experiment_5_entropy.txt")

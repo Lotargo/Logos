@@ -10,11 +10,11 @@
 (defvar *current-dataset* nil)
 
 ;; Load the main engine
-(load "v8/src/engine.lisp")
+(load "v9/src/engine.lisp")
 
 ;; We also need access to the check-with-prolog internals directly to test raw ASTs
 (defun check-raw-ast (ast domain)
-  (let* ((proc (uiop:launch-program (list "swipl" "-q" "-s" "v8/prolog/daemon.pl")
+  (let* ((proc (uiop:launch-program (list "swipl" "-q" "-s" "v9/prolog/daemon.pl")
                                     :input :stream :output :stream))
          (proc-cell (list proc))
          (penalty (cognitive-engine::check-with-prolog ast domain proc-cell :target)))
@@ -59,7 +59,7 @@
 (format t "~%== TEST 5: Extreme Noise Regression Search ==~%")
 (format t "Attempting to find an equation for a highly non-linear, noisy dataset.~%")
 (setf *regression-vars* '(x1 x2 x3))
-(setf *current-dataset* "v8/data/extreme_noise_data.csv")
+(setf *current-dataset* "v9/data/extreme_noise_data.csv")
 
 ;; Run the engine on regression domain for 1000 iterations to see if it hangs or outputs anything useful
 (handler-case

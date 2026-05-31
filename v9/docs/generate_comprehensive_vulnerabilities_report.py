@@ -1,7 +1,7 @@
 import os
 
 def generate_report():
-    filepath = "v8/docs/v8_vulnerabilities_report.md"
+    filepath = "v9/docs/v8_vulnerabilities_report.md"
 
     with open(filepath, "w") as f:
         # --- Section 1: Introduction & Methodology ---
@@ -22,7 +22,7 @@ This comprehensive report is structured into several core analytical domains:
 
 ## 2. Methodology of the 'Breaker' Test Suite
 
-To objectively evaluate the Logos engine beyond its own curated test suites, a custom set of Lisp scripts (`v8/engine/test_breaker.lisp`) and adversarial data generators (`v8/engine/generate_extreme_noise_data.py`) were developed. Standard confirmation tests typically feed the engine pristine data to arrive at a known, elegant formula like Kepler's Third Law ($T^2 \\propto a^3$). Our breaker methodology eschews this in favor of pathological edge cases designed to break the internal logic or expose over-optimization.
+To objectively evaluate the Logos engine beyond its own curated test suites, a custom set of Lisp scripts (`v9/engine/test_breaker.lisp`) and adversarial data generators (`v9/engine/generate_extreme_noise_data.py`) were developed. Standard confirmation tests typically feed the engine pristine data to arrive at a known, elegant formula like Kepler's Third Law ($T^2 \\propto a^3$). Our breaker methodology eschews this in favor of pathological edge cases designed to break the internal logic or expose over-optimization.
 
 ### 2.1 Adversarial Dataset Generation
 A Python script was engineered to produce a highly non-linear dataset combining trigonometric, polynomial, and exponential decay components. The underlying signal was defined as: `Y = 5 * sin(X1) + X2^2 - 10 * exp(-X3)`.
@@ -103,11 +103,11 @@ The v8 manifesto explicitly claims that macroscopic domain specifics have been a
 In `regression.pl`, lines 62-66 explicitly dictate the variable names and target values based entirely on hardcoded, expected filenames:
 
 ```prolog
-dataset_vars('v8/engine/gravity_data.csv', [m1, m2, r], targetF).
-dataset_vars('v8/engine/anomaly_data.csv', [x1, x2, x3], targetY).
-dataset_vars('v8/engine/regression_data.csv', [x], targetY).
-dataset_vars('v8/engine/kepler_data.csv', [a], targetT2).
-dataset_vars('v8/engine/relativity_data.csv', [v, c], targetGamma).
+dataset_vars('v9/engine/gravity_data.csv', [m1, m2, r], targetF).
+dataset_vars('v9/engine/anomaly_data.csv', [x1, x2, x3], targetY).
+dataset_vars('v9/engine/regression_data.csv', [x], targetY).
+dataset_vars('v9/engine/kepler_data.csv', [a], targetT2).
+dataset_vars('v9/engine/relativity_data.csv', [v, c], targetGamma).
 ```
 
 **Why it is a violation of autonomous AI principles:**
