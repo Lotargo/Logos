@@ -7,12 +7,12 @@
 (defvar *current-dataset* nil)
 (defvar *regression-vars* nil)
 
-(load "v8/src/engine.lisp")
+(load "v9/src/engine.lisp")
 
 (defun run-lenr-experiment ()
   (format t "Starting Theoretical Verification of Cold Fusion (LENR)...~%")
 
-  (with-open-file (*standard-output* "v8/experiments/lenr_results.log"
+  (with-open-file (*standard-output* "v9/experiments/lenr_results.log"
                                      :direction :output
                                      :if-exists :supersede
                                      :if-does-not-exist :create)
@@ -23,7 +23,7 @@
     (format t "Searching for AST to maximize P_tunnel despite V > E~%~%")
 
     (setf *regression-vars* '(E V L S))
-    (setf *current-dataset* "v8/data/tunneling_data.csv")
+    (setf *current-dataset* "v9/data/tunneling_data.csv")
     (let ((*current-operators* '(+ - * / sin cos exp sqr sqrt deriv int))
           (*current-constants* '(1.0 2.0 0.5 -1.0 -2.0)))
       ;; Neutral starting AST
@@ -35,7 +35,7 @@
     (format t "Searching for thermodynamic/acoustic coupling AST~%~%")
 
     (setf *regression-vars* '(F T M))
-    (setf *current-dataset* "v8/data/phonon_resonance.csv")
+    (setf *current-dataset* "v9/data/phonon_resonance.csv")
     (let ((*current-operators* '(+ - * / sin cos exp sqr deriv int carnot entropy))
           (*current-constants* '(1.0 10.0 100.0 1000.0 -1.0)))
       ;; Neutral starting AST
@@ -45,6 +45,6 @@
     (format t "EXPERIMENT COMPLETED SUCCESSFULLY~%")
     (format t "========================================================~%"))
 
-  (format t "Experiment complete. Results saved to v8/experiments/lenr_results.log~%"))
+  (format t "Experiment complete. Results saved to v9/experiments/lenr_results.log~%"))
 
 (run-lenr-experiment)

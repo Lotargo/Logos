@@ -86,7 +86,7 @@ It initiated queries to the `novelty_archive/2` dynamic database residing in Pro
 ### 3.4 The Mechanics of Semantic Meta-Evolution
 While the current configuration of Experiment 3 primarily showcased the transition to Novelty Search, the underlying architecture supports an even more radical resolution: **Meta-Axiomatic Evolution**.
 
-When Novelty Search fails to provide a stepping stone, the engine invokes its Meta-Architect (`v8/engine/meta_evolve.lisp`). The Lisp generator analyzes the structural deficit—for example, recognizing that it lacks an operator capable of non-linear dimensional scaling. It then formulates a hypothetical Prolog clause representing a new physical law or mathematical operator.
+When Novelty Search fails to provide a stepping stone, the engine invokes its Meta-Architect (`v9/engine/meta_evolve.lisp`). The Lisp generator analyzes the structural deficit—for example, recognizing that it lacks an operator capable of non-linear dimensional scaling. It then formulates a hypothetical Prolog clause representing a new physical law or mathematical operator.
 
 Let the failing AST be $T_{fail}$. The engine invents a new operator $\Omega(x,y)$ and dynamically injects it into the Prolog daemon via `assertz(unified_eval(Omega, ...))`. The system then re-evaluates the empirical data using this new law.
 

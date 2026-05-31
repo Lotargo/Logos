@@ -36,6 +36,6 @@ def generate_healing_data(filepath):
         writer.writerows(data)
 
 if __name__ == "__main__":
-    os.makedirs("v8/data", exist_ok=True)
-    generate_healing_data("v8/data/healing_lenr_data.csv")
+    os.makedirs("v9/data", exist_ok=True)
+    generate_healing_data("v9/data/healing_lenr_data.csv")
     print("Healing dataset generated successfully.")

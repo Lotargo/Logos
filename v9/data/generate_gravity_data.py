@@ -4,7 +4,7 @@ import random
 # G = 1 for normalized symbolic regression task
 # F = (m1 * m2) / (r * r)
 
-with open('v8/engine/gravity_data.csv', 'w', newline='') as csvfile:
+with open('v9/data/gravity_data.csv', 'w', newline='') as csvfile:
     writer = csv.writer(csvfile)
     for _ in range(20): # 20 data points
         m1 = round(random.uniform(1.0, 10.0), 2)

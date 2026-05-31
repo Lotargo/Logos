@@ -52,7 +52,7 @@ def generate_ricci_flow_data(filepath):
         writer.writerows(data)
 
 if __name__ == "__main__":
-    os.makedirs("v8/data", exist_ok=True)
-    generate_poincare_data("v8/data/poincare_data.csv")
-    generate_ricci_flow_data("v8/data/ricci_flow.csv")
+    os.makedirs("v9/data", exist_ok=True)
+    generate_poincare_data("v9/data/poincare_data.csv")
+    generate_ricci_flow_data("v9/data/ricci_flow.csv")
     print("Poincare datasets generated successfully.")

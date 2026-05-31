@@ -52,6 +52,6 @@ def generate_extreme_data(filepath):
         writer.writerows(data)
 
 if __name__ == "__main__":
-    os.makedirs("v8/data", exist_ok=True)
-    generate_extreme_data("v8/data/extreme_lenr_data.csv")
+    os.makedirs("v9/data", exist_ok=True)
+    generate_extreme_data("v9/data/extreme_lenr_data.csv")
     print("Extreme adversarial LENR dataset generated successfully.")
