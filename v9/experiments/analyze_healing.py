@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 def analyze_healing():
-    assets_dir = "v8/docs/assets"
+    assets_dir = "v9/docs/assets"
     os.makedirs(assets_dir, exist_ok=True)
 
     # Simulate variables

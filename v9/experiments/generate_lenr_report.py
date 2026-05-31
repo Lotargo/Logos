@@ -1,7 +1,7 @@
 import os
 
 def generate_lenr_report():
-    filepath = "v8/docs/COLD_FUSION_LENR.md"
+    filepath = "v9/docs/COLD_FUSION_LENR.md"
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
     with open(filepath, "w", encoding="utf-8") as f:
@@ -33,7 +33,7 @@ def generate_lenr_report():
         f.write("To ensure absolute scientific transparency, we simulated the V8-derived equation against the standard Gamow model and typical laboratory anomalies. We deliberately avoided hardcoding formulas. The simulation script dynamically reads the AST from the Lisp logs. The source code used for this simulation is provided below:\n\n")
 
         f.write("```python\n")
-        with open("v8/experiments/simulate_lenr.py", "r", encoding="utf-8") as sim_file:
+        with open("v9/experiments/simulate_lenr.py", "r", encoding="utf-8") as sim_file:
             f.write(sim_file.read())
         f.write("\n```\n\n")
 

@@ -5,11 +5,11 @@ import matplotlib.pyplot as plt
 
 def generate_plots():
     print("Generating verification plots...")
-    os.makedirs("v8/docs/assets", exist_ok=True)
+    os.makedirs("v9/docs/assets", exist_ok=True)
     
     # 1. Kepler Plot
     kepler_data = []
-    with open("v8/data/kepler_data.csv", "r") as f:
+    with open("v9/data/kepler_data.csv", "r") as f:
         reader = csv.reader(f)
         for row in reader:
             if row:
@@ -32,12 +32,12 @@ def generate_plots():
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.legend()
     plt.tight_layout()
-    plt.savefig("v8/docs/assets/kepler_plot.png", dpi=150)
+    plt.savefig("v9/docs/assets/kepler_plot.png", dpi=150)
     plt.close()
     
     # 2. Gravity Plot: Predicted vs Actual Force
     gravity_data = []
-    with open("v8/data/gravity_data.csv", "r") as f:
+    with open("v9/data/gravity_data.csv", "r") as f:
         reader = csv.reader(f)
         for row in reader:
             if row:
@@ -60,12 +60,12 @@ def generate_plots():
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.legend()
     plt.tight_layout()
-    plt.savefig("v8/docs/assets/gravity_plot.png", dpi=150)
+    plt.savefig("v9/docs/assets/gravity_plot.png", dpi=150)
     plt.close()
     
     # 3. Relativity Plot
     rel_data = []
-    with open("v8/data/relativity_data.csv", "r") as f:
+    with open("v9/data/relativity_data.csv", "r") as f:
         reader = csv.reader(f)
         for row in reader:
             if row:
@@ -91,10 +91,10 @@ def generate_plots():
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.legend()
     plt.tight_layout()
-    plt.savefig("v8/docs/assets/relativity_plot.png", dpi=150)
+    plt.savefig("v9/docs/assets/relativity_plot.png", dpi=150)
     plt.close()
     
-    print("Plots generated successfully in v8/docs/assets/")
+    print("Plots generated successfully in v9/docs/assets/")
 
 if __name__ == '__main__':
     generate_plots()

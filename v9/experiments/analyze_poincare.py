@@ -4,8 +4,8 @@ import os
 import re
 
 def analyze_and_plot():
-    log_path = "v8/experiments/poincare_results.log"
-    assets_dir = "v8/docs/assets"
+    log_path = "v9/experiments/poincare_results.log"
+    assets_dir = "v9/docs/assets"
     os.makedirs(assets_dir, exist_ok=True)
 
     if not os.path.exists(log_path):
