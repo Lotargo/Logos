@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 def generate_plots():
     print("Generating verification plots...")
-    os.makedirs("v9/docs/assets", exist_ok=True)
+    os.makedirs("benchmarks_output/docs/assets", exist_ok=True)
     
     # 1. Kepler Plot
     kepler_data = []
@@ -32,7 +32,7 @@ def generate_plots():
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.legend()
     plt.tight_layout()
-    plt.savefig("v9/docs/assets/kepler_plot.png", dpi=150)
+    plt.savefig("benchmarks_output/docs/assets/kepler_plot.png", dpi=150)
     plt.close()
     
     # 2. Gravity Plot: Predicted vs Actual Force
@@ -60,7 +60,7 @@ def generate_plots():
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.legend()
     plt.tight_layout()
-    plt.savefig("v9/docs/assets/gravity_plot.png", dpi=150)
+    plt.savefig("benchmarks_output/docs/assets/gravity_plot.png", dpi=150)
     plt.close()
     
     # 3. Relativity Plot
@@ -83,18 +83,18 @@ def generate_plots():
     gamma_pred_sorted = gamma_pred[sort_idx]
     
     plt.figure(figsize=(6, 4))
-    plt.scatter(beta, gamma_actual, color='darkorchid', label='Empirical Data ($\gamma$)', zorder=5)
-    plt.plot(beta_sorted, gamma_pred_sorted, color='forestgreen', linestyle='-', linewidth=2, label='Logos Discovered: $\gamma = \\frac{1}{\\sqrt{1-\\frac{v^2}{c^2}}}$')
+    plt.scatter(beta, gamma_actual, color='darkorchid', label=r'Empirical Data ($\gamma$)', zorder=5)
+    plt.plot(beta_sorted, gamma_pred_sorted, color='forestgreen', linestyle='-', linewidth=2, label=r'Logos Discovered: $\gamma = \frac{1}{\sqrt{1-\frac{v^2}{c^2}}}$')
     plt.title("Relativistic Kinematics (Lorentz Factor)", fontsize=12, fontweight='bold')
     plt.xlabel("Relativistic Velocity $\\beta = v/c$", fontsize=10)
-    plt.ylabel("Lorentz Factor $\gamma$", fontsize=10)
+    plt.ylabel(r"Lorentz Factor $\gamma$", fontsize=10)
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.legend()
     plt.tight_layout()
-    plt.savefig("v9/docs/assets/relativity_plot.png", dpi=150)
+    plt.savefig("benchmarks_output/docs/assets/relativity_plot.png", dpi=150)
     plt.close()
     
-    print("Plots generated successfully in v9/docs/assets/")
+    print("Plots generated successfully in benchmarks_output/docs/assets/")
 
 if __name__ == '__main__':
     generate_plots()
