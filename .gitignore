@@ -1,2 +1,4 @@
 dont_delete*
 v7/papers/*.tex
+benchmarks_output/
+discoveries.log
