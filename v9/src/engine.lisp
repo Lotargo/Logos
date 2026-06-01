@@ -5,10 +5,7 @@
 (in-package :cognitive-engine)
 
 ;; Load Meta-Evolution extensions
-(load "v8/src/meta_evolve.lisp")
-(load "v8/src/ontology_generator.lisp")
-(load "v8/src/verilog_emitter.lisp")
-(load "v8/src/curry_howard.lisp")
+
 
 ;; =======================================================================
 ;; 1. Domains Configuration
@@ -21,10 +18,17 @@
 (defvar *current-operators* *unified-operators*)
 (defvar *current-variables* *unified-variables*)
 (defvar *current-constants* *unified-constants*)
+(defvar *current-dataset* nil)
+(defvar *regression-vars* nil)
+
+(load "v9/src/meta_evolve.lisp")
+(load "v9/src/ontology_generator.lisp")
+(load "v9/src/verilog_emitter.lisp")
+(load "v9/src/curry_howard.lisp")
 
 (defun detect-regression-vars (csv-file)
   "Reads the first line of the CSV file and returns a list of generic symbols (v1 v2 ... vn)."
-  (let ((path (or csv-file "v8/data/anomaly_data.csv")))
+  (let ((path (or csv-file "v9/data/anomaly_data.csv")))
     (handler-case
         (with-open-file (stream path :direction :input)
           (let ((first-line (read-line stream nil nil)))
@@ -178,7 +182,7 @@
       (sb-ext:timeout ()
         (format t "[TIMEOUT] Prolog daemon hung on query: ~A. Forcefully restarting...~%" query)
         (ignore-errors (uiop:terminate-process proc :urgent t))
-        (let ((new-proc (uiop:launch-program (list "swipl" "-q" "-s" "v8/prolog/daemon.pl")
+        (let ((new-proc (uiop:launch-program (list "swipl" "-q" "-s" "v9/prolog/daemon.pl")
                                              :input :stream
                                              :output :stream)))
           (setf (car proc-cell) new-proc))
@@ -186,7 +190,7 @@
       (error (e)
         (format t "[ERROR] Prolog daemon pipe error: ~A. Restarting daemon...~%" e)
         (ignore-errors (uiop:terminate-process proc :urgent t))
-        (let ((new-proc (uiop:launch-program (list "swipl" "-q" "-s" "v8/prolog/daemon.pl")
+        (let ((new-proc (uiop:launch-program (list "swipl" "-q" "-s" "v9/prolog/daemon.pl")
                                              :input :stream
                                              :output :stream)))
           (setf (car proc-cell) new-proc))
@@ -211,7 +215,7 @@
     (let* ((*current-operators* ops)
            (*current-variables* (append vars (mapcar #'car *adf-library*)))
            (*current-constants* consts)
-           (proc (uiop:launch-program (list "swipl" "-q" "-s" "v8/prolog/daemon.pl")
+           (proc (uiop:launch-program (list "swipl" "-q" "-s" "v9/prolog/daemon.pl")
                                       :input :stream
                                       :output :stream))
            (proc-cell (list proc))
@@ -322,7 +326,7 @@
     (let* ((*current-operators* ops)
            (*current-variables* (append vars (mapcar #'car *adf-library*)))
            (*current-constants* consts)
-           (proc (uiop:launch-program (list "swipl" "-q" "-s" "v8/prolog/daemon.pl")
+           (proc (uiop:launch-program (list "swipl" "-q" "-s" "v9/prolog/daemon.pl")
                                       :input :stream
                                       :output :stream))
            (proc-cell (list proc))
@@ -397,8 +401,8 @@
     (when (and winners (member domain '(:hardware :logic)))
       (let* ((best (car winners))
              (mod-name (format nil "synth_~A" (string-downcase (symbol-name domain))))
-             (path (format nil "v8/hardware/~A.v" mod-name)))
-        (uiop:run-program "mkdir -p v8/hardware" :ignore-error-status t)
+             (path (format nil "v9/hardware/~A.v" mod-name)))
+        (uiop:run-program "mkdir -p v9/hardware" :ignore-error-status t)
         (emit-verilog best mod-name path)))
     ))
 
