@@ -118,7 +118,26 @@
 
 ;; =======================================================================
 ;; 2b. Synthesis-Specific Mutation Operators
+
+(defparameter *structural-templates* (list
+  '(seq (h q3) (seq (cnot q2 q3) (h q3)))
+  '(seq (t q1) (seq (t q2) (t q3)))
+  '(seq (cnot q1 q2) (seq (cnot q2 q3) (cnot q1 q2)))
+))
+
 ;; =======================================================================
+
+
+(defun instantiate-template (template)
+  "Instantiate a structural template by replacing generic qubits with random current ones."
+  (cond
+    ((null template) nil)
+    ((atom template)
+     (if (and (symbolp template) (member template '(q1 q2 q3)))
+         (if *current-variables* (random-element *current-variables*) template)
+         template))
+    (t (cons (instantiate-template (car template))
+             (instantiate-template (cdr template))))))
 
 (defun random-gate ()
   "Generate a random quantum gate (never seq)."
@@ -185,8 +204,11 @@
       (list 'seq (random-gate) (random-gate-sequence (1- length)))))
 
 (defun bulk-swap-mutation (ast)
-  "Replace a random subtree with a new random contiguous sequence of gates (length 2 to 5)."
-  (let ((new-seq (random-gate-sequence (+ 2 (random 4)))))
+  "Replace a random subtree with a new random contiguous sequence of gates (length 2 to 5) or a template."
+  (let* ((use-template (and *structural-templates* (< (random 100) 25)))
+         (new-seq (if use-template
+                      (instantiate-template (random-element *structural-templates*))
+                      (random-gate-sequence (+ 2 (random 4))))))
     (if (or (atom ast) (= (length (cdr ast)) 0))
         new-seq
         (if (< (random 10) 3) ; 30% chance to replace this node
@@ -358,7 +380,10 @@
             (saved-best-penalty best-penalty)
             (actual-iters 0)
             (stagnation-counter 0)
-            (novelty-discoveries 0))
+            (novelty-discoveries 0)
+            (current-temp 250.0)
+            (recent-accepts 0)
+            (recent-moves 0))
        (let ((current-ast base-ast))
          (loop for i from 1 to iterations
                while (or (> best-penalty 0.0) (eq current-mode :novelty))
@@ -391,8 +416,8 @@
                               (= (mod i (max 1 (floor iterations 50))) 0))
                      (let* ((progress (/ i iterations))
                             (lambda-val (if (< progress 0.8)
-                                            0.01
-                                            (+ 0.01 (* 0.49 (/ (- progress 0.8) 0.2))))))
+                                            0.0
+                                            (* 0.50 (/ (- progress 0.8) 0.2)))))
                        (send-lambda proc-cell (min lambda-val 0.50))))
 
                    (let* ((use-bulk (and (eq domain :synthesis)
@@ -464,13 +489,19 @@
                           (accepted-uphill nil)
                           (delta (- penalty best-penalty)))
                      (when (and (not is-better) (eq domain :synthesis))
-                       ;; Simulated Annealing for synthesis domain
-                       (let* ((initial-temp 250.0)
-                              (final-temp 0.05)
-                              (temp (* initial-temp (expt (/ final-temp initial-temp) (/ i iterations))))
-                              (prob (exp (- (/ delta temp)))))
+                       ;; Adaptive Simulated Annealing for synthesis domain
+                       (incf recent-moves)
+                       (let ((prob (exp (- (/ delta current-temp)))))
                          (when (< (random 1.0) prob)
-                           (setf accepted-uphill t))))
+                           (setf accepted-uphill t)
+                           (incf recent-accepts)))
+                       (when (>= recent-moves 100)
+                         (let ((ratio (/ recent-accepts (float recent-moves))))
+                           (if (< ratio 0.2)
+                               (setf current-temp (* current-temp 1.1))
+                               (setf current-temp (* current-temp 0.9))))
+                         (setf recent-moves 0)
+                         (setf recent-accepts 0)))
 
                      (if is-better
                          (progn
