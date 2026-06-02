@@ -67,10 +67,11 @@
                 (format t "[Node A (Generator)] Adversarial Singularity Healing triggered... applying dimensional censor constraints...~%")
                 (sleep 0.2)
 
-                ;; Generator heals the equation, but tracks complexity
+                ;; Generator heals the equation by mutating the original AST, avoiding the singularity
+                ;; It does NOT get the solution predefined, it evolves from the broken hypothesis
                 (let* ((migration-pools (make-array 1 :initial-element nil))
                        (migration-mutexes (map 'vector (lambda (x) (declare (ignore x)) (sb-thread:make-mutex)) (make-list 1)))
-                       (healed-hypothesis (car (cognitive-engine::worker-loop '(div m r) :arithmetic 10 1 migration-pools migration-mutexes)))
+                       (healed-hypothesis (car (cognitive-engine::worker-loop hypothesis :arithmetic 20 1 migration-pools migration-mutexes)))
                        (healed-size (calculate-ast-size healed-hypothesis))
                        (parsimony-penalty (calculate-parsimony-penalty healed-size))
                        (healed-hash (sxhash (format nil "~A" healed-hypothesis))))

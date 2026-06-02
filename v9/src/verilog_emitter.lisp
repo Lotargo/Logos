@@ -26,8 +26,11 @@
     (sort vars #'string< :key #'symbol-name)))
 
 (defun sanitize-identifier (sym)
-  "Replaces hyphens with underscores in symbols for Verilog compliance."
-  (substitute #\_ #\- (string-downcase (symbol-name sym))))
+  "Replaces hyphens with underscores in symbols for Verilog compliance. Safe for numbers."
+  (cond ((symbolp sym) (substitute #\_ #\- (string-downcase (symbol-name sym))))
+        ((numberp sym) (format nil "num_~A" (substitute #\_ #\. (format nil "~A" sym))))
+        ((stringp sym) (substitute #\_ #\- sym))
+        (t "unknown_id")))
 
 (defun emit-expr (ast stream)
   "Recursively emits Verilog code for the AST, returning the name of the output wire."

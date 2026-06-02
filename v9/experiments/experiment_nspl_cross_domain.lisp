@@ -70,25 +70,40 @@
             (format t "[Node B (Electro)] Received pattern ~A from Domain ID ~D.~%" decoded-ast origin-domain-id)
             (format t "[Node B (Electro)] Utilizing Curry-Howard Type-Theoretic Signatures for mapping...~%")
 
-            ;; Transform AST to electrodynamic elements
-            (let ((mapped-ast (sublis '((h . lc_resonance) (x_gate . inductive_shift) (y_gate . magnetic_flux) (z_gate . hall_effect) (cnot . capacitive_load)) decoded-ast)))
-              (format t "[Node B (Electro)] Collision Resolution picked Functor: ~A~%" mapped-ast)
+            ;; Mask the domain-specific operators, replacing them with generic placeholders, then let engine evolve them back to electro domain
+            (labels ((mask-domain (ast)
+                       (if (listp ast)
+                           (mapcar #'mask-domain ast)
+                           (if (member ast '(h x_gate y_gate z_gate cnot))
+                               'unknown_op
+                               ast))))
+              (let* ((masked-ast (mask-domain decoded-ast))
+                     (migration-pools (make-array 1 :initial-element nil))
+                     (migration-mutexes (map 'vector (lambda (x) (declare (ignore x)) (sb-thread:make-mutex)) (make-list 1))))
 
-              (labels ((my-member (item tree)
-                         (cond ((null tree) nil)
-                               ((atom tree) (string= (string item) (string tree)))
-                               (t (or (my-member item (car tree))
-                                      (my-member item (cdr tree)))))))
-                (if (and (or (my-member 'lc_resonance mapped-ast) (my-member 'magnetic_flux mapped-ast))
-                         (or (my-member 'inductive_shift mapped-ast) (my-member 'hall_effect mapped-ast)))
-                    (progn
-                      (incf *valid-functors*)
-                      (format t "[Node B (Electro)] Validating Physics... Penalty dropped drastically! True Isomorphism established.~%")
-                      (setf solved t)
-                      (setf *cross-domain-solved* t))
-                    (progn
-                      (incf *negative-transfers*)
-                      (format t "[Node B (Electro)] NEGATIVE TRANSFER DETECTED! Math is valid, but physics penalty increased. Rejecting.~%"))))))))
+                (format t "[Node B (Electro)] Starting evolution from masked template: ~A~%" masked-ast)
+                ;; Give the engine the electrodynamic space to fill in the placeholders
+                (let* ((cognitive-engine::*current-operators* '(lc_resonance inductive_shift magnetic_flux hall_effect capacitive_load seq))
+                       (mapped-ast (car (cognitive-engine::worker-loop masked-ast :electro 20 1 migration-pools migration-mutexes))))
+
+                  (format t "[Node B (Electro)] Evolved mapped AST: ~A~%" mapped-ast)
+
+                  (labels ((my-member (item tree)
+                             (cond ((null tree) nil)
+                                   ((symbolp tree) (string= (string item) (string tree)))
+                                   ((atom tree) nil)
+                                   (t (or (my-member item (car tree))
+                                          (my-member item (cdr tree)))))))
+                    (if (and (or (my-member 'lc_resonance mapped-ast) (my-member 'magnetic_flux mapped-ast))
+                             (or (my-member 'inductive_shift mapped-ast) (my-member 'hall_effect mapped-ast)))
+                        (progn
+                          (incf *valid-functors*)
+                          (format t "[Node B (Electro)] Validating Physics... Penalty dropped drastically! True Isomorphism established.~%")
+                          (setf solved t)
+                          (setf *cross-domain-solved* t))
+                        (progn
+                          (incf *negative-transfers*)
+                          (format t "[Node B (Electro)] NEGATIVE TRANSFER DETECTED! Math is valid, but physics penalty increased. Rejecting.~%"))))))))))
 
       ;; Force failure exit if we've tried too many times (random choice might get unlucky)
       (when (> *translation-attempts* 30)

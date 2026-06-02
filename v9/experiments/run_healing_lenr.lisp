@@ -26,11 +26,8 @@
     (setf *regression-vars* '(T F C))
     (setf *current-dataset* "v9/data/healing_lenr_data.csv")
 
-    (let ((*current-operators* '(+ - * / sin cos exp sqr sqrt deriv int info_bound entropy seq matrix row))
-          (*current-constants* '(0.0 1.0 10.0 -1.0 1000.0 -1000.0)))
-
-      ;; Neutral starting AST, forcing the engine to build the healed formula from scratch
-      (run-engine-parallel '(* T F) :regression 100 4))
+    ;; Neutral starting AST, forcing the engine to build the healed formula from scratch
+    (run-engine-parallel '(* T F) :regression 100 4)
 
     (format t "~%========================================================~%")
     (format t "HEALING EXPERIMENT COMPLETED~%")
