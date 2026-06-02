@@ -201,3 +201,13 @@ The key takeaway: **the exploration machinery works — the temperature scale do
 [1] v7 Cognitive Engine architecture: `v7/engine/engine.lisp` (SA logic); Prolog synthesis censor at `v7/engine/quantum.pl`.
 
 [2] Minimum Toffoli decomposition (15 gates over Clifford+T): Amy, M., Maslov, D., Mosca, M., & Roetteler, M. (2013). A meet-in-the-middle algorithm for fast synthesis of depth-optimal quantum circuits. *IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems*, 32(6), 818--830.
+
+## 8. Post-Experiment Implementation Updates
+
+Based on the corrective recommendations from Section 6, the following updates were implemented in the engine (`v7/engine/engine.lisp`):
+
+1. **Adaptive Simulated Annealing**: The fixed exponential SA schedule was replaced with an adaptive schedule. The engine now dynamically tracks the local acceptance ratio across a sliding window of 100 iterations. If the acceptance ratio drops below the target of $0.2$, the temperature is scaled up by $1.1$; if it exceeds the target, it is scaled down by $0.9$. The initial temperature was raised to $T_0 = 250.0$, matching the landscape barrier scale.
+2. **Lambda Decoupling**: The Occam's Razor lambda size penalty was completely decoupled from the exploration phase. The size penalty multiplier is now strictly $0.0$ for the first 80% of the run, allowing unhindered search space traversal without pressure to collapse into identity states.
+3. **Structural Templates in Bulk-Swap**: The `bulk-swap-mutation` was extended to include pre-computed quantum sub-circuit equivalences (e.g., standard CNOT decompositions, T-gate groupings). With a 25% probability during a bulk swap, the engine will substitute an entire structural template, instantiated with random current variables, rather than merely inserting a random gate sequence.
+
+These improvements directly target the root causes of stagnation in the $F=0.75$ local minimum identified in this report.
