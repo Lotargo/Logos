@@ -7,45 +7,22 @@ Iterations: 500
 Domain: REGRESSION
 Base AST: (DIV A 2)
 Threads: 4
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-5 -> (-
-                                                                     (SIN X
-                                                                          (SUB
-                                                                           ADF-4
-                                                                           X))
-                                                                     M3X2)
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-6 -> (* Q
-                                                                       (+
-                                                                        (*
-                                                                         ADF-3
-                                                                         (/ 2
-                                                                            1.2))))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-7 -> (+ (/ P P)
-                                                                       T)
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-8 -> (/
-                                                                     (INT
-                                                                      (ADD
-                                                                       VOLUME
-                                                                       T)
-                                                                      (DELTA_S
-                                                                       -1))
-                                                                     P)
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-5 -> (DIV A 2)
 
 ==================================================
       LOGOS ENGINE PERFORMANCE DASHBOARD
 ==================================================
-Total Elapsed Time    : 1.6440 seconds
+Total Elapsed Time    : 1.6160 seconds
 Logical CPU Cores     : 4
-Total ASTs Evaluated  : 2000
-Throughput (AST/sec)  : 1216.55
-Avg Latency per AST   : 0.8220 ms
+Total ASTs Evaluated  : 0
+Throughput (AST/sec)  : 0.00
+Avg Latency per AST   : 0.0000 ms
 ==================================================
 
 Found valid hypotheses from Islands:
-  (- (SIN X (SUB ADF-4 X)) M3X2)
-  (* Q (+ (* ADF-3 (/ 2 1.2))))
-  (+ (/ P P) T)
-  (/ (INT (ADD VOLUME T) (DELTA_S -1)) P)
-
---- Final Synthesis Phase (Island Crossover) ---
+  (DIV A 2)
+Ultimate Hybrids:
+  (DIV A 2)
+[ONTOLOGY GENERATOR] Successfully generated whitepaper: benchmarks_output/papers/discovery_regression_20260602_152033.tex
 ----------------------------------------
 EXPERIMENT COMPLETED.

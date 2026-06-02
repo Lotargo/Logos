@@ -5,55 +5,29 @@ This experiment tests the ability of the Logos Cognitive Engine to autonomously 
 
 ## 2. Experimental Setup
 The system architecture operates as an asynchronous Generative Adversarial Network (GAN):
-*   **Generator (Node A):** Proposes raw physical hypotheses (e.g., Newtonian gravity $F = m/r^2$).
-*   **Adversary (Node B):** Uses Prolog's `clpq`/`clpr` constraint solvers to analytically discover roots where the denominator equals zero, thereby finding a mathematical singularity.
+- **Generator (Node A):** Proposes raw physical hypotheses (e.g., Newtonian gravity `(div m r)`).
+- **Adversary (Node B):** Uses Prolog's `clpq`/`clpr` constraint solvers to analytically discover roots where the denominator equals zero.
 
-### 2.1 Overcoming Race Conditions
-In a highly concurrent, asynchronous Swarm network, an adversary might attack a version of an equation that the Generator has already updated. To solve this, we introduced **AST Versioning (Hashing)**.
-Every proposed AST is cryptographically hashed. The Adversary must include the target hash in its attack payload. If the Generator receives an attack for a stale hash, it safely ignores it, preventing recursive desynchronization.
+### 2.1 AST Versioning (Hashing)
+Every proposed AST is cryptographically hashed. The Adversary must include the target hash in its attack payload, preventing recursive desynchronization in high-throughput async environments.
 
-## 3. Results (N=20 Runs)
-The experiment was executed over 20 independent runs to evaluate the consistency of the adversarial healing process.
+## 3. Result: TIMED OUT (180s)
 
-*   **Average Adversarial Rounds to Convergence:** 1.0
-*   **Success Rate of Singularity Healing:** 100.0%
-*   **Mean Final AST Complexity (Node Count):** 7.0
+The experiment did not complete within the 180-second timeout. The engine made significant progress before being killed.
 
-In 100% of the recorded runs, the Generator successfully applied a topological regularization (e.g., adding a Planck-scale cutoff constant like $L_p^2$) to mathematically bypass the singularity.
+### Evidence of Progress
+- **Generator (Node A):** Successfully proposed initial hypothesis `(DIV M R)`, sent it to the Adversary via NSPL.
+- **Adversary (Node B):** Launched SWI-Prolog daemon, intercepted ASTs, and performed CLP(R) analysis.
+- **Prolog bridge:** Active — Prolog daemon responded to multiple queries (`censor`, `verify_nspl_packet`), though many TIMEOUT events occurred.
+- **Adversarial rounds:** The `*adversarial-rounds*` counter incremented as singularities were detected.
+- **ADF extraction:** The engine dynamically registered subroutines (ADF-1 through ADF-20+).
+- **Stagnation detection:** Engine detected stagnation and switched to EXPLORATION (Novelty) mode.
+- **Log size:** 3,027 lines of engine activity.
 
-![AST Complexity](../../benchmarks_output/experiment_2_gan/ast_complexity.png)
-*(Figure 1: Comparison of initial AST complexity versus the successfully healed AST.)*
+### Failure Mode
+The SWI-Prolog daemon frequently timed out on CLP(R) queries (1.0s timeout). While the timeout handler restarted the daemon, the cumulative delay prevented convergence within 180s. The `healed` flag in Node B was never set to `t`.
 
-## 4. Parsimony Pressure (Occam's Razor)
-A common vulnerability in Generator/Adversary networks is "Over-regularization" or Equation Bloat. To defend against infinite attacks, a naive Generator might continuously append endless constants ($+ c_1 + c_2 + ...$), resulting in mathematically valid but physically nonsensical equations.
-To counter this, Logos implements **Parsimony Pressure**. The fitness function evaluates a `parsimony-penalty` directly proportional to the `ast-size`. The Generator is mathematically forced to balance singularity protection against equation simplicity, ensuring the final output remains elegant and interpretable.
+## 4. Conclusion
+The adversarial GAN infrastructure (NSPL communication, CLP(R) analysis, AST hashing) worked correctly. The primary bottleneck was Prolog query latency for complex constraint satisfaction. A longer timeout or optimized Prolog queries would allow convergence.
 
-## 5. Limitations of CLP(R)
-It is crucial to define the exact mathematical limitations of the current Red Team adversary.
-The underlying constraint solver utilizes SWI-Prolog's CLP(R) engine, which operates strictly over the domain of Real Numbers (R).
-Therefore, the current Adversary **cannot** evaluate, attack, or find singularities in equations that exist within the Complex plane (C), such as certain non-Hermitian quantum mechanical operators. Extending the adversarial solver to C is a primary objective for future development.
-
-## 6. Section 13: Adversarial Logic GANs Metrics
-*   **Success Rate of Attacks:** 100.0% of proposed initial ASTs contained real singularities successfully identified by CLP(R).
-*   **Healing Efficiency:** Average of 1.0 counter-proposals required before the Generator produced a universally stable formula.
-*   **Equation Complexity Threshold:** Final equations stabilized at an average size of 7.0 nodes, strictly bounded by the Parsimony Pressure penalty function.
-
-## 7. Deep Dive: The Mechanics of Singularity Healing
-When the Adversary discovers a singularity (e.g., $r = 0$), it does not merely report a binary "Fail". It returns the exact numerical edge case. The Generator maps this edge case to the specific node in the AST causing the hardware FPU exception (`DIVISION-BY-ZERO`).
-Because Logos natively understands physical dimensions via Prolog, it knows it cannot simply add $+1$ to a distance $r$. It must add a constant with identical dimensions. Thus, it discovers the Planck length squared ($L_p^2$). The equation evolves from $F \propto 1/r^2$ to $F \propto 1/(r^2 + L_p^2)$.
-
-## 8. Avoidance of Hype Claims
-We must strictly state that while Logos successfully "healed" the singularity in this isolated Newtonian gravity proxy, this does not imply Logos has solved Quantum Gravity. The system has merely discovered a standard mathematical regularization technique (similar to renormalization). It opens a pathway for autonomous theoretical physics, but the validity of $L_p^2$ as a physical reality remains theoretical.
-
-## 9. The Parsimony Pressure Trade-Off
-A key finding from this adversarial setup is the delicate balance dictated by the Parsimony Pressure constant ($\lambda = 0.1$). If this constant is set too low, the Generator simply appends useless nodes to the AST, achieving high fitness by obfuscation rather than genuine regularization. If set too high, the Generator is paralyzed; it prefers to accept the severe 1000.0 singularity penalty rather than pay the complexity cost of adding the $L_p^2$ regularizer. This behavior perfectly models the bias-variance tradeoff in traditional machine learning.
-
-## 10. CLP(R) and the Complex Plane Limitation
-As previously noted, the Prolog `clpq`/`clpr` libraries are incredibly robust for real-number constraint satisfaction, utilizing Simplex and Gaussian elimination techniques natively. However, many of the most profound unresolved questions in modern physics (e.g., the Riemann Hypothesis, complex eigenvalues in non-Hermitian quantum mechanics) require constraint resolution in the complex plane ($\mathbb{C}$).
-To attack these higher-order equations, the Red Team must be heavily refactored. We propose future research into building a native `clpc` (Constraint Logic Programming over Complex Numbers) library within the SWI-Prolog daemon. Until then, Logos is restricted to real-valued classical and relativistic physics.
-
-## 11. Async Desynchronization and Hashing
-Before implementing the AST Versioning (Hashing) protocol, high-throughput tests frequently failed due to a race condition. The Generator would rapidly mutate $AST_1 \rightarrow AST_2 \rightarrow AST_3$. Meanwhile, the Adversary, processing $AST_1$, would finally discover a singularity and send the attack back to the Generator. The Generator would attempt to heal $AST_3$ using an edge case designed for $AST_1$, resulting in corrupted, non-compiling Lisp forms. The cryptographic hashing successfully decoupled the asynchronous streams, verifying the stability of the NSPL LTP protocol.
-
-## 12. Conclusion
-By balancing the Adversary's attacks with strict Parsimony Pressure and dimensionally consistent healing, the Logos cognitive engine demonstrates the capacity for autonomous, self-correcting scientific discovery. The integration of AST hashing resolves prior distributed state-tracking bugs, ensuring stable convergence even in high-throughput environments.
+**Crash status:** Timed out (no crash).
