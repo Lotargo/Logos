@@ -90,23 +90,10 @@ simplify(limit(X, H, _), X) :- \+ has_var(X, H).
 simplify(limit(div(sin(H), H), H, 0), 1).
 simplify(limit(div(sub(cos(H), 1), H), H, 0), 0).
 
-% Differentiation rules (Computer Algebra System)
-simplify(deriv(C, Var), 0) :- atomic(C), C \== Var.
-simplify(deriv(Var, Var), 1) :- atom(Var).
-simplify(deriv(add(A, B), Var), add(deriv(A, Var), deriv(B, Var))).
-simplify(deriv(sub(A, B), Var), sub(deriv(A, Var), deriv(B, Var))).
-simplify(deriv(mul(C, A), Var), mul(C, deriv(A, Var))) :- atomic(C), C \== Var.
-simplify(deriv(mul(A, C), Var), mul(C, deriv(A, Var))) :- atomic(C), C \== Var.
-simplify(deriv(mul(A, B), Var), add(mul(deriv(A, Var), B), mul(A, deriv(B, Var)))).
+% Differentiation rules are evaluated through limits from first principles
 
-% Integration rules (Computer Algebra System)
-simplify(int(0, _), 0).
-simplify(int(C, Var), mul(C, Var)) :- atomic(C), C \== Var.
-simplify(int(Var, Var), div(mul(Var, Var), 2)) :- atom(Var).
-simplify(int(add(A, B), Var), add(int(A, Var), int(B, Var))).
-simplify(int(sub(A, B), Var), sub(int(A, Var), int(B, Var))).
-simplify(int(mul(C, A), Var), mul(C, int(A, Var))) :- atomic(C), C \== Var.
-simplify(int(mul(A, C), Var), mul(C, int(A, Var))) :- atomic(C), C \== Var.
+% Integration rules (Conceptual Inverse of Derivative)
+simplify(int(deriv(F, Var), Var), F).
 
 % Equation Solving (Isolating a variable)
 % solve(eq(LHS, RHS), Var) -> eq(Var, Solution)

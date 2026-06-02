@@ -93,7 +93,7 @@ get_dataset_lambda(CsvFile, Lambda) :-
             sum_list(SqDiffs, SumSqDiff),
             Var is SumSqDiff / N,
             % Scale lambda proportionally with variance
-            Lambda is 0.01 * (1.0 + sqrt(Var)),
+            Lambda is 0.01 * log(1.0 + sqrt(Var)),
             assertz(dataset_stats(CsvFile, Var, Lambda))
         ;   Lambda = 0.01
         )
