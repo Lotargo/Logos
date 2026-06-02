@@ -1,5 +1,8 @@
 % quantum.pl - Prolog Quantum Physics invariants & Heuristic Penalty Quantum Simulator
 
+:- dynamic lambda_synthesis/1.
+lambda_synthesis(0.01).
+
 quantum_censor(AST, Penalty) :-
     (   \+ valid_quantum_structure(AST)
     ->  Penalty = 1000.0
@@ -284,6 +287,36 @@ apply_oracle_loop([amp(c(N, R), Vec)|T], Index1, Index2, [amp(c(SignN, R), Vec)|
     ),
     apply_oracle_loop(T, Index1, Index2, Rrest).
 
+% Phase gate: multiply amplitude by Phase when qubit is |1>
+apply_phase_to_state(Index, Phase, InState, OutState) :-
+    apply_phase_loop(InState, Index, Phase, RawState),
+    simplify_state(RawState, OutState).
+
+apply_phase_loop([], _, _, []).
+apply_phase_loop([amp(Coeff, Vec)|T], Index, Phase, [amp(NewCoeff, Vec)|Rrest]) :-
+    get_bit(Vec, Index, Bit),
+    (   Bit =:= 1
+    ->  mul_c(Coeff, Phase, NewCoeff)
+    ;   NewCoeff = Coeff
+    ),
+    apply_phase_loop(T, Index, Phase, Rrest).
+
+% Y gate: flip qubit with phase (Y|0> = i|1>, Y|1> = -i|0>)
+apply_y_to_state(Index, InState, OutState) :-
+    apply_y_loop(InState, Index, RawState),
+    simplify_state(RawState, OutState).
+
+apply_y_loop([], _, []).
+apply_y_loop([amp(Coeff, Vec)|T], Index, [amp(NewCoeff, NewVec)|Rrest]) :-
+    get_bit(Vec, Index, Bit),
+    (   Bit =:= 0
+    ->  set_bit(Vec, Index, 1, NewVec),
+        mul_c(Coeff, c(0,1), NewCoeff)
+    ;   set_bit(Vec, Index, 0, NewVec),
+        mul_c(Coeff, c(0,-1), NewCoeff)
+    ),
+    apply_y_loop(T, Index, Rrest).
+
 % eval_quantum(AST, SortedQs, InState, OutState)
 eval_quantum(X, _, State, State) :- atom(X), !.
 
@@ -291,6 +324,36 @@ eval_quantum(h(Q), SortedQs, InState, OutState) :-
     !,
     qubit_position(Q, SortedQs, Index),
     apply_h_to_state(Index, InState, OutState).
+
+eval_quantum(t(Q), SortedQs, InState, OutState) :-
+    !,
+    qubit_position(Q, SortedQs, Index),
+    apply_phase_to_state(Index, c(0.70710678, 0.70710678), InState, OutState).
+
+eval_quantum(tdg(Q), SortedQs, InState, OutState) :-
+    !,
+    qubit_position(Q, SortedQs, Index),
+    apply_phase_to_state(Index, c(0.70710678, -0.70710678), InState, OutState).
+
+eval_quantum(s(Q), SortedQs, InState, OutState) :-
+    !,
+    qubit_position(Q, SortedQs, Index),
+    apply_phase_to_state(Index, c(0, 1), InState, OutState).
+
+eval_quantum(sdg(Q), SortedQs, InState, OutState) :-
+    !,
+    qubit_position(Q, SortedQs, Index),
+    apply_phase_to_state(Index, c(0, -1), InState, OutState).
+
+eval_quantum(y_gate(Q), SortedQs, InState, OutState) :-
+    !,
+    qubit_position(Q, SortedQs, Index),
+    apply_y_to_state(Index, InState, OutState).
+
+eval_quantum(z_gate(Q), SortedQs, InState, OutState) :-
+    !,
+    qubit_position(Q, SortedQs, Index),
+    apply_phase_to_state(Index, c(-1, 0), InState, OutState).
 
 eval_quantum(x_gate(Q), SortedQs, InState, OutState) :-
     !,
@@ -719,11 +782,20 @@ synthesis_censor(AST, Penalty) :-
     build_synthesis_unitary(AST, N, UCandidate),
     gate_fidelity(TTarget, UCandidate, 8, Fidelity),
     !,
-    BasePenalty is 1000.0 * (1.0 - Fidelity),
+    % Anti-identity penalty via matrix trace:
+    % If Tr(U) ≈ 8 (close to identity) but Fidelity < 0.8,
+    % the search is stuck in the identity trap — penalize heavily.
+    % Using matrix trace avoids the complex-number state-simulator bug.
+    ctrace(UCandidate, c(ReTrace, ImTrace)),
+    TraceMag is sqrt(ReTrace*ReTrace + ImTrace*ImTrace),
+    (   TraceMag > 7.5, Fidelity < 0.8
+    ->  IdentityPenalty = 1000.0
+    ;   IdentityPenalty = 0.0
+    ),
+    BasePenalty is 1000.0 * (1.0 - Fidelity) + IdentityPenalty,
     ast_size(AST, Size),
     (   Fidelity > 0.99
-    ->  Penalty is BasePenalty + (Size * 0.01)
-    ;   Fidelity > 0.8
-    ->  Penalty is BasePenalty + (Size * 0.1)
-    ;   Penalty is BasePenalty + (Size * 0.5)
-    ).
+    ->  Lambda = 0.005
+    ;   lambda_synthesis(Lambda)
+    ),
+    Penalty is BasePenalty + Size * Lambda.

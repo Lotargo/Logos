@@ -3,7 +3,7 @@
 (load "v7/engine/engine.lisp")
 (in-package :cognitive-engine)
 
-(defun run-toffoli-experiment (&key (iterations 5000) (threads (detect-cpu-cores)))
+(defun run-toffoli-experiment (&key (iterations 50000) (threads (detect-cpu-cores)))
   (let ((log-path "v7/experiments/toffoli_results.log"))
     (with-open-file (*standard-output* log-path
                      :direction :output
@@ -31,4 +31,4 @@
       (format t "========================================================~%"))
     (format t "Results saved to ~A~%" log-path)))
 
-(run-toffoli-experiment :iterations 5000)
+(run-toffoli-experiment :iterations 50000)

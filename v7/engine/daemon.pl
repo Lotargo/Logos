@@ -3,6 +3,11 @@
 
 :- consult('rules.pl').
 
+% Handle lambda updates from the Lisp engine (λ-annealing)
+set_lambda(Val) :-
+    retractall(lambda_synthesis(_)),
+    asserta(lambda_synthesis(Val)).
+
 daemon :-
     read_line_to_string(user_input, Line),
     (   Line == end_of_file
@@ -11,8 +16,7 @@ daemon :-
     ->  halt
     ;   (term_string(Query, Line) -> true ; Query = fail),
         (   catch(Query, Error, (print_message(error, Error), write(user_error, 'Error executing query\n'), fail))
-        ->  % Extract the Penalty value from the unified censor(Domain, AST, Penalty) query and print it
-            (   Query = censor(_, _, _, Penalty)
+        ->  (   Query = censor(_, _, _, Penalty)
             ->  format('~w~n', [Penalty])
             ;   write('0.0\n')
             )
