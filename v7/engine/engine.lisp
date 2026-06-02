@@ -437,18 +437,33 @@
                       (with-open-file (stream "discoveries.log" :direction :output :if-exists :append :if-does-not-exist :create)
                         (format stream "[NOVELTY] Thread ~D | Domain: ~A | Penalty: ~,2F | AST: ~A~%" thread-id domain penalty hypothesis)))
 
-                   (if (or (< penalty best-penalty)
-                            (and (= penalty best-penalty) (< (length (format nil "~A" hypothesis)) (length (format nil "~A" best-ast))))
-                            (and (not (eq domain :synthesis)) (< (random 100) 15)))
-                       (progn
-                         (when (< penalty best-penalty)
-                           (setf stagnation-counter 0))
-                         (setf best-ast hypothesis)
-                         (setf best-penalty penalty)
-                         (setf current-ast hypothesis)
-                         (when (and (eq current-mode :target) (= best-penalty 0.0))
-                           (format t "[Thread ~D] [CONVERGED] Iteration ~D: ~A (Penalty: 0.0)~%" thread-id i best-ast)
-                           (return)))))
+                   (let* ((is-better (or (< penalty best-penalty)
+                                         (and (= penalty best-penalty) (< (length (format nil "~A" hypothesis)) (length (format nil "~A" best-ast))))))
+                          (accepted-uphill nil)
+                          (delta (- penalty best-penalty)))
+                     (when (and (not is-better) (eq domain :synthesis))
+                       ;; Simulated Annealing for synthesis domain
+                       (let* ((initial-temp 10.0)
+                              (final-temp 0.05)
+                              (temp (* initial-temp (expt (/ final-temp initial-temp) (/ i iterations))))
+                              (prob (exp (- (/ delta temp)))))
+                         (when (< (random 1.0) prob)
+                           (setf accepted-uphill t))))
+
+                     (if is-better
+                         (progn
+                           (setf stagnation-counter 0)
+                           (setf best-ast hypothesis)
+                           (setf best-penalty penalty)
+                           (setf current-ast hypothesis)
+                           (when (and (eq current-mode :target) (= best-penalty 0.0))
+                             (format t "[Thread ~D] [CONVERGED] Iteration ~D: ~A (Penalty: 0.0)~%" thread-id i best-ast)
+                             (return)))
+                         (progn
+                           (if accepted-uphill
+                               (setf current-ast hypothesis)
+                               (when (and (not (eq domain :synthesis)) (< (random 100) 15))
+                                 (setf current-ast hypothesis)))))))
                  
                  ;; Periodic Island Migration (Ring Topology)
                  (when (and migration-pools migration-mutexes (> actual-iters 0) (= 0 (mod actual-iters 50)))
