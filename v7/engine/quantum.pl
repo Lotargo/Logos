@@ -759,13 +759,27 @@ toffoli_target(Target) :-
         [c(0,0), c(0,0), c(0,0), c(0,0), c(0,0), c(0,0), c(1,0), c(0,0)]
     ].
 
-% Compute gate fidelity: F = |Tr(U_target^† · U_candidate)| / N
+% Compute smoothed gate fidelity using component-wise distance
 gate_fidelity(UTarget, UCandidate, N, Fidelity) :-
-    ctranspose(UTarget, UTargetDag),
-    cmultiply(UTargetDag, UCandidate, Product),
-    ctrace(Product, Trace),
-    mag_c(Trace, AbsTrace),
-    Fidelity is AbsTrace / N.
+    matrix_distance(UTarget, UCandidate, Dist),
+    % Max distance for 8x8 unitary is 16.0 (if completely opposite).
+    % We convert distance to a pseudo-fidelity score [0, 1]
+    Fidelity is max(0.0, 1.0 - (Dist / 16.0)).
+
+matrix_distance([], [], 0.0).
+matrix_distance([R1|M1], [R2|M2], Dist) :-
+    matrix_distance(M1, M2, RestDist),
+    row_distance(R1, R2, RowDist),
+    Dist is RestDist + RowDist.
+
+row_distance([], [], 0.0).
+row_distance([c(R1,I1)|T1], [c(R2,I2)|T2], Dist) :-
+    row_distance(T1, T2, RestDist),
+    DiffR is R1 - R2,
+    DiffI is I1 - I2,
+    CellDist is sqrt(DiffR*DiffR + DiffI*DiffI),
+    Dist is RestDist + CellDist.
+
 
 % Synthesis censor: evolve toward Toffoli target (3-qubit gate)
 synthesis_censor(AST, Penalty) :-
