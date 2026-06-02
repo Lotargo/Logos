@@ -74,6 +74,7 @@
           (force-output (uiop:process-info-input proc))
           (let ((response (read-line (uiop:process-info-output proc) nil :eof)))
              t))
+      (sb-ext:timeout () nil)
       (error (e) nil))))
 
 (defun meta-mutate-axiom (proc-cell domain current-ast best-penalty check-fn)
