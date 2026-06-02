@@ -117,6 +117,97 @@
             (cons (car ast1) new-args)))))
 
 ;; =======================================================================
+;; 2b. Synthesis-Specific Mutation Operators
+;; =======================================================================
+
+(defun random-gate ()
+  "Generate a random quantum gate (never seq)."
+  (let* ((ops (remove 'seq *current-operators*))
+         (op (random-element ops)))
+    (if (single-arg-operator-p op)
+        (list op (random-element *current-variables*))
+        (list op (random-element *current-variables*) (random-element *current-variables*)))))
+
+(defun gate-insertion-mutation (ast)
+  "Insert a random gate at a random leaf in a binary-nested seq circuit."
+  (if (and (listp ast) (eq (car ast) 'seq))
+      (let ((left (cadr ast))
+            (right (caddr ast)))
+        (if (< (random 2) 1)
+            (list 'seq (gate-insertion-mutation left) right)
+            (list 'seq left (gate-insertion-mutation right))))
+      (let ((new-gate (random-gate)))
+        (if (< (random 2) 1)
+            (list 'seq new-gate ast)
+            (list 'seq ast new-gate)))))
+
+(defun gate-deletion-mutation (ast)
+  "Remove a random leaf gate from a binary-nested seq circuit."
+  (if (and (listp ast) (eq (car ast) 'seq))
+      (let ((left (cadr ast))
+            (right (caddr ast)))
+        (let ((r (random 100)))
+          (cond
+            ((< r 15) left)
+            ((< r 30) right)
+            ((< r 65) (list 'seq (gate-deletion-mutation left) right))
+            (t (list 'seq left (gate-deletion-mutation right))))))
+      ast))
+
+(defun random-subtree (ast)
+  "Extract a random subtree from a binary-nested circuit."
+  (if (and (listp ast) (eq (car ast) 'seq) (< (random 10) 6))
+      (random-subtree (random-element (cdr ast)))
+      ast))
+
+(defun circuit-crossover (ast1 ast2)
+  "Crossover: replace a random subtree of ast1 with a random subtree of ast2."
+  (let ((sub2 (random-subtree ast2)))
+    (crossover ast1 sub2)))
+
+(defun bulk-mutate (ast)
+  "Apply 3-5 random insertions/deletions for larger search jumps."
+  (let ((n (+ 3 (random 3)))
+        (current ast))
+    (loop repeat n do
+      (setf current
+            (let ((r (random 100)))
+              (cond
+                ((< r 40) (gate-insertion-mutation current))
+                ((< r 65) (gate-deletion-mutation current))
+                (t (mutate current))))))
+    current))
+
+(defun synthesis-mutate (ast &key bulk)
+  "Synthesis-specific mutation dispatcher with insertion/deletion/standard.
+   When :bulk is true, applies 3-5 mutations at once for escaping local minima."
+  (if bulk
+      (bulk-mutate ast)
+      (let ((r (random 100)))
+        (cond
+          ((< r 25) (gate-insertion-mutation ast))
+          ((< r 45) (gate-deletion-mutation ast))
+          (t (mutate ast))))))
+
+(defun send-lambda (proc-cell val)
+  "Update the lambda coefficient in the worker's Prolog daemon for λ-annealing."
+  (let ((proc (car proc-cell)))
+    (handler-case
+        (sb-ext:with-timeout 1.0
+          (format (uiop:process-info-input proc) "set_lambda(~F).~%" val)
+          (force-output (uiop:process-info-input proc))
+          (read-line (uiop:process-info-output proc) nil :eof))
+      (sb-ext:timeout ()
+        (format t "[TIMEOUT] Prolog daemon hung on set_lambda. Restarting...~%")
+        (ignore-errors (uiop:terminate-process proc :urgent t))
+        (let ((new-proc (uiop:launch-program (list "swipl" "-q" "-s" "v7/engine/daemon.pl")
+                                             :input :stream
+                                             :output :stream)))
+          (setf (car proc-cell) new-proc)))
+      (error (e)
+        (format t "[ERROR] set_lambda pipe error: ~A~%" e)))))
+
+;; =======================================================================
 ;; 3. Prolog Interface: Mathematical Censor
 ;; =======================================================================
 
@@ -257,8 +348,8 @@
 
                   ;; Auto Mode Switching Logic
                   (when (eq *novelty-search-mode* :auto)
-                    (cond
-                      ((and (eq current-mode :target) (> stagnation-counter 100))
+                      (cond
+                       ((and (eq current-mode :target) (> stagnation-counter 50))
                        (format t "[Thread ~D] Stagnation detected. Switching to EXPLORATION (Novelty) mode.~%" thread-id)
                        ;; Save target best before switching
                        (setf saved-best-ast best-ast)
@@ -276,8 +367,19 @@
                        (setf best-penalty saved-best-penalty)
                        (setf current-ast saved-best-ast))))
 
-                 (let* ((hypothesis (mutate current-ast))
-                        (penalty (check-with-prolog hypothesis domain proc-cell current-mode)))
+                   ;; λ-annealing: update every ~1000 iterations, anneal 0.01 → 0.5
+                   (when (and (eq domain :synthesis) (eq current-mode :target)
+                              (= (mod i (max 1 (floor iterations 50))) 0))
+                     (let ((progress (/ i iterations)))
+                       (send-lambda proc-cell (+ 0.01 (* 0.49 (min progress 1.0))))))
+
+                   (let* ((use-bulk (and (eq domain :synthesis)
+                                        (eq current-mode :target)
+                                        (> stagnation-counter 15)))
+                          (hypothesis (if (eq domain :synthesis)
+                                         (synthesis-mutate current-ast :bulk use-bulk)
+                                         (mutate current-ast)))
+                         (penalty (check-with-prolog hypothesis domain proc-cell current-mode)))
 
                    ;; Attempt Meta-Evolution mutation
                    (when (and (> penalty 0.0) (< (random 100) 50))
@@ -366,22 +468,26 @@
                      (sb-thread:with-mutex (mutex)
                        (setf immigrants (aref migration-pools our-idx))
                        (setf (aref migration-pools our-idx) nil))
-                     (dolist (immigrant immigrants)
-                       (let ((imm-penalty (check-with-prolog immigrant domain proc-cell current-mode)))
-                         (if (< imm-penalty best-penalty)
-                             (progn
-                               (setf best-ast immigrant)
-                               (setf best-penalty imm-penalty)
-                               (setf current-ast immigrant)
-                               (format t "[Thread ~D] Accepted immigrant! New best: ~A (Penalty: ~,2F)~%" thread-id best-ast best-penalty))
-                             (when (< (random 100) 50)
-                               (let* ((child (crossover current-ast immigrant))
-                                      (child-penalty (check-with-prolog child domain proc-cell current-mode)))
-                                 (when (< child-penalty best-penalty)
-                                   (setf best-ast child)
-                                   (setf best-penalty child-penalty)
-                                   (setf current-ast child)
-                                   (format t "[Thread ~D] Crossover with immigrant! New best: ~A (Penalty: ~,2F)~%" thread-id child best-penalty)))))))))))
+                      (dolist (immigrant immigrants)
+                        (let ((imm-penalty (check-with-prolog immigrant domain proc-cell current-mode)))
+                          (if (< imm-penalty best-penalty)
+                              (progn
+                                (setf best-ast immigrant)
+                                (setf best-penalty imm-penalty)
+                                (setf current-ast immigrant)
+                                (setf stagnation-counter 0)
+                                (format t "[Thread ~D] Accepted immigrant! New best: ~A (Penalty: ~,2F)~%" thread-id best-ast best-penalty))
+                              (when (< (random 100) 50)
+                                (let* ((child (if (eq domain :synthesis)
+                                                 (circuit-crossover current-ast immigrant)
+                                                 (crossover current-ast immigrant)))
+                                       (child-penalty (check-with-prolog child domain proc-cell current-mode)))
+                                  (when (< child-penalty best-penalty)
+                                    (setf best-ast child)
+                                    (setf best-penalty child-penalty)
+                                    (setf current-ast child)
+                                    (setf stagnation-counter 0)
+                                    (format t "[Thread ~D] Crossover with immigrant! New best: ~A (Penalty: ~,2F)~%" thread-id child best-penalty)))))))))))
       ;; Clean up the Prolog daemon
       (let ((active-proc (car proc-cell)))
         (format (uiop:process-info-input active-proc) "quit~%")
@@ -406,7 +512,9 @@
             while (< (length hybrids) desired-hybrids)
             do (let* ((parent1 (random-element winners))
                       (parent2 (random-element winners))
-                      (child (crossover parent1 parent2)))
+                                             (child (if (eq domain :synthesis)
+                                 (circuit-crossover parent1 parent2)
+                                 (crossover parent1 parent2))))
                  ;; Only accept the child if it's actually different from parents and has 0.0 penalty
                  (when (and (not (equal child parent1))
                             (not (equal child parent2))
