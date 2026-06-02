@@ -1,19 +1,52 @@
-# NSPL Swarm Intelligence Experiments: Honest Emergence Report
+# NSPL Swarm Intelligence Experiments: Honest Yet Unstable Report
 
 ## 1. Objective
-To document the behavior of the Neural Symbolic Protocol Layer (NSPL) after eliminating scripted illusions and hardcoded mapping dictionaries.
+To document the behavior of the Neural Symbolic Protocol Layer (NSPL) after eliminating scripted illusions, hardcoded mapping dictionaries, and prescribed operator sandboxes.
 
 ## 2. Experimental Setup
-Following the integrity fixes:
-- **Exp 1 (Coop)**: Node B no longer prints a pre-programmed success message upon receiving an AST from Node A. Instead, it registers the AST as a dynamic macro (`ADF`) and executes a real `worker-loop` utilizing the macro.
-- **Exp 2 (GAN)**: The Generator mutates the broken hypothesis dynamically rather than swapping to a hardcoded "healed" answer.
-- **Exp 3 (Cross-Domain)**: The hardcoded `sublis` dictionary translating Quantum operators to Electrodynamic operators was deleted. Node B now uses `mask-domain` to replace foreign operators with placeholders (`unknown_op`), and tasks the `worker-loop` with evolving the missing pieces within its own domain.
+- **Exp 1 (Coop)**: Node B receives AST, registers it as ADF macro, launches `worker-loop`.
+- **Exp 2 (GAN)**: Generator mutates hypothesis dynamically; no hardcoded "healed" fallback.
+- **Exp 3 (Cross-Domain)**: Hardcoded `sublis` dictionary removed; `mask-domain` replaces foreign operators with placeholders; `worker-loop` evolves replacements.
 
-## 3. Findings (Real-World Behavior)
-Without the artificial restrictions and prescribed answers:
-- **Exp 1 (Coop)**: Node B actively explores the hypothesis space using the new `ADF` macros. This leads to massive AST generation. Often, the Prolog evaluation times out due to the sheer size of the dynamically generated expressions containing nested macros.
-- **Exp 2 (GAN)**: The GAN cycle triggers legitimate mutations. The engine actively searches for singularity-free variations of the AST, often creating highly complex rational expressions to avoid CLP(R) division-by-zero detection.
-- **Exp 3 (Cross-Domain)**: The engine successfully evolves structural substitutions for the `unknown_op` placeholders. However, because it is doing this randomly through genetic search rather than a dictionary lookup, it requires significantly more iterations and frequently yields "Negative Transfers" (valid math, poor physics fit) before discovering a true isomorphism.
+## 3. Hard Data from Logs
 
-## 4. Conclusion
-The NSPL experiments now demonstrate genuine distributed cognitive search. While the speed of discovery has decreased dramatically (and timeout rates have increased), the findings are now scientifically rigorous and unscripted. The engine genuinely learns to communicate and map conceptual structures.
+### Exp 1 — Coop (v9/experiments/coop.log)
+| Metric | Value |
+|--------|-------|
+| TIMEOUT restarts | **138** |
+| Converged ASTs | 15 |
+| Ultimate hybrids produced | Yes (6 per domain) |
+| Crashes | 0 |
+| Domains completed | Arithmetic, Calculus, Quantum, Multidim, Paradox, Relativity |
+| Notable | ~90% of `censor` queries timed out; engine kept restarting Prolog |
+
+### Exp 2 — GAN / Adversarial LENR (v9/experiments/gan.log)
+| Metric | Value |
+|--------|-------|
+| TIMEOUT restarts | **99** |
+| Converged ASTs | 14 |
+| Ultimate hybrids produced | Yes (3 in A, 2 in C, 3 in Q) |
+| Crashes | **1 (fatal)** — unhandled timeout in `META-MUTATE-AXIOM` with penalty=1000.0 |
+| Final state | Process quit during Paradox test |
+| Penalty 1000 occurrences | 1 (in backtrace) |
+
+### Exp 3 — Cross-Domain (v9/experiments/cross.log)
+| Metric | Value |
+|--------|-------|
+| TIMEOUT restarts | **171** |
+| Converged ASTs | 18 |
+| Ultimate hybrids produced | Yes (6 per domain) |
+| Crashes | 0 |
+| Domains completed | Arithmetic, Calculus, Quantum, Multidim, Paradox, Relativity, Thermo |
+| Notable | Most domains succeeded despite extreme timeout count |
+
+## 4. Analysis
+
+**Timeout saturation**: In all three experiments, the first ~10 attempts per domain are TIMEOUTs on `censor(target, ...)`. The engine brute-forces through by restarting the Prolog daemon repeatedly. Both cooperating experiments (Coop, Cross) survive this; the adversarial experiment (GAN) eventually hits an unhandled timeout.
+
+**Penalty 1000**: The GAN crash backtrace explicitly shows `META-MUTATE-AXIOM` receiving penalty `1000.0` — the maximum penalty, assigned when the evolved expression is structurally invalid for CLP(R) evaluation. This is honest: without hardcoded whitelists, nonsensical ASTs receive the maximum penalty instead of being silently passed.
+
+**Cross-domain learning works (slowly)**: Exp 3 does evolve structural equivalents for `unknown_op` placeholders, confirming the concept is valid. However, without a dictionary, it finds valid math that is bad physics first ("Negative Transfers"), requiring many more iterations.
+
+## 5. Conclusion
+The NSPL experiments now demonstrate genuine distributed cognitive search — but at extreme computational cost. Coop and Cross survive with 138–171 timeouts per run; GAN crashes outright. The engine is honest but brittle: when it works, the results are unscripted; when it fails, it produces penalty 1000 or a fatal thread crash. Stability improvements to the Prolog evaluation bridge are prerequisite to any production use.
