@@ -100,6 +100,7 @@
                 (or (ignore-errors (read-from-string (string-trim '(#\Space #\Tab #\Return #\Newline #\") response)))
                     1000.0)
                 1000.0)))
+      (sb-ext:timeout () 1000.0)
       (error () 1000.0))))
 
 (defun find-clpr-root-prolog (proc-cell ast-str)
@@ -115,6 +116,7 @@
                     nil
                     (ignore-errors (read-from-string (string-trim '(#\Space #\Tab #\Return #\Newline #\") response))))
                 nil)))
+      (sb-ext:timeout () nil)
       (error () nil))))
 
 (defun node-b-adversary ()
