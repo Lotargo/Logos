@@ -169,6 +169,7 @@
                 (format (uiop:process-info-input proc) "~A~%" combined-query)
                 (force-output (uiop:process-info-input proc))
                 (read-line (uiop:process-info-output proc) nil :eof))
+              (sb-ext:timeout () nil)
               (error (e) nil)))))
     (handler-case
         (sb-ext:with-timeout 1.0 ; 1.0 second (1000 milliseconds)
