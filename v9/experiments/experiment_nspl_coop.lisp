@@ -94,13 +94,18 @@
                     (progn
                       (format t "[Node B] Prolog Censor APPROVED the incoming AST: ~A~%" decoded-ast)
                       (format t "[Node B] Registering AST as a new dynamic macro (ADF)...~%")
-                      (push decoded-ast library)
+                      (let ((adf-sym (intern (format nil "ADF-~D" (1+ (length cognitive-engine::*adf-library*))))))
+                        (push (cons adf-sym decoded-ast) cognitive-engine::*adf-library*)
 
-                      ;; Simulate Node B using the new macro to solve its problem instantly
-                      (format t "[Node B] Injecting macro into main hypothesis space...~%")
-                      (sleep 1)
-                      (format t "[Node B] SUCCESS! Complex algorithm solved utilizing swarm intelligence.~%")
-                      (setf *node-b-solved* t))
+                        ;; Node B now uses the macro in a real evolutionary search instead of faking success
+                        (format t "[Node B] Running full evolution using new macro ~A ...~%" adf-sym)
+                        (let* ((migration-pools (make-array 1 :initial-element nil))
+                               (migration-mutexes (map 'vector (lambda (x) (declare (ignore x)) (sb-thread:make-mutex)) (make-list 1)))
+                               ;; Provide the macro as part of the seed to encourage its use
+                               (solution (car (cognitive-engine::worker-loop (list 'seq adf-sym 'q3) :quantum 20 1 migration-pools migration-mutexes))))
+
+                          (format t "[Node B] SUCCESS! Discovered algorithm utilizing swarm intelligence: ~A~%" solution)
+                          (setf *node-b-solved* t))))
                     (format t "[Node B] Rejected incoming data. Prolog penalty: ~A~%" penalty))))))
         (sleep 0.1))
 

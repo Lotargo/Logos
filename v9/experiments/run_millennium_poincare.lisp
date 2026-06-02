@@ -23,9 +23,7 @@
 
     (setf *regression-vars* '(D P1 C B))
     (setf *current-dataset* "v9/data/poincare_data.csv")
-    (let ((*current-operators* '(and or not eq))
-          (*current-constants* '(3 1 0)))
-      (run-engine-parallel '(or D P1) :regression 100 4))
+    (run-engine-parallel '(or D P1) :regression 100 4)
 
     (format t "~%========================================================~%")
     (format t "EXPERIMENT 2: RICCI FLOW EQUATION (METRIC EVOLUTION)~%")
@@ -33,9 +31,7 @@
 
     (setf *regression-vars* '(t g R))
     (setf *current-dataset* "v9/data/ricci_flow.csv")
-    (let ((*current-operators* '(+ - * /))
-          (*current-constants* '(-2 2 -1 1 0)))
-      (run-engine-parallel '(* 1 t) :regression 100 4))
+    (run-engine-parallel '(* 1 t) :regression 100 4)
 
     (format t "~%========================================================~%")
     (format t "EXPERIMENT COMPLETED SUCCESSFULLY~%")
