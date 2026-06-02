@@ -1,0 +1,123 @@
+Performing one time database migration, may take a few minutes...
+sqlite-migration:done
+Database migration complete.
+[0m
+> build · big-pickle
+[0m
+[0m$ [0mgit log --oneline -20 -- v9/
+fcdd98e Merge pull request #54 from Lotargo/fix-experiment-integrity-8233141361155020822
+[0m
+[0m$ [0mgit log --oneline -20
+fcdd98e Merge pull request #54 from Lotargo/fix-experiment-integrity-8233141361155020822
+[0m
+[0m✱ [0mGlob "v9/experiments/*.log"[90m 5 matches[0m
+[0m✱ [0mGlob "v9/docs/*.md"[90m 12 matches[0m
+[0m
+[0m$ [0mgit diff HEAD~1..HEAD --stat -- v9/
+fatal: bad revision 'HEAD~1..HEAD'
+[0m
+[0m→ [0mRead v9/experiments/cross.log
+[0m→ [0mRead v9/experiments/coop.log
+[0m→ [0mRead v9/experiments/gan.log
+[0m→ [0mRead v9/experiments/cold_fusion.log
+[0m→ [0mRead v9/experiments/poincare.log
+[0m→ [0mRead v9/docs/COLD_FUSION_LENR.md
+[0m→ [0mRead v9/docs/MILLENNIUM_POINCARE.md
+[0m→ [0mRead v9/docs/NSPL_EXPERIMENTS.md
+[0m→ [0mRead v9/docs/VERIFICATION_REPORT.md
+[0m
+[0m# [0mTodos
+[✓] Analyze logs: extract timeout/crash/penalty stats
+[•] Rewrite VERIFICATION_REPORT.md with honest assessment of crashes and timeouts
+[ ] Rewrite COLD_FUSION_LENR.md — experiment crashed immediately
+[ ] Rewrite MILLENNIUM_POINCARE.md — experiment crashed immediately
+[ ] Rewrite NSPL_EXPERIMENTS.md — add timeout/penalty/crash data
+[0m
+[0m$ [0mfor f in v9/experiments/*.log; do echo "=== $(basename $f) ==="; echo -n "  TIMEOUT count: "; grep -c '\[TIMEOUT\]' "$f" 2>/dev/null || echo 0; echo -n "  CRASH (unhandled): "; grep -c 'unhandled condition' "$f" 2>/dev/null || echo 0; echo -n "  CONVERGED lines: "; grep -c '\[CONVERGED\]' "$f" 2>/dev/null || echo 0; echo -n "  SYNTHESIS lines: "; grep -c '\[SYNTHESIS\]' "$f" 2>/dev/null || echo 0; echo -n "  Penalty 1000: "; grep -c '1000\.0' "$f" 2>/dev/null || echo 0; echo -n "  Lines total: "; wc -l < "$f"; echo; done
+=== cold_fusion.log ===
+  TIMEOUT count: 0
+0
+  CRASH (unhandled): 1
+  CONVERGED lines: 0
+0
+  SYNTHESIS lines: 0
+0
+  Penalty 1000: 0
+0
+  Lines total: 22
+
+=== coop.log ===
+  TIMEOUT count: 138
+  CRASH (unhandled): 0
+0
+  CONVERGED lines: 15
+  SYNTHESIS lines: 6
+  Penalty 1000: 0
+0
+  Lines total: 3623
+
+=== cross.log ===
+  TIMEOUT count: 171
+  CRASH (unhandled): 0
+0
+  CONVERGED lines: 18
+  SYNTHESIS lines: 6
+  Penalty 1000: 0
+0
+  Lines total: 543
+
+=== gan.log ===
+  TIMEOUT count: 99
+  CRASH (unhandled): 1
+  CONVERGED lines: 14
+  SYNTHESIS lines: 6
+  Penalty 1000: 1
+  Lines total: 338
+
+=== poincare.log ===
+  TIMEOUT count: 0
+0
+  CRASH (unhandled): 1
+  CONVERGED lines: 0
+0
+  SYNTHESIS lines: 0
+0
+  Penalty 1000: 0
+0
+  Lines total: 22
+[0m
+[0m← [0mWrite v9/docs/VERIFICATION_REPORT.md
+Wrote file successfully.
+[0m
+[0m← [0mWrite v9/docs/COLD_FUSION_LENR.md
+Wrote file successfully.
+[0m
+[0m← [0mWrite v9/docs/MILLENNIUM_POINCARE.md
+Wrote file successfully.
+[0m
+[0m← [0mWrite v9/docs/NSPL_EXPERIMENTS.md
+Wrote file successfully.
+[0m
+[0m# [0mTodos
+[✓] Analyze logs: extract timeout/crash/penalty stats
+[✓] Rewrite VERIFICATION_REPORT.md with honest assessment of crashes and timeouts
+[✓] Rewrite COLD_FUSION_LENR.md — experiment crashed immediately
+[✓] Rewrite MILLENNIUM_POINCARE.md — experiment crashed immediately
+[✓] Rewrite NSPL_EXPERIMENTS.md — add timeout/penalty/crash data
+[0m
+Все 4 документа переписаны. Вот сводка по логам:
+
+| Эксперимент | Статус | TIMEOUT-ов | CONVERGED | Итог |
+|---|---|---|---|---|
+| **Cold Fusion** | CRASH на `(* E 1.0)` | 0 | 0 | Ни одного результата |
+| **Poincaré** | CRASH на `(OR D P1)` | 0 | 0 | Ни одного результата |
+| **GAN (Adversarial)** | CRASH в meta-mutate-axiom (penalty=1000.0) | 99 | 14 | Частично успел, упал |
+| **Coop** | Выжил | 138 | 15 | Работает, но ~90% запросов — timeout |
+| **Cross-Domain** | Выжил | 171 | 18 | Работает, максимум timeout-ов |
+
+**Ключевые изменения в доке:**
+
+- **VERIFICATION_REPORT.md** — переписан раздел "Что ОСТАЛОСЬ подлогом" → заменён на "Цена честности: нестабильность и падения" с таблицей крашей, таймаутов и штрафа 1000.
+- **COLD_FUSION_LENR.md** — был эвфемизм "produces honest attempts", стало "IMMEDIATE CRASH" с полным разбором backtrace.
+- **MILLENNIUM_POINCARE.md** — аналогично: был "honest exploration", стало "IMMEDIATE CRASH".
+- **NSPL_EXPERIMENTS.md** — добавлены таблицы с жёсткой статистикой (138/99/171 TIMEOUT, 1 crash, penalty 1000).
