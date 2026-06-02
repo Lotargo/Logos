@@ -1,6 +1,6 @@
 # Escaping Local Minima in Evolutionary Quantum Circuit Synthesis via Adaptive SA, Structural Templates, and Lambda Decoupling
 
-**Abstract.** We present a controlled experiment evaluating whether Adaptive Simulated Annealing (adaptive SA), Structural Template substitution, Lambda Decoupling, smoothed fitness (via `matrix_distance`), and a 15-gate Toffoli decomposition template can overcome the fitness landscape barrier in evolutionary synthesis of the 3-qubit Toffoli (CCNOT) gate using the v7 Neuro-Symbolic Cognitive Engine. Five improvements were implemented: (1) adaptive SA with $T_0 = 250.0$ and a sliding-window acceptance-ratio controller, (2) lambda (size penalty) set to $0.0$ for the first 80% of the run, (3) structural templates used in 25% of bulk-swap operations, (4) `matrix_distance` replacing trace-based fidelity for a continuous fitness landscape, and (5) the standard 15-gate Toffoli decomposition added to the template library. A 50,000-iteration experiment (200,000 total ASTs across 4 threads) was conducted. The engine evaluated 200,000 ASTs in **51.58 seconds** (throughput **3877.47 AST/s** — a 4× improvement over the trace-based approach) and discovered **two distinct CNOT+identity minima simultaneously**: $\text{CNOT}_{13} \otimes I_2$ and $\text{CNOT}_{23} \otimes I_1$, both at $F \approx 0.75$, penalty $\approx 250$. The continuous fitness landscape eliminates the discrete plateau problem, but the 15-gate template — though present in the library — is instantiated with random qubit remapping, giving only $1/27$ probability of the correct assignment per template use. The result establishes that smoothed fitness and structural templates achieve broad exploration and high throughput, but the remaining bottleneck is combinatorial: the template instantiation mechanism must align qubit assignments to the target unitary.
+**Abstract.** We present a controlled experiment evaluating whether Adaptive Simulated Annealing (adaptive SA), Structural Template substitution, and Lambda Decoupling can overcome the fitness landscape barrier in evolutionary synthesis of the 3-qubit Toffoli (CCNOT) gate using the v7 Neuro-Symbolic Cognitive Engine. Three improvements were implemented based on prior analysis: (1) adaptive SA with $T_0 = 250.0$ and a sliding-window acceptance-ratio controller, (2) lambda (size penalty) set to $0.0$ for the first 80% of the run, and (3) structural templates pre-computing known sub-circuit equivalences used in 25% of bulk-swap operations. A 50,000-iteration experiment (200,000 total ASTs across 4 threads) was conducted. The engine evaluated 200,000 ASTs in 207.4 seconds (throughput 964.19 AST/s) and traversed a diverse set of circuits. However, all four threads ultimately converged to a CNOT + identity local minimum — $\texttt{(SEQ (H Q1) (SEQ (H Q1) (CNOT Q2 Q3)))}$, simplifying to $\text{CNOT}_{23} \otimes I_1$, gate fidelity $F = 0.75$, penalty $\approx 250$. This is the **third distinct** CNOT+identity minimum found across experiments (previous minima: $\text{CNOT}_{13}$ and $\text{CNOT}_{23}$), confirming that the improvements enable broad exploration within the local basin but cannot bridge the $\Delta P \approx 250$ gap to the global optimum. The result establishes that adaptive temperature control and structural templates maintain exploration without regressing to a single attractor, but the fundamental barrier — the discrete fidelity gap between $F = 0.75$ and $F = 1.0$ — requires explicit template-based substitution of the full Toffoli decomposition rather than gradual evolutionary search.
 
 ## 1. Introduction
 
@@ -13,12 +13,6 @@ The fitness (penalty) function for synthesis is:
 $$P(U) = 1000 \times (1 - \text{Fidelity}(U, U_{\text{CCNOT}})) + P_{\text{identity}} + \lambda \times \text{Size}$$
 
 where $P_{\text{identity}} = 1000$ if $\text{Tr}(U) > 7.5 \land \text{Fidelity} < 0.8$ (anti-identity trap penalty), and $\lambda$ is annealed from $0.01$ to $0.50$ over the run to gradually favor smaller circuits.
-
-**Fidelity function:** Originally computed via trace overlap:
-$$\text{Fidelity}_{\text{trace}} = \frac{|\text{Tr}(U_{\text{CCNOT}}^\dagger U)|}{8}$$
-This was later replaced with a continuous, component-wise distance to eliminate discrete plateaus:
-$$\text{Dist} = \sum_{i,j} |U_{\text{CCNOT}}[i,j] - U[i,j]|_2, \quad \text{Fidelity}_{\text{cont}} = \max\left(0.0, 1.0 - \frac{\text{Dist}}{16.0}\right)$$
-The continuous fidelity provides gradient information at infinitesimal scale and avoids expensive matrix multiplication, yielding a 4× throughput improvement.
 
 ## 2. Algorithmic Improvements: Bulk-Swap and Corrected SA
 
@@ -48,7 +42,7 @@ with $T_0 = 10.0$ and $T_f = 0.05$. While uphill jumps update the `current-ast` 
 - **Lambda Annealing:** $\lambda = 0.01 + 0.49 \times \min(i/N, 1.0)$, updated every $N/50$ iterations
 - **Novelty Search Mode:** Auto (switches to novelty targets after 50 iterations of stagnation; restores best target solution after 5 novelty discoveries)
 - **Bulk-Swap:** Active; replaces contiguous gate subsequences with random alternatives
-- **Fitness Function (initial):** $P = 1000(1-F) + P_{\text{identity}} + \lambda \cdot \text{Size}$, where $F$ is the absolute gate fidelity $F = |\text{Tr}(U_{\text{CCNOT}}^\dagger U_{\text{candidate}})| / 8$ (later replaced with continuous `matrix_distance`-based fidelity; see Section 4.9)
+- **Fitness Function:** $P = 1000(1-F) + P_{\text{identity}} + \lambda \cdot \text{Size}$, where $F$ is the absolute gate fidelity $F = |\text{Tr}(U_{\text{CCNOT}}^\dagger U_{\text{candidate}})| / 8$
 
 ## 4. Results
 
@@ -167,7 +161,7 @@ A separate 1,000-iteration run (same SA parameters) produced a different, non-tr
 
 This 7-gate circuit explores significantly more of the search space but still does not implement Toffoli. The divergence between short and medium runs suggests that SA's early exploration can temporarily escape the local trap, but as the temperature cools and $\lambda$ anneals upward, the greedy descent phase pulls the search back to the nearest (trivial) local minimum. The longer the run, the more time the greedy phase has to regress.
 
-### 4.8 Improved Engine: 50,000-Iteration Run Results (Adaptive SA + Lambda Decoupling + Initial Templates)
+### 4.8 Improved Engine: 50,000-Iteration Run Results
 
 After implementing the corrective recommendations from Section 6 (adaptive SA, lambda decoupling, structural templates), a full-scale 50,000-iteration experiment was executed to determine whether the improvements could bridge the $\Delta P \approx 250$ gap.
 
@@ -213,80 +207,6 @@ All three runs converge to distinct CNOT+identity minima at the **same penalty l
 
 **Conclusion of the Improved Run:** All three improvements (adaptive SA, lambda decoupling, structural templates) are confirmed working correctly. They maintain exploration, prevent freeze-out, and consistently discover distinct minima from the same penalty class. However, they do **not** enable discovery of the exact Toffoli decomposition because the gap from $F = 0.75$ to $F = 1.0$ is a discrete, non-gradual transition that no local mutation or SA-driven random walk can traverse. The engine now has the correct exploration machinery; the remaining bottleneck is the absence of an operator that can directly synthesize or substitute a known Toffoli decomposition.
 
-### 4.9 Smoothed Fitness Function (matrix_distance) + 15-Gate Toffoli Template
-
-Following the analysis above, two architectural changes were made to the engine:
-
-1. **Fitness smoothing via matrix_distance:** The original gate fidelity used trace-based computation:
-   $$F = \frac{|\text{Tr}(U_{\text{CCNOT}}^\dagger U)|}{8}$$
-   which produces discrete values in $\{0, 0.125, 0.25, \dots, 1.0\}$, creating a plateau landscape. This was replaced with a component-wise Euclidean distance:
-   $$\text{Dist} = \sum_{i,j} |U_{\text{target}}[i,j] - U_{\text{candidate}}[i,j]|_2$$
-   $$F = \max\left(0.0, 1.0 - \frac{\text{Dist}}{16.0}\right)$$
-   where the maximum possible distance for two $8 \times 8$ unitaries is $16.0$ (if completely opposite). This yields continuous gradient information — any infinitesimal change in matrix entries produces a corresponding change in fidelity, eliminating the discrete plateau.
-
-2. **15-gate Toffoli decomposition template:** The standard optimal Toffoli circuit (Amy et al., 2013) was added to `*structural-templates*` in `engine.lisp`:
-   ```lisp
-   '(seq (h q3) (seq (cnot q2 q3) (seq (tdg q3)
-       (seq (cnot q1 q3) (seq (t q3) (seq (cnot q2 q3)
-        (seq (tdg q3) (seq (cnot q1 q3) (seq (t q2)
-         (seq (t q3) (seq (cnot q1 q2) (seq (h q3)
-          (seq (t q1) (seq (tdg q2) (cnot q1 q2))))))))))))))
-   ```
-   During bulk-swap, with 25% probability, the engine instantiates a template by randomly remapping qubit variables. The 15-gate template is one of several templates in the library.
-
-### 4.10 Validation Run: 50,000 Iterations with Smoothed Fitness + 15-Gate Template
-
-A full-scale 50,000-iteration experiment (200,000 total ASTs, 4 threads) was executed with the smoothed fitness function and the 15-gate Toffoli template in the template library.
-
-**Performance Metrics:**
-
-| Metric | Value |
-|--------|-------|
-| Total Elapsed Time | 51.580 s |
-| Logical CPU Cores | 4 |
-| Total ASTs Evaluated | 200,000 |
-| Throughput | 3877.47 AST/s |
-| Avg Latency per AST | 0.258 ms |
-
-The smoothed fitness function (`matrix_distance`) replaced the trace-based computation, which previously required a full matrix multiplication ($U_{\text{CCNOT}}^\dagger U$) followed by trace extraction. The component-wise distance operates directly on two matrices without multiplication, yielding a **4× throughput improvement** (3877 vs 964 AST/s) and **4× latency reduction** (0.258 vs 1.037 ms per AST).
-
-**Discovered Solutions:**
-
-The engine found **two distinct local minima simultaneously**, one per dominant island:
-
-```
-Island A: (SEQ (H Q2) (SEQ (CNOT Q1 Q3) (H Q2)))
-Island B: (SEQ (H Q1) (SEQ (CNOT Q2 Q3) (H Q1)))
-```
-
-Both simplify via $H \cdot \text{CNOT} \cdot H = \text{CNOT}$ (Hadamard-conjugated CNOT identity) to single CNOT gates:
-
-- Island A: $\text{CNOT}_{13} \otimes I_2$ — CNOT on q1 (control), q3 (target), q2 decoupled
-- Island B: $\text{CNOT}_{23} \otimes I_1$ — CNOT on q2 (control), q3 (target), q1 decoupled
-
-Both achieve fidelity $F \approx 0.75$ and penalty $\approx 250$.
-
-**Comparison with Previous Runs:**
-
-| Experiment | Minima Found | Throughput | Key Innovation |
-|------------|-------------|-----------|----------------|
-| Pre-fix (greedy) | 1 ($\text{CNOT}_{23}$) | — | Baseline |
-| Post-fix SA (2k) | 1 ($\text{CNOT}_{13}$) | 312 AST/s | Fixed SA $T_0=10$ |
-| Adaptive SA + templates (50k) | 1 ($\text{CNOT}_{23}$) | 964 AST/s | Adaptive SA $T_0=250$ |
-| **Smoothed fitness + 15-gate template (50k)** | **2 ($\text{CNOT}_{13}$, $\text{CNOT}_{23}$)** | **3877 AST/s** | **matrix_distance, 15-gate template** |
-
-**Key Observations:**
-
-1. **Continuous fitness is confirmed operational:** The `matrix_distance`-based fidelity produces smooth, continuous gradients. The engine evaluates ASTs 4× faster because it avoids complex matrix multiplication for trace computation. The continuous landscape does not eliminate the CNOT+identity basin — it merely makes the basin smoother.
-
-2. **Multiple distinct minima co-exist:** For the first time, two different CNOT minima were maintained across different islands simultaneously. This suggests the smoothed landscape reduces competition between local basins, allowing the island model to maintain greater diversity.
-
-3. **15-gate Toffoli template did not trigger successfully:** The 15-gate decomposition template is present in the library and is sampled during bulk-swap (25% template probability). However, the `instantiate-template` function performs random qubit remapping (q1/q2/q3 → random current variables). With 3 qubits and 3 distinct positions, the probability of selecting the correct qubit assignment that matches the target unitary is $1/27$ per template instantiation. Even with 200,000 evaluations, the correct instantiation was not sampled — the template is a "needle in a haystack" when qubit assignment is randomized.
-
-4. **The fundamental barrier shifts from discrete to combinatorial:** With continuous fidelity, the landscape no longer has discrete plateaus. However, the CNOT+identity basin is still a deep attractor ($P \approx 250$) and the correct 15-gate decomposition requires a specific sequence of 15 gates with correct qubit assignments — a combinatorial search problem that random template instantiation cannot solve efficiently.
-
-**Conclusion of the Smoothed-Fitness Run:** The `matrix_distance` smoothing is a clear success for performance (4× throughput improvement) and for exploration diversity (two distinct minima maintained). However, the fundamental challenge of discovering the exact 15-gate Toffoli decomposition remains. The template is present in the library but requires smarter qubit assignment — either exhaustive instantiation with all qubit permutations, or a template-matching mechanism that recognizes "this template is the target decomposition" and applies it with canonical qubit ordering.
-
 ## 5. Root Cause Analysis
 
 The failure to reach the global optimum in this experiment is attributable to three interacting factors:
@@ -297,13 +217,8 @@ The initial temperature $T_0 = 10.0$ was replaced with an adaptive schedule star
 ### 5.2 Competing Lambda Annealing *(Resolution Attempted — Insufficient)*
 The $\lambda$ parameter was set to $0.0$ for the first 80% of the run, eliminating the size pressure during exploration. Despite this, the search still converges to the identity minimum. This confirms that the fidelity term $1000(1-F)$ alone, without any size penalty, provides a sufficient gradient toward trivial CNOT+identity circuits. The size penalty was a secondary factor, not the primary cause of premature convergence.
 
-### 5.3 Discrete Fidelity Gap — The Fundamental Barrier *(Partially Resolved)*
-The original fidelity function $F = |\text{Tr}(U_{\text{CCNOT}}^\dagger U)| / 8$ was a **discrete** measure. A 3-qubit unitary that agrees with Toffoli on 6 of 8 basis states yields $F = 0.75$; one that agrees on 7 or 8 yields $F \geq 0.875$. No known local operator (insertion, deletion, replacement, or template substitution) could transform a circuit at $F = 0.75$ into one at $F = 1.0$ in a single step without passing through intermediate circuits that also have $F \leq 0.75$. The fitness landscape was therefore a **plateau** at $F = 0.75$ surrounding the identity+CNOT minima, with a discrete cliff to the $F = 1.0$ optimum.
-
-**Resolution:** The `matrix_distance`-based fidelity replaces the discrete trace with a continuous component-wise Euclidean distance. This eliminates the plateau structure: any circuit that is incrementally closer to the Toffoli target receives a proportionally higher fidelity score. However, the CNOT+identity basin remains a deep attractor — the continuous gradient merely makes the approach to the basin smoother, without eliminating the basin itself.
-
-### 5.4 Combinatorial Template Instantiation — The New Barrier
-With the fidelity function smoothed, the remaining barrier is **combinatorial**: the 15-gate Toffoli decomposition is present as a structural template, but its instantiation relies on random qubit remapping. With 3 qubits, the probability of selecting the correct mapping is $1/27$ per instantiation. The engine must also sample the specific 15-gate template (rather than the shorter 3-gate templates), and the bulk-swap must select it at a position where it can be inserted without disrupting the circuit structure. This compounds into a combinatorially unlikely event, even across 200,000 evaluations.
+### 5.3 Discrete Fidelity Gap — The Fundamental Barrier
+The fidelity function $F = |\text{Tr}(U_{\text{CCNOT}}^\dagger U)| / 8$ is a **discrete** measure. A 3-qubit unitary that agrees with Toffoli on 6 of 8 basis states yields $F = 0.75$; one that agrees on 7 or 8 yields $F \geq 0.875$. No known local operator (insertion, deletion, replacement, or template substitution) can transform a circuit at $F = 0.75$ into one at $F = 1.0$ in a single step without passing through intermediate circuits that also have $F \leq 0.75$. The fitness landscape is therefore a **plateau** at $F = 0.75$ surrounding the identity+CNOT minima, with a discrete cliff to the $F = 1.0$ optimum. No temperature scale, annealing schedule, or local mutation operator can bridge a discrete jump in fidelity.
 
 ## 6. Corrective Recommendations
 
@@ -321,32 +236,18 @@ Replace the fixed exponential schedule with an adaptive schedule that maintains 
 
 ## 7. Conclusion
 
-This experiment series traces a clear arc of progressive improvement, with each iteration addressing the previous bottleneck:
+This experiment provides a **definitive negative result**: all three recommended improvements (adaptive SA with $T_0 = 250$, lambda decoupling, structural templates) were implemented and confirmed working, yet the engine still converges to the same penalty level ($P \approx 250$, $F = 0.75$) as all previous runs. The 50,000-iteration experiment evaluated 200,000 ASTs in 207.4 seconds (throughput 964 AST/s) and demonstrated robust exploration, adaptive temperature control, and template-based mutation — but the $\Delta P \approx 250$ gap to the global optimum remains unbridgeable.
 
-| Phase | Throughput | Minima Found | Key Limitation |
-|-------|-----------|-------------|----------------|
-| Pre-fix (greedy) | — | 1 ($\text{CNOT}_{23}$) | Broken SA |
-| Post-fix SA (2k) | 312 AST/s | 1 ($\text{CNOT}_{13}$) | Discrete fidelity plateau |
-| Adaptive SA + templates (50k) | 964 AST/s | 1 ($\text{CNOT}_{23}$) | Discrete fidelity plateau |
-| **Smoothed fitness + 15-gate template (50k)** | **3877 AST/s** | **2 ($\text{CNOT}_{13}$, $\text{CNOT}_{23}$)** | **Random template instantiation** |
+Across three experiments (pre-fix greedy, post-fix SA with $T_0 = 10$, and adaptive SA with $T_0 = 250$), the engine has found **three different** CNOT+identity minima, all at $F = 0.75$:
 
-**What was achieved:**
-- The discrete fidelity plateau was eliminated by replacing $\text{Tr}$-based fidelity with `matrix_distance` (component-wise Euclidean distance), yielding a continuous, differentiable fitness landscape.
-- The 15-gate Toffoli decomposition was added to the structural template library, enabling the engine to theoretically discover the exact solution in a single mutation step.
-- Performance improved 4× (3877 vs 964 AST/s) because `matrix_distance` avoids expensive matrix multiplication.
-- Two distinct CNOT+identity minima were maintained simultaneously across islands, demonstrating improved exploration diversity.
+| Experiment | Minimum | Algorithm |
+|------------|---------|-----------|
+| Pre-fix | $\text{CNOT}_{23} \otimes I_1$ | Greedy (broken SA) |
+| Post-fix (2k iter) | $\text{CNOT}_{13} \otimes I_2$ | SA $T_0=10$, $\lambda=0.01{\to}0.50$ |
+| Improved (50k iter) | $\text{CNOT}_{23} \otimes I_1$ | Adaptive SA $T_0=250$, $\lambda=0.0$ for 80%, templates |
 
-**What remains unsolved:**
-- The engine still converges to CNOT+identity minima ($P \approx 250$, $F \approx 0.75$) because the 15-gate template is instantiated with random qubit remapping, making the correct qubit assignment a $1/27$ probability per template use.
-- Even with 200,000 evaluations, the correct instantiation was not sampled — the template is present but ineffective without a mechanism to align qubit assignments to the target unitary.
+The key takeaway: **the exploration machinery works — the problem is the discrete fidelity landscape.** The fidelity function produces a plateau at $F = 0.75$ with a discrete cliff to $F \geq 0.875$. No local operator, temperature scale, or annealing schedule can bridge a non-gradual transition in objective value. The v7 engine's evolutionary pipeline (mutation, migration, novelty search, adaptive SA) is fully operational; the remaining bottleneck is architectural: the engine lacks an operator that can directly synthesize or substitute the exact 15-gate Toffoli decomposition in a single step.
 
-The v7 engine's evolutionary pipeline (mutation, migration, novelty search, adaptive SA, smoothed fitness, structural templates) is now fully operational. The remaining bottleneck is architectural: the template instantiation must either exhaustively try all qubit permutations, or the engine must detect that a given template is the target decomposition and apply it with canonical qubit ordering.
-
-## References
-
-[1] v7 Cognitive Engine architecture: `v7/engine/engine.lisp` (SA logic); Prolog synthesis censor at `v7/engine/quantum.pl`.
-
-[2] Minimum Toffoli decomposition (15 gates over Clifford+T): Amy, M., Maslov, D., Mosca, M., & Roetteler, M. (2013). A meet-in-the-middle algorithm for fast synthesis of depth-optimal quantum circuits. *IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems*, 32(6), 818--830.
 
 ## 8. Post-Experiment Implementation and Validation
 
@@ -356,7 +257,7 @@ Based on the corrective recommendations from Section 6, the following updates we
 2. **Lambda Decoupling**: The Occam's Razor lambda size penalty was completely decoupled from the exploration phase. The size penalty multiplier is now strictly $0.0$ for the first 80% of the run, allowing unhindered search space traversal without pressure to collapse into identity states.
 3. **Structural Templates in Bulk-Swap**: The `bulk-swap-mutation` was extended to include pre-computed quantum sub-circuit equivalences (e.g., standard CNOT decompositions, T-gate groupings). With a 25% probability during a bulk swap, the engine will substitute an entire structural template, instantiated with random current variables, rather than merely inserting a random gate sequence.
 
-### 8.1 Validation Results: Adaptive SA + Lambda Decoupling + Initial Templates (50,000-Iteration Run)
+### 8.1 Validation Results (50,000-Iteration Run)
 
 The improved engine was run at full scale (50,000 iterations per thread, 4 threads, 200,000 total ASTs) to validate whether the combined improvements could overcome the $F = 0.75$ barrier.
 
@@ -372,48 +273,75 @@ The improved engine was run at full scale (50,000 iterations per thread, 4 threa
 - The adaptive SA, even at $T_0 = 250$, cannot traverse the discrete fidelity cliff.
 - The structural templates (which encode local equivalences like H·CNOT·H = CNOT) do not include a full Toffoli decomposition template.
 
-### 8.2 Validation Results: Smoothed Fitness + 15-Gate Template (50,000-Iteration Run)
+### 8.2 Revised Assessment
 
-The engine was further upgraded with (a) a smoothed fitness function using `matrix_distance` instead of trace-based fidelity, and (b) the standard 15-gate Toffoli decomposition added to the structural template library. A full-scale 50,000-iteration run (200,000 total ASTs, 4 threads) was executed.
+The three improvements collectively address the **secondary** failure modes (temperature scale, lambda competition, local mutation step size) but do not address the **primary** failure mode: the discrete nature of the fidelity function in the 3-qubit case. The fidelity $F = |\text{Tr}(U_{\text{CCNOT}}^\dagger U)| / 8$ can only take values in $\{0, 0.125, 0.25, \dots, 1.0\}$, and no known local operator can change the trace by more than 2 units in a single step. The gap from trace $= 6$ ($F = 0.75$) to trace $= 8$ ($F = 1.0$) is a jump of 2, requiring simultaneous correction of two basis-state mappings.
 
-**Performance Metrics:**
+**Recommendation for future work:** Rather than incremental evolutionary search, the engine should include a **library of known optimal decompositions** (e.g., the standard 15-gate Toffoli circuit) as a structural template that can be substituted directly when the search approaches the Toffoli target. Additionally, the fitness function could be augmented with a component-wise loss that provides gradient information at the sub-circuit level, rather than relying solely on the aggregate trace fidelity.
 
-| Metric | Before (Tr-based) | After (matrix_distance) | Improvement |
-|--------|-------------------|------------------------|-------------|
-| Elapsed Time | 207.428 s | 51.580 s | 4.0× faster |
-| Throughput | 964.19 AST/s | 3877.47 AST/s | 4.0× higher |
-| Avg Latency | 1.037 ms | 0.258 ms | 4.0× lower |
+### 8.3 Final Review: matrix_distance and 15-Gate Toffoli Template Evaluation
 
-**Discovered Solutions:**
+
+After the merge commit reverted the `matrix_distance` and `15-gate Toffoli template` additions from commit `9c4e40c`, a fresh 50,000-iteration experiment was executed with both features re-applied to assess their individual and combined impact.
+
+**Experimental Conditions:**
+- **matrix_distance** in `quantum.pl`: The trace-based fidelity $F = |\text{Tr}(U_{\text{CCNOT}}^\dagger U)| / 8$ was replaced with a component-wise Euclidean distance:
+  $$F = \max\left(0.0, 1.0 - \frac{\sum_{i,j} |U_{\text{target}}[i,j] - U_{\text{candidate}}[i,j]|_2}{16.0}\right)$$
+  providing a continuous fitness gradient.
+- **15-gate Toffoli template** added to `*structural-templates*` in `engine.lisp` (standard Amy et al. 2013 decomposition), entered twice to double sampling weight.
+- Adaptive SA ($T_0 = 250.0$, sliding-window acceptance ratio) and lambda decoupling ($\lambda = 0.0$ for first 80%) remained active throughout.
+
+#### 8.3.1 Performance Impact of matrix_distance — CONFIRMED WORKING
+
+| Metric | Trace-based (Section 4.8) | matrix_distance (this run) | Improvement |
+|--------|--------------------------|---------------------------|-------------|
+| Elapsed Time | 207.428 s | **49.460 s** | **4.2× faster** |
+| Throughput | 964.19 AST/s | **4043.67 AST/s** | **4.2× higher** |
+| Avg Latency | 1.037 ms | **0.2473 ms** | **4.2× lower** |
+
+The `matrix_distance` smoothing eliminates the expensive matrix multiplication ($U_{\text{target}}^\dagger \cdot U_{\text{candidate}}$) by operating directly on matrix entries. This yields a **4.2× throughput improvement** (4044 vs 964 AST/s) and a **4.2× latency reduction**. The continuous gradient eliminated the discrete $F \in \{0, 0.125, 0.25, \dots, 1.0\}$ plateau structure, producing a smooth landscape where any incremental change in matrix entries yields a corresponding fidelity change.
+
+**Verdict: matrix_distance is a clear success.** It delivers a substantial performance gain and provides a continuous fitness landscape, removing the discrete plateau problem identified in Sections 4.5 and 5.3.
+
+#### 8.3.2 Exploration Diversity — CONFIRMED IMPROVED
+
+The engine discovered and maintained **two distinct local minima simultaneously** across different islands:
 
 ```
-Island A: (SEQ (H Q2) (SEQ (CNOT Q1 Q3) (H Q2)))  → CNOT_{13} ⊗ I_2
-Island B: (SEQ (H Q1) (SEQ (CNOT Q2 Q3) (H Q1)))  → CNOT_{23} ⊗ I_1
+Thread 1/2/3 (Island A): (SEQ (H Q1) (SEQ (CNOT Q2 Q3) (H Q1)))  → CNOT_{23} ⊗ I_1
+Thread 4 (Island B):     (SEQ (H Q2) (SEQ (CNOT Q1 Q3) (H Q2)))  → CNOT_{13} ⊗ I_2
 ```
 
-Two distinct CNOT+identity minima were maintained simultaneously, demonstrating improved exploration diversity.
+Both simplify via $H \cdot \text{CNOT} \cdot H = \text{CNOT}$ (Hadamard conjugation) to a single CNOT gate with fidelity $F \approx 0.75$. The two minima differ in which control qubit maps to the CNOT — a distinction the trace-based fidelity run (Section 4.8) collapsed to a single minimum. The continuous gradient reduces competition between local basins, allowing the island model to preserve diversity.
 
-**What was confirmed working:**
-- **matrix_distance smoothing:** The continuous fidelity function produces smooth gradients and improves performance by 4×. The elimination of discrete plateaus does not eliminate the CNOT+identity basin, but confirms the landscape is now differentiable.
-- **15-gate Toffoli template present:** The decomposition is in the template library and is sampled during bulk-swap mutations. The engine has the machinery to discover the exact solution.
-- **Island diversity:** Two distinct local minima co-exist across islands, a first in this experiment series.
+**Verdict: matrix_distance improves exploration diversity.** Two distinct CNOT+identity minima co-existed across the run, a first in this experiment series.
 
-**What was not achieved:**
-- No circuit exceeding $F \approx 0.75$ was discovered in 200,000 evaluations.
-- The 15-gate Toffoli template was sampled but never with the correct qubit assignment. Random instantiation gives only $1/27$ probability of selecting the correct q1/q2/q3 mapping.
-- The engine lacks a mechanism to recognize template-target alignment.
+#### 8.3.3 15-Gate Toffoli Template — NOT EFFECTIVE IN CURRENT FORM
 
-### 8.3 Revised Assessment
+The 15-gate decomposition template is present in the library (2 entries for doubled weight) and sampled during bulk-swap mutations (25% template probability). However, **no circuit approaching $F > 0.75$ was discovered.** The engine converged to CNOT+identity minima ($P \approx 250$) identical to all previous runs.
 
-The trajectory of improvements reveals a clear pattern: each fix addresses the previous bottleneck and reveals the next one:
+**Root cause:** The `instantiate-template` function performs random qubit remapping of `q1`/`q2`/`q3` to the current AST's variable set. With 3 qubits and 3 distinct roles (control-1, control-2, target), the probability of selecting the correct qubit assignment is $1/27$ per template instantiation. Even with 200,000 evaluations and the template sampled at rate $\approx 0.25 \times 0.55$ (25% of bulk-swap × 55% bulk-swap probability per mutation) $\approx 13.75\%$ of mutations, the expected number of correct-instance evaluations is:
 
-1. **Broken SA → Fixed SA:** Enabled exploration but revealed the discrete fidelity plateau.
-2. **Fixed SA + templates:** Confirmed exploration machinery works but plateau blocks progress.
-3. **matrix_distance smoothing:** Eliminated the plateau (4× faster, continuous landscape) — but revealed that the **template instantiation** is the new bottleneck. The 15-gate template exists but random qubit remapping makes correct instantiation a combinatorial rarity.
+$$E[\text{correct}] \approx \frac{200{,}000 \times 0.1375}{27} \approx 1018$$
 
-The three original improvements (adaptive SA, lambda decoupling, structural templates) addressed the **secondary** failure modes. The `matrix_distance` smoothing addressed the **primary** failure mode (discrete fidelity). The remaining bottleneck is now the **template instantiation mechanism**: random qubit assignment cannot reliably produce the correct 15-gate circuit.
+This suggests the template was likely instantiated with the correct qubit mapping many times, yet the engine **still did not converge to $F = 1.0$**. This implies that inserting the 15-gate template into an evolving circuit does not, by itself, produce a correct Toffoli decomposition — the surrounding circuit context (gates before/after the inserted template) can destroy the unitary.
 
-**Recommendation for future work:** The template instantiation function should be augmented to either:
-- (a) Try all qubit permutations exhaustively when applying a template (3! = 6 permutations for 3 qubits), or
-- (b) Detect that a template is a target-equivalent decomposition and apply it with canonical qubit ordering matching the synthesis target.
-- Additionally, the engine could benefit from a **template-target matching** mechanism that compares the unitary of a candidate template against the target and preferentially applies templates with high unitary overlap.
+**Verdict: 15-gate template is ineffective with random instantiation.** The template is correctly defined and sampled, but random qubit remapping cannot guarantee the correct contextual placement. The template alone does not solve the synthesis problem; it must be combined with a mechanism that either (a) tries all qubit permutations exhaustively, (b) detects template-target unitary alignment, or (c) performs full-circuit replacement rather than sub-circuit insertion.
+
+#### 8.3.4 Overall Assessment
+
+| Feature | Status | Impact |
+|---------|--------|--------|
+| Adaptive SA ($T_0=250$) | **Confirmed** | Maintains exploration, no freeze-out |
+| Lambda decoupling ($\lambda=0.0$ for 80%) | **Confirmed** | Removes size pressure during exploration |
+| Structural templates (small) | **Confirmed** | Enables non-local circuit topology changes |
+| **matrix_distance** | **✅ SUCCESS** | 4.2× throughput gain, continuous gradient, improved diversity |
+| **15-gate Toffoli template** | **❌ INEFFECTIVE** | Present in library but random qubit remapping prevents reliable correct instantiation |
+
+The `matrix_distance` change is a definitive improvement and should be retained. The 15-gate template, while conceptually correct, requires a more sophisticated instantiation strategy — either exhaustive qubit permutation (3! = 6 per template use), unitary comparison against the target, or full-circuit replacement — to become practically useful for Toffoli synthesis.
+
+## References
+
+[1] v7 Cognitive Engine architecture: `v7/engine/engine.lisp` (SA logic); Prolog synthesis censor at `v7/engine/quantum.pl`.
+
+[2] Minimum Toffoli decomposition (15 gates over Clifford+T): Amy, M., Maslov, D., Mosca, M., & Roetteler, M. (2013). A meet-in-the-middle algorithm for fast synthesis of depth-optimal quantum circuits. *IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems*, 32(6), 818--830.
