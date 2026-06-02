@@ -7,45 +7,40 @@ Iterations: 800
 Domain: REGRESSION
 Base AST: (ADD P V)
 Threads: 4
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-1 -> (AND
-                                                                     (*
-                                                                      (DIV V2
-                                                                       V2)
-                                                                      V1)
-                                                                     Y)
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-2 -> (INT
-                                                                     (SIN
-                                                                      (* Q
-                                                                         M3X2))
-                                                                     (SIN V2 P))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-3 -> (-
-                                                                     (GAMMA Y
-                                                                      V2)
-                                                                     (* (* Y P)
-                                                                        (CARNOT
-                                                                         1.2
-                                                                         300)))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-4 -> (-
-                                                                     (- (/ Z))
-                                                                     (DELTA_S P
-                                                                      Y))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-1 -> (CARNOT P Y)
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-2 -> (COS Q1 V)
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-3 -> (INVENTED_OP_4
+                                                                     Q1)
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-4 -> (INVENTED_OP_5
+                                                                     Q2)
 
 ==================================================
       LOGOS ENGINE PERFORMANCE DASHBOARD
 ==================================================
-Total Elapsed Time    : 3.6800 seconds
+Total Elapsed Time    : 24.6840 seconds
 Logical CPU Cores     : 4
-Total ASTs Evaluated  : 3200
-Throughput (AST/sec)  : 869.57
-Avg Latency per AST   : 1.1500 ms
+Total ASTs Evaluated  : 35
+Throughput (AST/sec)  : 1.42
+Avg Latency per AST   : 705.2571 ms
 ==================================================
 
 Found valid hypotheses from Islands:
-  (AND (* (DIV V2 V2) V1) Y)
-  (INT (SIN (* Q M3X2)) (SIN V2 P))
-  (- (GAMMA Y V2) (* (* Y P) (CARNOT 1.2 300)))
-  (- (- (/ Z)) (DELTA_S P Y))
+  (CARNOT P Y)
+  (COS Q1 V)
+  (INVENTED_OP_4 Q1)
+  (INVENTED_OP_5 Q2)
 
 --- Final Synthesis Phase (Island Crossover) ---
+[SYNTHESIS] Found valid hybrid at iteration 1: (INVENTED_OP_5
+                                                (INVENTED_OP_4 Q1))
+[SYNTHESIS] Found valid hybrid at iteration 2: (INVENTED_OP_5
+                                                (INVENTED_OP_5 Q2))
+[SYNTHESIS] Found valid hybrid at iteration 3: (INVENTED_OP_4
+                                                (INVENTED_OP_5 Q2))
+Ultimate Hybrids:
+  (INVENTED_OP_4 (INVENTED_OP_5 Q2))
+  (INVENTED_OP_5 (INVENTED_OP_5 Q2))
+  (INVENTED_OP_5 (INVENTED_OP_4 Q1))
+[ONTOLOGY GENERATOR] Successfully generated whitepaper: benchmarks_output/papers/discovery_regression_20260602_152031.tex
 ----------------------------------------
 EXPERIMENT COMPLETED.

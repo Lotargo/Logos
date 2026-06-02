@@ -6,70 +6,57 @@ Iterations: 5
 === Starting Parallel Logos Cognitive Engine ===
 Domain: REGRESSION
 Base AST: (DIV (MUL M1 M2) (MUL R R))
-Threads: 12
+Threads: 4
 [ADF MANAGER] Extracted and registered dynamic subroutine: ADF-1 -> (DIV
                                                                      (MUL M1
-                                                                      V2)
+                                                                      M2)
+                                                                     (IMPLIES R
+                                                                      R))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-2 -> (DIV
+                                                                     (DIV M1
+                                                                      M2)
                                                                      (MUL R R))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-2 -> (INVENTED_OP_7
-                                                                     V3 T_HOT)
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-3 -> (DIV
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-3 -> (OR
                                                                      (MUL M1
                                                                       M2)
                                                                      (MUL R R))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-4 -> (DIV
-                                                                     (MUL M1 P)
-                                                                     (MUL R R))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-5 -> (DIV
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-4 -> (ADD
                                                                      (MUL M1
                                                                       M2)
-                                                                     (MUL R
-                                                                      M3X3))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-6 -> (DIV
-                                                                     (+ M1 M2)
                                                                      (MUL R R))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-7 -> (DIV
-                                                                     (MUL M1
-                                                                      M2)
-                                                                     (NORM R R))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-8 -> (DIV V3 S1
-                                                                     V1)
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-9 -> (ADD_VEL
-                                                                     (SCALE M1
-                                                                      M2)
-                                                                     (/ R R))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-10 -> (DIV
-                                                                      (MUL M1
-                                                                       M2)
-                                                                      (MUL R R))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-11 -> (DIV
-                                                                      (MUL V1
-                                                                       V1)
-                                                                      (MUL R R))
 
 ==================================================
       LOGOS ENGINE PERFORMANCE DASHBOARD
 ==================================================
-Total Elapsed Time    : 0.3285 seconds
-Logical CPU Cores     : 12
-Total ASTs Evaluated  : 60
-Throughput (AST/sec)  : 182.66
-Avg Latency per AST   : 5.4748 ms
+Total Elapsed Time    : 18.7920 seconds
+Logical CPU Cores     : 4
+Total ASTs Evaluated  : 20
+Throughput (AST/sec)  : 1.06
+Avg Latency per AST   : 939.6000 ms
 ==================================================
 
 Found valid hypotheses from Islands:
-  (DIV (MUL M1 V2) (MUL R R))
-  (INVENTED_OP_7 V3 T_HOT)
-  (DIV (MUL M1 M2) (MUL R R))
-  (DIV (MUL M1 P) (MUL R R))
-  (DIV (MUL M1 M2) (MUL R M3X3))
-  (DIV (+ M1 M2) (MUL R R))
-  (DIV (MUL M1 M2) (NORM R R))
-  (DIV V3 S1 V1)
-  (ADD_VEL (SCALE M1 M2) (/ R R))
-  (DIV (MUL M1 M2) (MUL R R))
-  (DIV (MUL V1 V1) (MUL R R))
+  (DIV (MUL M1 M2) (IMPLIES R R))
+  (DIV (DIV M1 M2) (MUL R R))
+  (OR (MUL M1 M2) (MUL R R))
+  (ADD (MUL M1 M2) (MUL R R))
 
 --- Final Synthesis Phase (Island Crossover) ---
+[TIMEOUT] Prolog daemon hung on query: censor(target, regression, or(mul(m1, m2), mul(r, div(div(m1, m2), mul(r, r)))), Penalty).. Forcefully restarting...
+[TIMEOUT] Prolog daemon hung on query: censor(target, regression, or(mul(m1, m2), mul(r, div(div(m1, m2), mul(r, r)))), Penalty).. Forcefully restarting...
+[SYNTHESIS] Found valid hybrid at iteration 8: (DIV (MUL M1 M2)
+                                                (IMPLIES R
+                                                 (ADD (MUL M1 M2) (MUL R R))))
+[SYNTHESIS] Found valid hybrid at iteration 11: (ADD (MUL M1 M2)
+                                                 (OR (MUL M1 M2) (MUL R R)))
+[SYNTHESIS] Found valid hybrid at iteration 12: (ADD
+                                                 (DIV (MUL M1 M2)
+                                                  (IMPLIES R R))
+                                                 (MUL R R))
+Ultimate Hybrids:
+  (ADD (DIV (MUL M1 M2) (IMPLIES R R)) (MUL R R))
+  (ADD (MUL M1 M2) (OR (MUL M1 M2) (MUL R R)))
+  (DIV (MUL M1 M2) (IMPLIES R (ADD (MUL M1 M2) (MUL R R))))
+[ONTOLOGY GENERATOR] Successfully generated whitepaper: benchmarks_output/papers/discovery_regression_20260602_152028.tex
 ----------------------------------------
 EXPERIMENT COMPLETED.

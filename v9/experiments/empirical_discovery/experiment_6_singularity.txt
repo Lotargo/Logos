@@ -7,65 +7,43 @@ Iterations: 1500
 Domain: REGRESSION
 Base AST: (DIV M (MUL R R))
 Threads: 4
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-1 -> (INT
-                                                                     (ADD AREA
-                                                                      (/ T_HOT
-                                                                         S1))
-                                                                     (DIV
-                                                                      (* V1 T)
-                                                                      (NORM
-                                                                       (DIV S2
-                                                                        500)
-                                                                       (OR 2
-                                                                           2))))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-2 -> (/
-                                                                     (TRANSPOSE
-                                                                      (DOT V1
-                                                                       M3X2)
-                                                                      P)
-                                                                     (/
-                                                                      (+ Q3 Q)
-                                                                      (SUB V2
-                                                                       S2)))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-3 -> (DIV
-                                                                     (COS
-                                                                      (ADD_VEL
-                                                                       (IMPLIES
-                                                                        1.2 V1)
-                                                                       V1)
-                                                                      (- V3
-                                                                         V1))
-                                                                     (ENTROPY
-                                                                      (SIN T P)
-                                                                      T))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-4 -> (SEQ
-                                                                     (DIV
-                                                                      (/
-                                                                       (/ Y
-                                                                          V3)))
-                                                                     (CROSS
-                                                                      (+ P Q3)
-                                                                      (INT
-                                                                       (+ AREA
-                                                                          S1)
-                                                                       Y)))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-1 -> (INVENTED_OP_5
+                                                                     V3 T_HOT)
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-2 -> (CARNOT M
+                                                                     (MUL R R))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-3 -> (IMPLIES Q1
+                                                                     (MUL R
+                                                                      M4X1))
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-4 -> (INVENTED_OP_4
+                                                                     Q1)
 
 ==================================================
       LOGOS ENGINE PERFORMANCE DASHBOARD
 ==================================================
-Total Elapsed Time    : 10.3960 seconds
+Total Elapsed Time    : 24.6440 seconds
 Logical CPU Cores     : 4
-Total ASTs Evaluated  : 6000
-Throughput (AST/sec)  : 577.15
-Avg Latency per AST   : 1.7327 ms
+Total ASTs Evaluated  : 28
+Throughput (AST/sec)  : 1.14
+Avg Latency per AST   : 880.1429 ms
 ==================================================
 
 Found valid hypotheses from Islands:
-  (INT (ADD AREA (/ T_HOT S1)) (DIV (* V1 T) (NORM (DIV S2 500) (OR 2 2))))
-  (/ (TRANSPOSE (DOT V1 M3X2) P) (/ (+ Q3 Q) (SUB V2 S2)))
-  (DIV (COS (ADD_VEL (IMPLIES 1.2 V1) V1) (- V3 V1)) (ENTROPY (SIN T P) T))
-  (SEQ (DIV (/ (/ Y V3))) (CROSS (+ P Q3) (INT (+ AREA S1) Y)))
+  (INVENTED_OP_5 V3 T_HOT)
+  (CARNOT M (MUL R R))
+  (IMPLIES Q1 (MUL R M4X1))
+  (INVENTED_OP_4 Q1)
 
 --- Final Synthesis Phase (Island Crossover) ---
+[SYNTHESIS] Found valid hybrid at iteration 3: (INVENTED_OP_5 V3
+                                                (INVENTED_OP_5 V3 T_HOT))
+[SYNTHESIS] Found valid hybrid at iteration 4: (CARNOT M
+                                                (MUL (CARNOT M (MUL R R)) R))
+[SYNTHESIS] Found valid hybrid at iteration 6: (INVENTED_OP_5 V3
+                                                (INVENTED_OP_5 V3 T_HOT))
+Ultimate Hybrids:
+  (INVENTED_OP_5 V3 (INVENTED_OP_5 V3 T_HOT))
+  (CARNOT M (MUL (CARNOT M (MUL R R)) R))
+  (INVENTED_OP_5 V3 (INVENTED_OP_5 V3 T_HOT))
+[ONTOLOGY GENERATOR] Successfully generated whitepaper: benchmarks_output/papers/discovery_regression_20260602_152031.tex
 ----------------------------------------
 EXPERIMENT COMPLETED.
