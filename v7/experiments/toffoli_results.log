@@ -1,0 +1,39 @@
+========================================================
+  QUANTUM SYNTHESIS: TOFFOLI GATE DECOMPOSITION
+  Target: CCNOT (3-qubit Controlled-Controlled-NOT)
+  Gate set: {H, T, T*, S, S*, X, CNOT}
+========================================================
+  Fitness = { 1000*(1-Fidelity) + lambda*Size }
+========================================================
+
+Configuration:
+  Starting AST : (seq (h q1) (seq (h q2) (h q3)))
+  Domain       : synthesis
+  Iterations   : 5000
+  Threads      : 12
+  Target       : Toffoli (CCNOT)
+
+=== Starting Parallel Cognitive Engine v7 ===
+Domain: SYNTHESIS
+Base AST: (SEQ (H Q1) (SEQ (H Q2) (H Q3)))
+Threads: 12
+
+==================================================
+      v7 ENGINE PERFORMANCE DASHBOARD
+==================================================
+Total Elapsed Time    : 25.6312 seconds
+Logical CPU Cores     : 12
+Total ASTs Evaluated  : 60000
+Throughput (AST/sec)  : 2340.90
+Avg Latency per AST   : 0.4272 ms
+==================================================
+
+Found valid hypotheses from Islands:
+  (SEQ (TDG Q3) (SEQ (TDG Q2) (SEQ (T Q1) (SEQ (T Q2) (T Q3)))))
+  (SEQ (SEQ (T Q1) (SEQ (TDG Q2) (TDG Q3))) (SEQ (T Q2) (T Q3)))
+
+--- Final Synthesis Phase (Island Crossover) ---
+
+========================================================
+  EXPERIMENT COMPLETE
+========================================================

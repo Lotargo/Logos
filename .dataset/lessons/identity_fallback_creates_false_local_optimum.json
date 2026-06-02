@@ -1,0 +1,8 @@
+{
+  "topic": "Identity fallback in quantum synthesis fitness causes false local optimum",
+  "principle": "Never use the identity matrix as a fallback return value for unrecognized or malformed quantum circuits in a fidelity-based fitness function. Any circuit, no matter how random, will score F = Tr(I^dag @ U_target)/N = 0.75 for a 3-qubit target, creating a dominant local optimum that the search cannot escape.",
+  "instruction": "I'm evolving quantum circuits and my search always converges to fidelity 0.75 no matter what I try",
+  "bad_example": "def build_unitary(ast):\n    try:\n        return matrix_from_ast(ast)\n    except:\n        return np.eye(8)  # identity fallback - BAD: creates 0.75 local optimum",
+  "good_example": "def build_unitary(ast):\n    result = matrix_from_ast(ast)\n    if result is None:\n        return None  # caller assigns max penalty instead of identity\n    return result",
+  "tags": ["quantum", "evolutionary-search", "fitness-function", "synthesis", "local-optimum", "debugging"]
+}

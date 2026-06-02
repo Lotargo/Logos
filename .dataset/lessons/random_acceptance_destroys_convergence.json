@@ -1,0 +1,8 @@
+{
+  "topic": "Random acceptance in evolutionary search overwrites genuine progress",
+  "principle": "Never use unconditional random acceptance (e.g., 'accept with 15% probability regardless of fitness') in an evolutionary search. This constantly overwrites the best solution with random garbage, preventing any convergence. If exploration is needed, use explicit exploration phases with state preservation, not stochastic overwrites of the best individual.",
+  "instruction": "My evolutionary search keeps losing its best solutions and converging to random circuits",
+  "bad_example": "if random() < 0.15:  # 15% random acceptance - BAD: overwrites best with garbage\n    best_ast = random_ast\n    best_fitness = fitness(random_ast)",
+  "good_example": "if new_fitness < best_fitness or (new_fitness == best_fitness and smaller_size):\n    best_ast = new_ast\n    best_fitness = new_fitness\n# For exploration: use explicit novelty phase with saved best state",
+  "tags": ["evolutionary-search", "exploration-exploitation", "acceptance-criteria", "convergence", "genetic-algorithm"]
+}

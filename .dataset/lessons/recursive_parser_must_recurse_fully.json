@@ -1,0 +1,8 @@
+{
+  "topic": "Recursive parser must recurse at every level, not just the top",
+  "principle": "A recursive-descent parser that returns raw source strings for nested sub-expressions instead of recursively parsed data structures is not truly recursive. Sub-expressions must be parsed via the same parse function to produce fully nested data structures. Test with multi-level nesting before trusting outputs.",
+  "instruction": "My Lisp-like expression parser returns identity for all nested expressions",
+  "bad_example": "def parse_args(s):\n    args = []\n    if s[i] == '(':\n        inner = find_matching_paren(s, i)\n        args.append(inner)  # BAD: raw string '(+ 1 2)' not parsed\n    return args\n\ndef eval_ast(ast):\n    if isinstance(arg, str):\n        return identity()  # always hits this for nested exprs",
+  "good_example": "def parse_args(s):\n    args = []\n    if s[i] == '(':\n        inner = find_matching_paren(s, i)\n        args.append(parse_ast(inner))  # GOOD: recursively parse sub-expr\n    return args\n\ndef eval_ast(ast):\n    if isinstance(arg, list):\n        return eval_ast(arg)  # recursive eval\n    # ... handle atoms",
+  "tags": ["parsing", "recursion", "lisp", "AST", "debugging", "recursive-descent"]
+}
