@@ -200,21 +200,15 @@
 ;; 4. Main Universal Cognitive Engine Loop (Multi-Threaded)
 ;; =======================================================================
 
-(defun get-domain-config (domain-name)
-  (declare (ignore domain-name))
-  (values *unified-operators*
-          (append (if (and (boundp '*regression-vars*) *regression-vars*)
-                      *regression-vars*
-                      (detect-regression-vars (and (boundp '*current-dataset*) *current-dataset*)))
-                  *unified-variables*)
-          *unified-constants*))
-
 (defun worker-loop (base-ast domain iterations thread-id migration-pools migration-mutexes)
-  (multiple-value-bind (ops vars consts) (get-domain-config domain)
+  (let* ((vars (append (if (and (boundp '*regression-vars*) *regression-vars*)
+                           *regression-vars*
+                           (detect-regression-vars (and (boundp '*current-dataset*) *current-dataset*)))
+                       *unified-variables*)))
     ;; Dynamic bindings of special variables are thread-local in SBCL
-    (let* ((*current-operators* ops)
+    (let* ((*current-operators* *unified-operators*)
            (*current-variables* (append vars (mapcar #'car *adf-library*)))
-           (*current-constants* consts)
+           (*current-constants* *unified-constants*)
            (proc (uiop:launch-program (list "swipl" "-q" "-s" "v9/prolog/daemon.pl")
                                       :input :stream
                                       :output :stream))
@@ -322,10 +316,13 @@
   (when (< (length winners) 2)
     (return-from synthesize-hybrids winners))
   (format t "~%--- Final Synthesis Phase (Island Crossover) ---~%")
-  (multiple-value-bind (ops vars consts) (get-domain-config domain)
-    (let* ((*current-operators* ops)
+  (let* ((vars (append (if (and (boundp '*regression-vars*) *regression-vars*)
+                           *regression-vars*
+                           (detect-regression-vars (and (boundp '*current-dataset*) *current-dataset*)))
+                       *unified-variables*)))
+    (let* ((*current-operators* *unified-operators*)
            (*current-variables* (append vars (mapcar #'car *adf-library*)))
-           (*current-constants* consts)
+           (*current-constants* *unified-constants*)
            (proc (uiop:launch-program (list "swipl" "-q" "-s" "v9/prolog/daemon.pl")
                                       :input :stream
                                       :output :stream))

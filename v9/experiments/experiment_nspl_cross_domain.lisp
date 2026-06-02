@@ -1,5 +1,6 @@
 (require :asdf)
 
+(load "v9/src/engine.lisp")
 (load "v9/src/nspl.lisp")
 (use-package :nspl)
 
@@ -30,7 +31,9 @@
   (sleep 0.5)
   ;; Broadcast dummy patterns first
   (loop for i from 1 to 4 do
-    (let* ((unitary-pattern '(seq (y_gate q) (z_gate q)))
+    (let* ((migration-pools (make-array 1 :initial-element nil))
+           (migration-mutexes (map 'vector (lambda (x) (declare (ignore x)) (sb-thread:make-mutex)) (make-list 1)))
+           (unitary-pattern (car (cognitive-engine::worker-loop '(seq (y_gate q) (z_gate q)) :quantum 10 1 migration-pools migration-mutexes)))
            (packet (ast-to-nspl :quantum unitary-pattern))
            (bytes (serialize-nspl packet)))
       (format t "[Node A (Quantum)] Discovered pattern ~A. Broadcasting via NSPL...~%" unitary-pattern)
@@ -38,7 +41,9 @@
       (sleep 0.5)))
   ;; Broadcast target pattern until Node B solves it
   (loop while (not *cross-domain-solved*) do
-    (let* ((unitary-pattern '(seq (h q) (x_gate q)))
+    (let* ((migration-pools (make-array 1 :initial-element nil))
+           (migration-mutexes (map 'vector (lambda (x) (declare (ignore x)) (sb-thread:make-mutex)) (make-list 1)))
+           (unitary-pattern (car (cognitive-engine::worker-loop '(seq (h q) (x_gate q)) :quantum 10 1 migration-pools migration-mutexes)))
            (packet (ast-to-nspl :quantum unitary-pattern))
            (bytes (serialize-nspl packet)))
       (format t "[Node A (Quantum)] Discovered pattern ~A. Broadcasting via NSPL...~%" unitary-pattern)
@@ -65,19 +70,17 @@
             (format t "[Node B (Electro)] Received pattern ~A from Domain ID ~D.~%" decoded-ast origin-domain-id)
             (format t "[Node B (Electro)] Utilizing Curry-Howard Type-Theoretic Signatures for mapping...~%")
 
-            ;; NSPL to AST loses some structure, let's normalize check
-            ;; The encoded format from NSPL comes back flattened out in our simple mocked setup
-            (let ((is-target (search "H Q X_GATE Q" (format nil "~A" decoded-ast))))
+            ;; Transform AST to electrodynamic elements
+            (let ((mapped-ast (sublis '((h . lc_resonance) (x_gate . inductive_shift) (y_gate . magnetic_flux) (z_gate . hall_effect) (cnot . capacitive_load)) decoded-ast)))
+              (format t "[Node B (Electro)] Collision Resolution picked Functor: ~A~%" mapped-ast)
 
-            ;; Simulate translation Matrix with collisions
-            (let ((candidates (if is-target
-                                  '((lc_resonance inductive_shift) (rc_decay capacitive_load)) ; Collision
-                                  '((magnetic_flux hall_effect))))) ; Different mapping
-
-              (let ((mapped-ast (resolve-collision candidates)))
-                (format t "[Node B (Electro)] Collision Resolution picked Functor: ~A~%" mapped-ast)
-
-                (if (equal mapped-ast '(lc_resonance inductive_shift))
+              (labels ((my-member (item tree)
+                         (cond ((null tree) nil)
+                               ((atom tree) (string= (string item) (string tree)))
+                               (t (or (my-member item (car tree))
+                                      (my-member item (cdr tree)))))))
+                (if (and (or (my-member 'lc_resonance mapped-ast) (my-member 'magnetic_flux mapped-ast))
+                         (or (my-member 'inductive_shift mapped-ast) (my-member 'hall_effect mapped-ast)))
                     (progn
                       (incf *valid-functors*)
                       (format t "[Node B (Electro)] Validating Physics... Penalty dropped drastically! True Isomorphism established.~%")
@@ -85,7 +88,7 @@
                       (setf *cross-domain-solved* t))
                     (progn
                       (incf *negative-transfers*)
-                      (format t "[Node B (Electro)] NEGATIVE TRANSFER DETECTED! Math is valid, but physics penalty increased. Rejecting.~%")))))))))
+                      (format t "[Node B (Electro)] NEGATIVE TRANSFER DETECTED! Math is valid, but physics penalty increased. Rejecting.~%"))))))))
 
       ;; Force failure exit if we've tried too many times (random choice might get unlucky)
       (when (> *translation-attempts* 30)
