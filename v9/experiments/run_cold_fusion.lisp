@@ -24,10 +24,8 @@
 
     (setf *regression-vars* '(E V L S))
     (setf *current-dataset* "v9/data/tunneling_data.csv")
-    (let ((*current-operators* '(+ - * / sin cos exp sqr sqrt deriv int))
-          (*current-constants* '(1.0 2.0 0.5 -1.0 -2.0)))
-      ;; Neutral starting AST
-      (run-engine-parallel '(* E 1.0) :regression 100 4))
+    ;; Neutral starting AST
+    (run-engine-parallel '(* E 1.0) :regression 100 4)
 
     (format t "~%========================================================~%")
     (format t "EXPERIMENT 2: PHONON RESONANCE IN PALLADIUM LATTICE~%")
@@ -36,10 +34,8 @@
 
     (setf *regression-vars* '(F T M))
     (setf *current-dataset* "v9/data/phonon_resonance.csv")
-    (let ((*current-operators* '(+ - * / sin cos exp sqr deriv int carnot entropy))
-          (*current-constants* '(1.0 10.0 100.0 1000.0 -1.0)))
-      ;; Neutral starting AST
-      (run-engine-parallel '(+ F T) :regression 100 4))
+    ;; Neutral starting AST
+    (run-engine-parallel '(+ F T) :regression 100 4)
 
     (format t "~%========================================================~%")
     (format t "EXPERIMENT COMPLETED SUCCESSFULLY~%")
