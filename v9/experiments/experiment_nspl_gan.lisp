@@ -1,5 +1,6 @@
 (require :asdf)
 
+(load "v9/src/engine.lisp")
 (load "v9/src/nspl.lisp")
 (use-package :nspl)
 
@@ -67,7 +68,9 @@
                 (sleep 0.2)
 
                 ;; Generator heals the equation, but tracks complexity
-                (let* ((healed-hypothesis '(div m (add (mul r r) l_p)))
+                (let* ((migration-pools (make-array 1 :initial-element nil))
+                       (migration-mutexes (map 'vector (lambda (x) (declare (ignore x)) (sb-thread:make-mutex)) (make-list 1)))
+                       (healed-hypothesis (car (cognitive-engine::worker-loop '(div m r) :arithmetic 10 1 migration-pools migration-mutexes)))
                        (healed-size (calculate-ast-size healed-hypothesis))
                        (parsimony-penalty (calculate-parsimony-penalty healed-size))
                        (healed-hash (sxhash (format nil "~A" healed-hypothesis))))

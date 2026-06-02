@@ -1,5 +1,6 @@
 (require :asdf)
 
+(load "v9/src/engine.lisp")
 (load "v9/src/nspl.lisp")
 (use-package :nspl)
 
@@ -37,8 +38,10 @@
 (defun node-a-worker ()
   (format t "[Node A] Starting search for basic quantum subroutines...~%")
   (sleep 1)
-  ;; Simulate Node A successfully evolving a simple CNOT+H combination
-  (let* ((discovery '(seq (h q1) (cnot q2 q1)))
+  ;; Evolve Node A a simple quantum block
+  (let* ((migration-pools (make-array 1 :initial-element nil))
+         (migration-mutexes (map 'vector (lambda (x) (declare (ignore x)) (sb-thread:make-mutex)) (make-list 1)))
+         (discovery (car (cognitive-engine::worker-loop '(seq q1 q2) :quantum 10 1 migration-pools migration-mutexes)))
          (packet (ast-to-nspl :quantum discovery))
          (bytes (serialize-nspl packet)))
     (format t "[Node A] EUREKA! Found stable building block: ~A~%" discovery)

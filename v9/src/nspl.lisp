@@ -64,6 +64,11 @@
     (setf (gethash 'nspl::l_p h) 110)
     (setf (gethash 'nspl::lc_resonance h) 111)
     (setf (gethash 'nspl::inductive_shift h) 112)
+    (setf (gethash 'nspl::y_gate h) 113)
+    (setf (gethash 'nspl::z_gate h) 114)
+    (setf (gethash 'nspl::magnetic_flux h) 115)
+    (setf (gethash 'nspl::hall_effect h) 116)
+    (setf (gethash 'nspl::capacitive_load h) 117)
     h))
 
 (defun ast-node-to-bytes (node)
@@ -105,6 +110,11 @@
         ((= b 110) 'l_p)
         ((= b 111) 'lc_resonance)
         ((= b 112) 'inductive_shift)
+        ((= b 113) 'y_gate)
+        ((= b 114) 'z_gate)
+        ((= b 115) 'magnetic_flux)
+        ((= b 116) 'hall_effect)
+        ((= b 117) 'capacitive_load)
         (t 'unknown)))
 
 (defvar *byte-to-sym*

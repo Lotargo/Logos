@@ -17,7 +17,7 @@
                (cond
                  ((null node) nil)
                  ((atom node)
-                  (unless (member node operators)
+                  (unless (or (numberp node) (member node operators))
                     (pushnew node vars)))
                  (t
                   ;; It's a list: first element is operator, rest are args
