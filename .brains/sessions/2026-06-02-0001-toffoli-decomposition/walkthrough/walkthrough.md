@@ -222,3 +222,8 @@ python v7/experiments/verify_6cnot_toffoli.py
 # Test Prolog censor with correct reference
 & "C:\Program Files\swipl\bin\swipl.exe" -q -t "test, halt" v7/engine/test_toffoli_full.pl
 ```
+
+## Phase 4.1: Simulated Annealing to escape local minimum (completed)
+- **Problem:** Fitness landscape barrier where single-gate mutations adding intermediate gates result in a penalty increase relative to the 3-gate CNOT sequence.
+- **Solution:** Implemented probabilistic Simulated Annealing logic within `worker-loop` in `v7/engine/engine.lisp` for the `:synthesis` domain. It calculates a decreasing temperature across iterations, and accepts uphill moves (penalty increase) with probability `P = exp(-delta/T)`.
+- **Result:** Successfully modified the evolutionary logic to conditionally accept uphill movements during early stages, to provide a mechanism to cross the fitness landscape barrier blocking progression towards the 15-gate Toffoli decomposition. Tested and confirmed the changes are properly integrated.
