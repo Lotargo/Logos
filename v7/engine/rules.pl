@@ -150,6 +150,10 @@ target_censor(hardware, AST, Penalty) :-
     !,
     hardware:hardware_censor(AST, Penalty).
 
+target_censor(synthesis, AST, Penalty) :-
+    !,
+    synthesis_censor(AST, Penalty).
+
 target_censor(unified, AST, Penalty) :-
     !,
     unified_censor(AST, Penalty).

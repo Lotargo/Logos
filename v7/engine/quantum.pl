@@ -60,6 +60,10 @@ valid_quantum_structure(h(X)) :- valid_quantum_structure(X).
 valid_quantum_structure(x_gate(X)) :- valid_quantum_structure(X).
 valid_quantum_structure(y_gate(X)) :- valid_quantum_structure(X).
 valid_quantum_structure(z_gate(X)) :- valid_quantum_structure(X).
+valid_quantum_structure(t(X)) :- valid_quantum_structure(X).
+valid_quantum_structure(tdg(X)) :- valid_quantum_structure(X).
+valid_quantum_structure(s(X)) :- valid_quantum_structure(X).
+valid_quantum_structure(sdg(X)) :- valid_quantum_structure(X).
 valid_quantum_structure(cnot(Control, Target)) :-
     valid_quantum_structure(Control),
     valid_quantum_structure(Target),
@@ -82,6 +86,10 @@ is_quantum_redundant(h(h(_))).
 is_quantum_redundant(x_gate(x_gate(_))).
 is_quantum_redundant(y_gate(y_gate(_))).
 is_quantum_redundant(z_gate(z_gate(_))).
+is_quantum_redundant(t(tdg(_))).
+is_quantum_redundant(tdg(t(_))).
+is_quantum_redundant(s(sdg(_))).
+is_quantum_redundant(sdg(s(_))).
 is_quantum_redundant(seq(A, B)) :- A == B, is_self_inverse(A).
 
 % Propagate redundancy checks
@@ -89,6 +97,10 @@ is_quantum_redundant(h(X)) :- is_quantum_redundant(X).
 is_quantum_redundant(x_gate(X)) :- is_quantum_redundant(X).
 is_quantum_redundant(y_gate(X)) :- is_quantum_redundant(X).
 is_quantum_redundant(z_gate(X)) :- is_quantum_redundant(X).
+is_quantum_redundant(t(X)) :- is_quantum_redundant(X).
+is_quantum_redundant(tdg(X)) :- is_quantum_redundant(X).
+is_quantum_redundant(s(X)) :- is_quantum_redundant(X).
+is_quantum_redundant(sdg(X)) :- is_quantum_redundant(X).
 is_quantum_redundant(cnot(C, _)) :- is_quantum_redundant(C).
 is_quantum_redundant(cnot(_, T)) :- is_quantum_redundant(T).
 is_quantum_redundant(oracle(Q1, _)) :- is_quantum_redundant(Q1).
@@ -113,6 +125,10 @@ find_qubits(h(Q), Qs) :- !, find_qubits(Q, Qs).
 find_qubits(x_gate(Q), Qs) :- !, find_qubits(Q, Qs).
 find_qubits(y_gate(Q), Qs) :- !, find_qubits(Q, Qs).
 find_qubits(z_gate(Q), Qs) :- !, find_qubits(Q, Qs).
+find_qubits(t(Q), Qs) :- !, find_qubits(Q, Qs).
+find_qubits(tdg(Q), Qs) :- !, find_qubits(Q, Qs).
+find_qubits(s(Q), Qs) :- !, find_qubits(Q, Qs).
+find_qubits(sdg(Q), Qs) :- !, find_qubits(Q, Qs).
 find_qubits(cnot(C, T), Qs) :-
     !,
     find_qubits(C, QsC),
@@ -425,3 +441,289 @@ is_unitary_ast(AST) :-
     matrix_multiply(U, UT, Product),
     round_matrix(Product, RoundedProduct),
     is_identity_matrix(RoundedProduct).
+
+% =======================================================================
+% Quantum Synthesis: Complex Matrix Arithmetic & Gate Fidelity
+% =======================================================================
+
+% Complex number: c(Re, Im)
+add_c(c(R1,I1), c(R2,I2), c(R3,I3)) :- R3 is R1+R2, I3 is I1+I2.
+sub_c(c(R1,I1), c(R2,I2), c(R3,I3)) :- R3 is R1-R2, I3 is I1-I2.
+mul_c(c(R1,I1), c(R2,I2), c(R3,I3)) :- R3 is R1*R2 - I1*I2, I3 is R1*I2 + I1*R2.
+conj_c(c(R,I), c(R,NI)) :- NI is -I.
+mag2_c(c(R,I), M2) :- M2 is R*R + I*I.
+mag_c(c(R,I), M) :- M is sqrt(R*R + I*I).
+
+% Complex gate matrices for synthesis
+gate_matrix_c(h(_), [[c(0.70710678,0), c(0.70710678,0)],
+                     [c(0.70710678,0), c(-0.70710678,0)]]).
+gate_matrix_c(x_gate(_), [[c(0,0), c(1,0)],
+                          [c(1,0), c(0,0)]]).
+gate_matrix_c(y_gate(_), [[c(0,0), c(0,-1)],
+                          [c(0,1), c(0,0)]]).
+gate_matrix_c(z_gate(_), [[c(1,0), c(0,0)],
+                          [c(0,0), c(-1,0)]]).
+gate_matrix_c(t(_), [[c(1,0), c(0,0)],
+                     [c(0,0), c(0.70710678,0.70710678)]]).
+gate_matrix_c(tdg(_), [[c(1,0), c(0,0)],
+                       [c(0,0), c(0.70710678,-0.70710678)]]).
+gate_matrix_c(s(_), [[c(1,0), c(0,0)],
+                     [c(0,0), c(0,1)]]).
+gate_matrix_c(sdg(_), [[c(1,0), c(0,0)],
+                       [c(0,0), c(0,-1)]]).
+gate_matrix_c(cnot(_,_), [[c(1,0), c(0,0), c(0,0), c(0,0)],
+                           [c(0,0), c(1,0), c(0,0), c(0,0)],
+                           [c(0,0), c(0,0), c(0,0), c(1,0)],
+                           [c(0,0), c(0,0), c(1,0), c(0,0)]]).
+
+% NxN complex identity
+identity_c(N, I) :-
+    N > 0,
+    Dim = N,
+    identity_rows(Dim, 0, I).
+
+identity_rows(Dim, Dim, []) :- !.
+identity_rows(Dim, Pos, [Row|Rest]) :-
+    Pos < Dim,
+    identity_row(Dim, Pos, 0, Row),
+    Pos1 is Pos + 1,
+    identity_rows(Dim, Pos1, Rest).
+
+identity_row(Dim, _, Dim, []) :- !.
+identity_row(Dim, Pos, Cur, [C|Rest]) :-
+    Cur < Dim,
+    (   Cur =:= Pos
+    ->  C = c(1,0)
+    ;   C = c(0,0)
+    ),
+    Cur1 is Cur + 1,
+    identity_row(Dim, Pos, Cur1, Rest).
+
+% Kronecker product of two matrices
+kron(M1, M2, Result) :-
+    maplist(kron_rows(M2), M1, Rows),
+    append(Rows, Result).
+
+kron_rows(M2, Row1, RowProducts) :-
+    maplist(kron_row(M2, Row1), M2, RowProducts).
+
+kron_row(_, Row1, Row2, KronRow) :-
+    maplist(kron_elem(Row2), Row1, ElemLists),
+    append(ElemLists, KronRow).
+
+kron_elem(Row2, c(R1,I1), RowKron) :-
+    maplist(kron_scale(c(R1,I1)), Row2, RowKron).
+
+kron_scale(c(R1,I1), c(R2,I2), c(R3,I3)) :-
+    R3 is R1*R2 - I1*I2,
+    I3 is R1*I2 + I1*R2.
+
+% Complex matrix multiplication
+cmultiply(M1, M2, Result) :-
+    M2 = [Row1|_],
+    length(Row1, NumCols),
+    numlist(0, NumCols, ColIndicesExt),
+    append(ColIndices, [_], ColIndicesExt),
+    maplist(cmultiply_row(M2, ColIndices), M1, Result).
+
+cmultiply_row(M2, ColIndices, Row, ResultRow) :-
+    maplist(cmultiply_cell(M2, Row), ColIndices, ResultRow).
+
+cmultiply_cell(M2, Row, ColIndex, Result) :-
+    cget_column(M2, ColIndex, Col),
+    cdot_product(Row, Col, Result).
+
+cget_column([], _, []).
+cget_column([Row|Matrix], ColIndex, [Elem|ColRest]) :-
+    nth0(ColIndex, Row, Elem),
+    cget_column(Matrix, ColIndex, ColRest).
+
+cdot_product([], [], c(0,0)).
+cdot_product([c(R1,I1)|T1], [c(R2,I2)|T2], Result) :-
+    cdot_product(T1, T2, Rest),
+    mul_c(c(R1,I1), c(R2,I2), Product),
+    add_c(Product, Rest, Result).
+
+% Conjugate transpose
+ctranspose(Matrix, CT) :-
+    transpose(Matrix, T),
+    maplist(conj_row, T, CT).
+
+conj_row(Row, ConjRow) :-
+    maplist(conj_c, Row, ConjRow).
+
+% Trace of complex matrix (sum of diagonal M[i][i])
+ctrace(M, c(0,0)) :- M == [], !.
+ctrace(M, Trace) :-
+    length(M, N),
+    ctrace_diag(M, 0, N, c(0,0), Trace).
+
+ctrace_diag(_, I, I, Acc, Acc) :- !.
+ctrace_diag(M, I, N, Acc, Trace) :-
+    nth0(I, M, Row),
+    nth0(I, Row, Element),
+    add_c(Acc, Element, NewAcc),
+    I1 is I + 1,
+    ctrace_diag(M, I1, N, NewAcc, Trace).
+
+% Build N-qubit complex unitary from AST
+build_synthesis_unitary(AST, N, U) :-
+    atom(AST),
+    !,
+    identity_c(N, U).
+
+build_synthesis_unitary(seq(A, B), N, U) :-
+    !,
+    build_synthesis_unitary(A, N, UA),
+    build_synthesis_unitary(B, N, UB),
+    cmultiply(UB, UA, U).
+
+build_synthesis_unitary(AST, N, U) :-
+    AST =.. [Op|Args],
+    synthesis_gate_matrix(Op, Args, N, U),
+    !.
+
+% No fallback — unrecognized ASTs must fail the censor
+
+% Expand a single-gate complex matrix to N-qubit space via Kron
+synthesis_gate_matrix(Op, Args, N, FullMatrix) :-
+    gate_matrix_c(Term, G),
+    Term =.. [Op|ArgTemps],
+    length(ArgTemps, ArgLen),
+    length(Args, ArgLen),
+    % Get qubit positions from args
+    find_qubits_for_synthesis(Args, QubitIndices, N),
+    % Expand G to N×N via kron
+    expand_to_n_qubits(G, QubitIndices, N, FullMatrix).
+
+find_qubits_for_synthesis([], [], _).
+find_qubits_for_synthesis([Arg|Args], [Idx|Idxs], N) :-
+    atom(Arg),
+    atom_concat(q, NumStr, Arg),
+    atom_number(NumStr, Num),
+    Idx is Num - 1,
+    find_qubits_for_synthesis(Args, Idxs, N).
+
+% Expand gate matrix to N-qubit system
+% G acts on qubit QIdx (0-indexed) in an N-qubit system
+% Result: I_{2^QIdx} ⊗ G ⊗ I_{2^(N-QIdx-1)}
+expand_to_n_qubits(G, [QIdx], N, Full) :-
+    LeftDim is 1 << QIdx,
+    RightDim is 1 << (N - QIdx - 1),
+    (   LeftDim =:= 1
+    ->  Mid1 = G
+    ;   identity_c(LeftDim, LeftI),
+        kron(LeftI, G, Mid1)
+    ),
+    (   RightDim =:= 1
+    ->  Full = Mid1
+    ;   identity_c(RightDim, RightI),
+        kron(Mid1, RightI, Full)
+    ).
+
+% Two-qubit gate on adjacent qubits [QIdx1, QIdx1+1]
+expand_to_n_qubits(G, [QIdx1, QIdx2], N, Full) :-
+    QIdx2 =:= QIdx1 + 1,
+    !,
+    LeftDim is 1 << QIdx1,
+    RightDim is 1 << (N - QIdx2 - 1),
+    (   LeftDim =:= 1
+    ->  Mid1 = G
+    ;   identity_c(LeftDim, LeftI),
+        kron(LeftI, G, Mid1)
+    ),
+    (   RightDim =:= 1
+    ->  Full = Mid1
+    ;   identity_c(RightDim, RightI),
+        kron(Mid1, RightI, Full)
+    ).
+
+% Two-qubit gate on non-adjacent qubits
+expand_to_n_qubits(G, [Q1, Q2], N, Full) :-
+    Q2 > Q1 + 1,
+    !,
+    Dim is 1 << N,
+    LastRow is Dim - 1,
+    findall(Row, (
+        between(0, LastRow, R),
+        findall(Entry, (
+            between(0, LastRow, C),
+            nonadjacent_entry(G, Q1, Q2, N, R, C, Entry)
+        ), Row)
+    ), Full).
+
+nonadjacent_entry(G, Q1, Q2, N, R, C, Entry) :-
+    nonadjacent_qubits_match(Q1, Q2, N, R, C),
+    !,
+    BitQ1_R is (R >> (N - Q1 - 1)) /\ 1,
+    BitQ2_R is (R >> (N - Q2 - 1)) /\ 1,
+    BitQ1_C is (C >> (N - Q1 - 1)) /\ 1,
+    BitQ2_C is (C >> (N - Q2 - 1)) /\ 1,
+    GateRow is (BitQ1_R << 1) \/ BitQ2_R,
+    GateCol is (BitQ1_C << 1) \/ BitQ2_C,
+    nth0(GateRow, G, GateRowList),
+    nth0(GateCol, GateRowList, Entry).
+nonadjacent_entry(_, _, _, _, _, _, c(0,0)).
+
+nonadjacent_qubits_match(Q1, Q2, N, R, C) :-
+    nonadjacent_check(0, Q1, Q2, N, R, C).
+
+nonadjacent_check(N, _, _, N, _, _) :- !.
+nonadjacent_check(K, Q1, Q2, N, R, C) :-
+    (   K =:= Q1
+    ;   K =:= Q2
+    ),
+    !,
+    K1 is K + 1,
+    nonadjacent_check(K1, Q1, Q2, N, R, C).
+nonadjacent_check(K, Q1, Q2, N, R, C) :-
+    BitR is (R >> (N - K - 1)) /\ 1,
+    BitC is (C >> (N - K - 1)) /\ 1,
+    BitR =:= BitC,
+    K1 is K + 1,
+    nonadjacent_check(K1, Q1, Q2, N, R, C).
+
+% Toffoli (CCNOT) target matrix: 8x8
+toffoli_target(Target) :-
+    Target = [
+        [c(1,0), c(0,0), c(0,0), c(0,0), c(0,0), c(0,0), c(0,0), c(0,0)],
+        [c(0,0), c(1,0), c(0,0), c(0,0), c(0,0), c(0,0), c(0,0), c(0,0)],
+        [c(0,0), c(0,0), c(1,0), c(0,0), c(0,0), c(0,0), c(0,0), c(0,0)],
+        [c(0,0), c(0,0), c(0,0), c(1,0), c(0,0), c(0,0), c(0,0), c(0,0)],
+        [c(0,0), c(0,0), c(0,0), c(0,0), c(1,0), c(0,0), c(0,0), c(0,0)],
+        [c(0,0), c(0,0), c(0,0), c(0,0), c(0,0), c(1,0), c(0,0), c(0,0)],
+        [c(0,0), c(0,0), c(0,0), c(0,0), c(0,0), c(0,0), c(0,0), c(1,0)],
+        [c(0,0), c(0,0), c(0,0), c(0,0), c(0,0), c(0,0), c(1,0), c(0,0)]
+    ].
+
+% Compute gate fidelity: F = |Tr(U_target^† · U_candidate)| / N
+gate_fidelity(UTarget, UCandidate, N, Fidelity) :-
+    ctranspose(UTarget, UTargetDag),
+    cmultiply(UTargetDag, UCandidate, Product),
+    ctrace(Product, Trace),
+    mag_c(Trace, AbsTrace),
+    Fidelity is AbsTrace / N.
+
+% Synthesis censor: evolve toward Toffoli target (3-qubit gate)
+synthesis_censor(AST, Penalty) :-
+    valid_quantum_structure(AST),
+    find_qubits(AST, Qubits),
+    (   Qubits == []
+    ->  Qs = [q1,q2,q3]
+    ;   Qs = Qubits
+    ),
+    sort_qubits(Qs, SortedQs),
+    length(SortedQs, N),
+    N =:= 3,
+    toffoli_target(TTarget),
+    build_synthesis_unitary(AST, N, UCandidate),
+    gate_fidelity(TTarget, UCandidate, 8, Fidelity),
+    !,
+    BasePenalty is 1000.0 * (1.0 - Fidelity),
+    ast_size(AST, Size),
+    (   Fidelity > 0.99
+    ->  Penalty is BasePenalty + (Size * 0.01)
+    ;   Fidelity > 0.8
+    ->  Penalty is BasePenalty + (Size * 0.1)
+    ;   Penalty is BasePenalty + (Size * 0.5)
+    ).

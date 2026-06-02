@@ -1,0 +1,8 @@
+{
+  "topic": "Save and restore best state across search mode switches",
+  "principle": "When switching between exploitation and exploration modes in a search algorithm, save the best solution and fitness from the exploitation phase before entering exploration. When returning from exploration, restore the saved state. Otherwise, exploration discoveries will permanently overwrite the exploitation best, losing all progress.",
+  "instruction": "My novelty search mode keeps overwriting the best circuit found in target mode",
+  "bad_example": "if switching_to_novelty:\n    best_penalty = 1000.0  # reset - BAD: target progress lost\n    best_ast = random_ast\nif switching_to_target:\n    best_penalty = check_fitness(best_ast)  # uses random overwritten ast",
+  "good_example": "if switching_to_novelty:\n    saved_best_ast = best_ast\n    saved_best_penalty = best_penalty\n    best_penalty = 1000.0\nif switching_to_target:\n    best_ast = saved_best_ast\n    best_penalty = saved_best_penalty",
+  "tags": ["evolutionary-search", "mode-switching", "state-management", "novelty-search", "exploration"]
+}

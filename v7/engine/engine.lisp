@@ -44,6 +44,10 @@
      (setf *current-operators* '(+ - * /))
      (setf *current-variables* '(x y))
      (setf *current-constants* '(0 1 2)))
+     (:synthesis
+      (setf *current-operators* '(seq h t tdg s sdg x_gate y_gate z_gate cnot))
+      (setf *current-variables* '(q1 q2 q3))
+      (setf *current-constants* nil))
     (t (error "Unknown domain"))))
 
 ;; =======================================================================
@@ -53,16 +57,27 @@
 (defun random-element (list)
   (nth (random (length list)) list))
 
+(defun single-arg-operator-p (op)
+  (member op '(h t tdg s sdg x_gate y_gate z_gate transpose norm gamma delta_s oracle)))
+
+(defun compatible-arity-ops (ops current-arity)
+  "Filter operators to those matching the given arity."
+  (remove-if-not
+    (lambda (op)
+      (= (if (single-arg-operator-p op) 1 2) current-arity))
+    ops))
+
 (defun mutate (ast)
   "Mutates the AST by randomly changing operators, variables, or numbers, and occasionally growing."
   (if (atom ast)
       (if (< (random 100) 15) ; 15% chance to grow an atom into a subtree
           (let ((op (and *current-operators* (random-element *current-operators*))))
             (if op
-                (cons op (loop repeat (if (member op '(h x_gate y_gate z_gate transpose norm gamma delta_s)) 1 2)
-                               collect (if (< (random 10) 5)
-                                           (if *current-variables* (random-element *current-variables*) 0)
-                                           (if *current-constants* (random-element *current-constants*) 0))))
+                (let ((arity (if (single-arg-operator-p op) 1 2)))
+                  (cons op (loop repeat arity
+                                 collect (if (< (random 10) 5)
+                                             (if *current-variables* (random-element *current-variables*) 0)
+                                             (if *current-constants* (random-element *current-constants*) 0)))))
                 ast))
           (if (numberp ast)
               (if *current-constants* (random-element *current-constants*) ast)
@@ -71,7 +86,12 @@
             (args (cdr ast)))
         (if (< (random 10) 4) ; 40% chance to mutate the operator
             (if *current-operators*
-                (cons (random-element *current-operators*) args)
+                (let* ((current-arity (length args))
+                       (compatible-ops (compatible-arity-ops *current-operators* current-arity))
+                       (new-op (and compatible-ops (random-element compatible-ops))))
+                  (if new-op
+                      (cons new-op args)
+                      ast))
                 ast)
             ;; Otherwise, mutate a random child node
             (if args
@@ -199,6 +219,8 @@
      (values '(add sub mul div) '(x) '(0 1 2 5 10)))
     (:curry_howard
      (values '(+ - * /) '(x y) '(0 1 2)))
+    (:synthesis
+     (values '(seq h t tdg s sdg x_gate y_gate z_gate cnot) '(q1 q2 q3) nil))
     (:unified
      (values '(+ - * / deriv int sin cos seq h cnot x_gate y_gate z_gate matmul transpose cross dot scale norm gamma add_vel carnot delta_s entropy info_bound and or implies not)
              '(x y z t q1 q2 q3 m2x3 m3x2 m3x3 m4x1 s1 s2 v1 v2 t_hot t_cold area volume p q)
@@ -209,38 +231,50 @@
   (multiple-value-bind (ops vars consts) (get-domain-config domain)
     ;; Dynamic bindings of special variables are thread-local in SBCL
     (let* ((*current-operators* ops)
-           (*current-variables* (append vars (mapcar #'car *adf-library*)))
+           ;; Synthesis domain: gate args must be atom qubits, not ADF subexpressions
+           (*current-variables* (if (eq domain :synthesis)
+                                    vars
+                                    (append vars (mapcar #'car *adf-library*))))
            (*current-constants* consts)
            (proc (uiop:launch-program (list "swipl" "-q" "-s" "v7/engine/daemon.pl")
                                       :input :stream
                                       :output :stream))
            (proc-cell (list proc))
-           (best-ast base-ast)
-           (current-mode (if (eq *novelty-search-mode* t) :novelty :target))
-           (best-penalty (check-with-prolog base-ast domain proc-cell current-mode))
-           (actual-iters 0)
-           (stagnation-counter 0)
-           (novelty-discoveries 0))
-      (let ((current-ast base-ast))
-        (loop for i from 1 to iterations
-              while (or (> best-penalty 0.0) (eq current-mode :novelty))
-              do (incf actual-iters)
-                 (incf stagnation-counter)
+            (best-ast base-ast)
+            ;; Saved target best — protected from novelty mode overwrites
+            (saved-best-ast base-ast)
+            (current-mode (if (eq *novelty-search-mode* t) :novelty :target))
+            (best-penalty (check-with-prolog base-ast domain proc-cell current-mode))
+            (saved-best-penalty best-penalty)
+            (actual-iters 0)
+            (stagnation-counter 0)
+            (novelty-discoveries 0))
+       (let ((current-ast base-ast))
+         (loop for i from 1 to iterations
+               while (or (> best-penalty 0.0) (eq current-mode :novelty))
+               do (incf actual-iters)
+                  (incf stagnation-counter)
 
-                 ;; Auto Mode Switching Logic
-                 (when (eq *novelty-search-mode* :auto)
-                   (cond
-                     ((and (eq current-mode :target) (> stagnation-counter 100))
-                      (format t "[Thread ~D] Stagnation detected. Switching to EXPLORATION (Novelty) mode.~%" thread-id)
-                      (setf current-mode :novelty)
-                      (setf stagnation-counter 0)
-                      (setf novelty-discoveries 0)
-                      (setf best-penalty 1000.0)) ; Reset best penalty for novelty
-                     ((and (eq current-mode :novelty) (>= novelty-discoveries 5))
-                      (format t "[Thread ~D] Sufficient exploration done. Switching back to TARGET mode.~%" thread-id)
-                      (setf current-mode :target)
-                      (setf stagnation-counter 0)
-                      (setf best-penalty (check-with-prolog best-ast domain proc-cell :target)))))
+                  ;; Auto Mode Switching Logic
+                  (when (eq *novelty-search-mode* :auto)
+                    (cond
+                      ((and (eq current-mode :target) (> stagnation-counter 100))
+                       (format t "[Thread ~D] Stagnation detected. Switching to EXPLORATION (Novelty) mode.~%" thread-id)
+                       ;; Save target best before switching
+                       (setf saved-best-ast best-ast)
+                       (setf saved-best-penalty best-penalty)
+                       (setf current-mode :novelty)
+                       (setf stagnation-counter 0)
+                       (setf novelty-discoveries 0)
+                       (setf best-penalty 1000.0))
+                      ((and (eq current-mode :novelty) (>= novelty-discoveries 5))
+                       (format t "[Thread ~D] Sufficient exploration done. Switching back to TARGET mode.~%" thread-id)
+                       (setf current-mode :target)
+                       (setf stagnation-counter 0)
+                       ;; Restore best from target mode (not novelty discoveries)
+                       (setf best-ast saved-best-ast)
+                       (setf best-penalty saved-best-penalty)
+                       (setf current-ast saved-best-ast))))
 
                  (let* ((hypothesis (mutate current-ast))
                         (penalty (check-with-prolog hypothesis domain proc-cell current-mode)))
@@ -302,8 +336,8 @@
                         (format stream "[NOVELTY] Thread ~D | Domain: ~A | Penalty: ~,2F | AST: ~A~%" thread-id domain penalty hypothesis)))
 
                    (if (or (< penalty best-penalty)
-                           (and (= penalty best-penalty) (< (length (format nil "~A" hypothesis)) (length (format nil "~A" best-ast))))
-                           (< (random 100) 15))
+                            (and (= penalty best-penalty) (< (length (format nil "~A" hypothesis)) (length (format nil "~A" best-ast))))
+                            (and (not (eq domain :synthesis)) (< (random 100) 15)))
                        (progn
                          (when (< penalty best-penalty)
                            (setf stagnation-counter 0))
@@ -407,10 +441,12 @@
          (winners (remove-duplicates (remove nil (mapcar #'car thread-results)) :test #'equal)))
 
     ;; Dynamic Subroutine Extraction: Register successful island winners as new ADF symbols
-    (dolist (w winners)
-      (let ((adf-sym (intern (format nil "ADF-~D" (1+ (length *adf-library*))))))
-        (push (cons adf-sym w) *adf-library*)
-        (format t "[ADF MANAGER] Extracted and registered dynamic subroutine: ~A -> ~A~%" adf-sym w)))
+    ;; Skip for synthesis — gate args must be atom qubits, not subexpressions
+    (unless (eq domain :synthesis)
+      (dolist (w winners)
+        (let ((adf-sym (intern (format nil "ADF-~D" (1+ (length *adf-library*))))))
+          (push (cons adf-sym w) *adf-library*)
+          (format t "[ADF MANAGER] Extracted and registered dynamic subroutine: ~A -> ~A~%" adf-sym w))))
     
     (format t "~%==================================================~%")
     (format t "      v7 ENGINE PERFORMANCE DASHBOARD~%")
@@ -565,4 +601,5 @@
           (format t "~%--- Running Grand Unified Cross-Domain ---~%")
           (run-engine-parallel '(add (seq (h q2) (cnot q2 q1)) (carnot 0 t_cold)) :unified 200 num-threads)))))
 
-(main)
+(unless (find-package :cognitive-engine-noauto)
+  (main))
