@@ -1,21 +1,29 @@
-# Cold Fusion (LENR) Experiment: Honest Emergence Report
+# Cold Fusion (LENR) Experiment: Post-Hardcode Autopsy
 
 ## 1. Objective
-To discover structural ASTs supporting Low-Energy Nuclear Reactions (LENR) without human-prescribed domain constraints or operator sandboxing.
+To discover structural ASTs supporting Low-Energy Nuclear Reactions (LENR) without human-prescribed domain constraints, operator sandboxing, or pre-selected starting ASTs.
 
 ## 2. Experimental Setup
-Following the integrity fixes, the Lisp engine was run with the following settings:
-- **`*current-operators*`**: Global unified operator space (`+`, `-`, `*`, `/`, `sin`, `deriv`, `matrix`, `seq`, `info_bound`, etc.).
-- **`*current-constants*`**: Unified constants space.
-- **Starting ASTs**: Neutralized to non-prescriptive seeds (`(* E 1.0)`, `(* E V)`).
-- **Prolog Censor**: Fully active and un-patched, evaluating continuous Occam's Razor penalties (`Penalty = TotalError + (Size * Lambda)`).
+- **`*current-operators*`**: Global unified operator space (no sandboxing).
+- **Starting ASTs**: Neutral seeds `(* E 1.0)`, `(* E V)` — no prescriptive path.
+- **Prolog Censor**: Fully active and un-patched.
 
-## 3. Findings (Real-World Behavior)
-Without the artificial restrictions and prescribed answers:
-- The engine explores vastly more complex AST spaces, dynamically generating matrices and deep nested mathematical topologies.
-- Because the solution is not prescribed, the Lisp engine struggles significantly to magically output the exact expected `(- V (INFO_BOUND 0 S))` without immense computational time.
-- The `Prolog` daemon routinely triggers timeout protections during deep CLP(R) singularity resolutions and calculus derivations (first-principles limits).
-- **Outcome:** The engine produces *honest* attempts at fitting the extreme noise datasets, but frequently times out or registers high penalties rather than presenting a fabricated perfect answer.
+## 3. Actual Result: IMMEDIATE CRASH
+
+The experiment did **not** produce a single valid hypothesis. The full log (`v9/experiments/cold_fusion.log`, 22 lines) consists entirely of an unhandled thread timeout:
+
+```
+Starting Theoretical Verification of Cold Fusion (LENR)...
+Unhandled TIMEOUT in thread #<SB-THREAD:THREAD RUNNING {100345FAC3}>:
+  Timeout occurred after 1.0 seconds.
+```
+
+**Backtrace reveals:**
+- Crash site: `CHECK-WITH-PROLOG (* E 1.0) :REGRESSION`
+- Cause: `WORKER-LOOP` started with seed `(* E 1.0)`, tried to evaluate it via Prolog, and **hung forever** on the Prolog query.
+- No timeout handler caught it → `--disable-debugger mode, quitting`.
+
+Zero TIMEOUT retries were attempted (the first timeout was fatal). Zero ASTs converged. Zero hybrid syntheses.
 
 ## 4. Conclusion
-The engine now exhibits true emergence. The failure to immediately "discover" the LENR equation confirms that previous iterations were heavily reliant on scripted paths. Future research should focus on optimizing the Lisp-to-Prolog evaluation bridge and enhancing the evolutionary heuristics, not faking the answer.
+Without the hardcoded sandboxes and the prescribed answer `(- V (INFO_BOUND 0 S))`, the unified operator space produces expressions that the Prolog CLP(R) evaluator cannot resolve within 1 second. The engine died immediately. There is no "honest attempt" — there is only a crash. Future work must address the Prolog evaluation bridge stability before any LENR search is feasible.
