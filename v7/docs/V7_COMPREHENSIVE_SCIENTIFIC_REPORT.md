@@ -337,3 +337,29 @@ To prevent the engine from collapsing into mathematical singularities or discove
 These operations are executed natively within SWI-Prolog, maintaining nanosecond-level latency while shielding the engine from numerical overflow.
 
 This comprehensive set of constraints is what allows v7 to safely leap between domains without collapsing the logical structure of its output.
+
+---
+
+## 21. Appendix K: Post-Publication Experimental Updates (June 2026)
+
+### 21.1 Independent Python Validation Suite
+
+Following the publication of the main experimental results, an independent validation suite was executed using Python 3.12 + numpy 2.4.6 to verify key claims and assess the engine's limitations.
+
+**Six scripts were executed** in `/app/v7/experiments/`, with all outputs saved to corresponding `.log` files:
+
+| Script | Result | Log File |
+|--------|--------|----------|
+| `physics_analysis.py` | ✅ Quantum→Relativistic isomorphism confirmed | `physics_analysis.log` |
+| `find_correct_toffoli.py` | ✅ Qiskit 6-CNOT: F=1.0; others F=0.5 (indexing) | `find_correct_toffoli.log` |
+| `test_gate_order.py` | ✅ CNOT v1 encoding correct; ordering matters | `test_gate_order.log` |
+| `test_toffoli_numpy.py` | ✅ |110⟩→|101⟩ confirms qubit convention issue | `test_toffoli_numpy.log` |
+| `verify_6cnot_toffoli.py` | **✅ F=1.0000000000, exact match** | `verify_6cnot_toffoli.log` |
+| `verify_toffoli.py` | ⚠️ Engine ASTs all F=0.75 (identity level) | `verify_toffoli.log` |
+
+### 21.2 Key Findings
+
+1. **Qiskit 6-CNOT decomposition is the only verified exact Toffoli** (F=1.0, CNOT count=6, T-count=7). All standard references (Maslov 2012, AMM2013, Nielsen & Chuang) show F=0.5 under the current qubit indexing convention.
+2. **The v7 engine's evolutionary search does not find F>0.75** across 200,000 evaluations, confirming the discrete fidelity plateau as the fundamental barrier.
+3. **Symbolic regression (Newton's gravity) did not converge** after 10,000 iterations — the operator set {add, sub, mul, div} with variables {m1, m2, r} lacks the structural bias needed to navigate the search space toward `div(mul(m1,m2), mul(r,r))` without heuristic guidance.
+4. **Lisp experiments could not be re-run** due to missing SBCL and SWI-Prolog runtimes in the validation environment — all Lisp-based conclusions rely on archived log files from prior executions.
