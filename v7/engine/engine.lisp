@@ -178,8 +178,26 @@
                 (t (mutate current))))))
     current))
 
+(defun random-gate-sequence (length)
+  "Generate a random contiguous sequence of gates of the given length."
+  (if (<= length 1)
+      (random-gate)
+      (list 'seq (random-gate) (random-gate-sequence (1- length)))))
+
+(defun bulk-swap-mutation (ast)
+  "Replace a random subtree with a new random contiguous sequence of gates (length 2 to 5)."
+  (let ((new-seq (random-gate-sequence (+ 2 (random 4)))))
+    (if (or (atom ast) (= (length (cdr ast)) 0))
+        new-seq
+        (if (< (random 10) 3) ; 30% chance to replace this node
+            new-seq
+            (let ((new-args (copy-list (cdr ast)))
+                  (idx (random (length (cdr ast)))))
+              (setf (nth idx new-args) (bulk-swap-mutation (nth idx new-args)))
+              (cons (car ast) new-args))))))
+
 (defun synthesis-mutate (ast &key bulk)
-  "Synthesis-specific mutation dispatcher with insertion/deletion/standard.
+  "Synthesis-specific mutation dispatcher with insertion/deletion/bulk-swap/standard.
    When :bulk is true, applies 3-5 mutations at once for escaping local minima."
   (if bulk
       (bulk-mutate ast)
@@ -187,6 +205,7 @@
         (cond
           ((< r 25) (gate-insertion-mutation ast))
           ((< r 45) (gate-deletion-mutation ast))
+          ((< r 55) (bulk-swap-mutation ast))
           (t (mutate ast))))))
 
 (defun send-lambda (proc-cell val)
@@ -367,11 +386,14 @@
                        (setf best-penalty saved-best-penalty)
                        (setf current-ast saved-best-ast))))
 
-                   ;; λ-annealing: update every ~1000 iterations, anneal 0.01 → 0.5
+                   ;; λ-annealing: keep constant 0.01 for 80% (exploration), then anneal 0.01 → 0.50
                    (when (and (eq domain :synthesis) (eq current-mode :target)
                               (= (mod i (max 1 (floor iterations 50))) 0))
-                     (let ((progress (/ i iterations)))
-                       (send-lambda proc-cell (+ 0.01 (* 0.49 (min progress 1.0))))))
+                     (let* ((progress (/ i iterations))
+                            (lambda-val (if (< progress 0.8)
+                                            0.01
+                                            (+ 0.01 (* 0.49 (/ (- progress 0.8) 0.2))))))
+                       (send-lambda proc-cell (min lambda-val 0.50))))
 
                    (let* ((use-bulk (and (eq domain :synthesis)
                                         (eq current-mode :target)
@@ -443,7 +465,7 @@
                           (delta (- penalty best-penalty)))
                      (when (and (not is-better) (eq domain :synthesis))
                        ;; Simulated Annealing for synthesis domain
-                       (let* ((initial-temp 10.0)
+                       (let* ((initial-temp 250.0)
                               (final-temp 0.05)
                               (temp (* initial-temp (expt (/ final-temp initial-temp) (/ i iterations))))
                               (prob (exp (- (/ delta temp)))))
