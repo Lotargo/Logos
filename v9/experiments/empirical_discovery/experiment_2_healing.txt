@@ -6,117 +6,26 @@ Iterations: 800
 === Starting Parallel Logos Cognitive Engine ===
 Domain: REGRESSION
 Base AST: (DIV (MUL M1 M2) R)
-Threads: 12
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-12 -> (+ V2
-                                                                        (+
-                                                                         (INVENTED_OP_130
-                                                                          ADF-9
-                                                                          V3)
-                                                                         X)
-                                                                        (OR
-                                                                         (+
-                                                                          AREA
-                                                                          2)
-                                                                         (IMPLIES
-                                                                          -1
-                                                                          Z)))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-13 -> (+ V2
-                                                                        (OR Q
-                                                                            P)
-                                                                        (- Y
-                                                                           ADF-6))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-14 -> (DOT
-                                                                      (+
-                                                                       (SIN Z
-                                                                            V2)
-                                                                       T)
-                                                                      V1
-                                                                      (OR V2
-                                                                          (* Q
-                                                                             Q)))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-15 -> (NORM
-                                                                      (ADD Z
-                                                                       (COS Y
-                                                                            T))
-                                                                      (+ Y)
-                                                                      (-
-                                                                       (* Q Q)))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-16 -> (-
-                                                                      (OR
-                                                                       (OR
-                                                                        (ADD
-                                                                         V2))
-                                                                       (* AREA
-                                                                          2))
-                                                                      (* V1 Z))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-17 -> (AND
-                                                                      (SEQ V1
-                                                                       ADF-7)
-                                                                      T P Q3)
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-18 -> (INT
-                                                                      (NOT Z)
-                                                                      ADF-7 P)
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-19 -> (GAMMA
-                                                                      (SUB Q1
-                                                                       (/ 0 T)))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-20 -> (+
-                                                                      (*
-                                                                       (/ Y
-                                                                          ADF-3)
-                                                                       T))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-21 -> (+
-                                                                      (*
-                                                                       (SUB Y
-                                                                        (ADD Q
-                                                                         TRUE))
-                                                                       (SEQ
-                                                                        (DIV V2
-                                                                         Q)
-                                                                        (CROSS
-                                                                         Y 5)))
-                                                                      (OR
-                                                                       (+
-                                                                        VOLUME
-                                                                        S2)))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-22 -> (INT
-                                                                      (/
-                                                                       (*
-                                                                        (/ V3
-                                                                           S1)
-                                                                        Z)
-                                                                       V3)
-                                                                      (SUB
-                                                                       (- V1)
-                                                                       (/ 0.9
-                                                                          (- V2
-                                                                             ADF-3))))
-[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-23 -> (SEQ
-                                                                      ADF-11)
+Threads: 4
+[ADF MANAGER] Extracted and registered dynamic subroutine: ADF-5 -> (DIV
+                                                                     (MUL M1
+                                                                      M2)
+                                                                     R)
 
 ==================================================
       LOGOS ENGINE PERFORMANCE DASHBOARD
 ==================================================
-Total Elapsed Time    : 0.9244 seconds
-Logical CPU Cores     : 12
-Total ASTs Evaluated  : 9600
-Throughput (AST/sec)  : 10384.62
-Avg Latency per AST   : 0.0963 ms
+Total Elapsed Time    : 1.8720 seconds
+Logical CPU Cores     : 4
+Total ASTs Evaluated  : 0
+Throughput (AST/sec)  : 0.00
+Avg Latency per AST   : 0.0000 ms
 ==================================================
 
 Found valid hypotheses from Islands:
-  (+ V2 (+ (INVENTED_OP_130 ADF-9 V3) X) (OR (+ AREA 2) (IMPLIES -1 Z)))
-  (+ V2 (OR Q P) (- Y ADF-6))
-  (DOT (+ (SIN Z V2) T) V1 (OR V2 (* Q Q)))
-  (NORM (ADD Z (COS Y T)) (+ Y) (- (* Q Q)))
-  (- (OR (OR (ADD V2)) (* AREA 2)) (* V1 Z))
-  (AND (SEQ V1 ADF-7) T P Q3)
-  (INT (NOT Z) ADF-7 P)
-  (GAMMA (SUB Q1 (/ 0 T)))
-  (+ (* (/ Y ADF-3) T))
-  (+ (* (SUB Y (ADD Q TRUE)) (SEQ (DIV V2 Q) (CROSS Y 5))) (OR (+ VOLUME S2)))
-  (INT (/ (* (/ V3 S1) Z) V3) (SUB (- V1) (/ 0.9 (- V2 ADF-3))))
-  (SEQ ADF-11)
-
---- Final Synthesis Phase (Island Crossover) ---
+  (DIV (MUL M1 M2) R)
+Ultimate Hybrids:
+  (DIV (MUL M1 M2) R)
+[ONTOLOGY GENERATOR] Successfully generated whitepaper: benchmarks_output/papers/discovery_regression_20260602_152030.tex
 ----------------------------------------
 EXPERIMENT COMPLETED.
