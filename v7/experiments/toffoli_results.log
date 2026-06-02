@@ -12,29 +12,29 @@ Configuration:
   Starting AST : (seq (h q1) (seq (h q2) (h q3)))
   Domain       : synthesis
   Iterations   : 50000
-  Threads      : 12
+  Threads      : 4
   Target       : Toffoli (CCNOT)
 
 === Starting Parallel Cognitive Engine v7 ===
 Domain: SYNTHESIS
 Base AST: (SEQ (H Q1) (SEQ (H Q2) (H Q3)))
-Threads: 12
+Threads: 4
 
 ==================================================
       v7 ENGINE PERFORMANCE DASHBOARD
 ==================================================
-Total Elapsed Time    : 206.8083 seconds
-Logical CPU Cores     : 12
-Total ASTs Evaluated  : 600000
-Throughput (AST/sec)  : 2901.24
-Avg Latency per AST   : 0.3447 ms
+Total Elapsed Time    : 207.4280 seconds
+Logical CPU Cores     : 4
+Total ASTs Evaluated  : 200000
+Throughput (AST/sec)  : 964.19
+Avg Latency per AST   : 1.0371 ms
 ==================================================
 
 Found valid hypotheses from Islands:
-  (SEQ (TDG Q2) (SEQ (CNOT Q1 Q3) (T Q2)))
-  (SEQ (SEQ (T Q2) (TDG Q2)) (CNOT Q1 Q3))
-
---- Final Synthesis Phase (Island Crossover) ---
+  (SEQ (H Q1) (SEQ (H Q1) (CNOT Q2 Q3)))
+Ultimate Hybrids:
+  (SEQ (H Q1) (SEQ (H Q1) (CNOT Q2 Q3)))
+[ONTOLOGY GENERATOR] Successfully generated whitepaper: v7/papers/discovery_synthesis_20260602_064918.tex
 
 ========================================================
   EXPERIMENT COMPLETE
