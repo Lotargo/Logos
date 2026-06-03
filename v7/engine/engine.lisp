@@ -11,6 +11,87 @@
 (load "v7/engine/curry_howard.lisp")
 
 ;; =======================================================================
+;; 0b. Hardware-Accelerated Regression (CPU SIMD / GPU CUDA)
+;; =======================================================================
+
+;; Ensure sonata-engine package exists at read time.  Try loading the real
+;; wrapper; on failure create a minimal stub.
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (unless (ignore-errors
+            (progn (ql:quickload :cffi)
+                   (load "cuda/cffi.lisp")
+                   t))
+    (unless (find-package :sonata-engine)
+      (defpackage :sonata-engine
+        (:use)
+        (:export :flatten-ast :eval-ast-sse :load-engine :cpu-simd-level)))
+    ;; Define stub functions using INTERN to avoid sonata-engine: at read-time.
+    (flet ((def-stub (name fn)
+             (let ((sym (intern (string name) :sonata-engine)))
+               (fmakunbound sym)
+               (setf (symbol-function sym) fn))))
+      (def-stub "flatten-ast"    (lambda (expr) (declare (ignore expr)) (values #() #())))
+      (def-stub "eval-ast-sse"   (lambda (&rest args) (declare (ignore args)) 0.0))
+      (def-stub "load-engine"    (lambda (&key backend) (declare (ignore backend)) nil))
+      (def-stub "cpu-simd-level" (lambda () -1)))
+    (warn "[SONATA] Wrapper not loaded; stub package created.")))
+
+(defvar *sonata-engine-available* nil
+  "T when the sonata_cuda DLL loaded successfully.")
+(defvar *gravity-data* nil
+  "Float vector of gravity data, row-major: [M1, M2, r, F] per row.")
+(defvar *gravity-n-rows* 20)
+(defvar *gravity-n-vars* 4)
+
+(defun %load-sonata-engine ()
+  "Load sonata_cuda.dll. Non-fatal if unavailable."
+  (handler-case
+      (progn
+        (sonata-engine:load-engine :backend :cpu)
+        (format t "[SONATA] CPU SIMD backend loaded (level ~D)~%"
+                (sonata-engine:cpu-simd-level))
+        (setf *sonata-engine-available* t))
+    (error (e)
+      (format t "[SONATA] DLL not available: ~A — falling back to Prolog~%" e)
+      (setf *sonata-engine-available* nil))))
+
+(defun %load-gravity-data ()
+  "Read gravity_data.csv into *gravity-data* float vector."
+  (setf *gravity-data*
+        (with-open-file (s "v7/engine/gravity_data.csv")
+          (let* ((n-rows *gravity-n-rows*)
+                 (n-vars *gravity-n-vars*)
+                 (vec (make-array (* n-rows n-vars) :element-type 'single-float))
+                 (idx 0))
+            (loop for line = (read-line s nil nil) while line
+                  do (let ((line-lisp (substitute #\Space #\, line)))
+                       (loop for val in (read-from-string (concatenate 'string "(" line-lisp ")"))
+                             do (setf (aref vec idx) (coerce val 'single-float))
+                                (incf idx))))
+            vec))))
+
+(defun %translate-regression-ast (ast)
+  "Map regression AST operators (add/sub/mul/div) and vars (m1/m2/r) to
+flatten-ast format (+/-/*// and v0/v1/v2)."
+  (flet ((map-var (sym)
+           (case sym
+             (m1 'v0) (m2 'v1) (r 'v2)
+             (t sym))))
+    (cond
+      ((numberp ast) ast)
+      ((symbolp ast) (map-var ast))
+      ((listp ast)
+       (let ((op (car ast))
+             (args (cdr ast)))
+         (cons (case op
+                 (add '+)
+                 (sub '-)
+                 (mul '*)
+                 (div '/)
+                 (t op))
+               (mapcar #'%translate-regression-ast args)))))))
+
+;; =======================================================================
 ;; 1. Domains Configuration
 ;; =======================================================================
 
@@ -322,9 +403,39 @@
                             (t (string-downcase (symbol-name op))))))
            (format nil "~A(~{~A~^, ~})" prolog-op (mapcar #'lisp-to-prolog args))))))))
 
+(defun ast-size (ast)
+  "Count AST nodes (matching Prolog's ast_size/2)."
+  (cond
+    ((atom ast) 1)
+    (t (1+ (reduce #'+ (cdr ast) :key #'ast-size)))))
+
 (defun check-with-prolog (ast domain proc-cell &optional (mode :target))
   "Sends the AST to the running SWI-Prolog daemon with a 1.0s timeout.
-   Returns the penalty score (a float between 0.0 and 1000.0) if successful, or 1000.0 if failed."
+   Returns the penalty score (a float between 0.0 and 1000.0) if successful, or 1000.0 if failed.
+   For :regression domain with :target mode, uses hardware-accelerated eval if available."
+  ;; Hardware-accelerated regression eval
+  (when (and *sonata-engine-available*
+             (eq domain :regression)
+             (eq mode :target))
+    (return-from check-with-prolog
+      (handler-case
+          (let* ((v-ast (%translate-regression-ast ast))
+                 (data (or *gravity-data* (%load-gravity-data)))
+                 (n-rows *gravity-n-rows*)
+                 (n-vars *gravity-n-vars*))
+            (multiple-value-bind (opcodes args)
+                (sonata-engine:flatten-ast v-ast)
+              (let* ((sse (sb-int:with-float-traps-masked (:invalid :divide-by-zero :overflow)
+                            (sonata-engine:eval-ast-sse
+                             opcodes args data n-rows n-vars)))
+                     (clamped (min sse 1000.0)))
+                (if (< clamped 0.1)
+                    (+ clamped (* (ast-size ast) 0.01))
+                    clamped))))
+        (error (e)
+          (format t "[SONATA] eval error: ~A — returning 1000.0~%" e)
+          1000.0))))
+  ;; Standard Prolog path for all other domains/modes
   (let* ((proc (car proc-cell))
          (prepared-ast (if (eq domain :curry_howard) (generate-proof ast) ast))
          (prolog-term (lisp-to-prolog prepared-ast))
@@ -757,6 +868,8 @@
     (values domain base-ast iterations threads)))
 
 (defun main ()
+  ;; Initialize hardware-accelerated regression eval
+  (%load-sonata-engine)
   (let ((args (uiop:command-line-arguments)))
     (if args
         (multiple-value-bind (domain base-ast iterations threads) (parse-cli-args args)
