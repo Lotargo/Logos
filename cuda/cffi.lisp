@@ -87,10 +87,20 @@
 BACKEND: :auto (try CUDA → CPU), :cuda, :cpu."
   (setf *backend* backend)
   (unless *engine-loaded*
-    (pushnew (truename (merge-pathnames dll-path *default-pathname-defaults*))
-             cffi:*foreign-library-directories*)
-    (load-foreign-library 'sonata-engine)
-    (setf *engine-loaded* t))
+    (let* ((src-dir (make-pathname :directory (pathname-directory
+                     (truename (merge-pathnames dll-path *default-pathname-defaults*)))))
+           (alt-dir (truename #P"C:/Users/etotm/AppData/Local/Temp/")))
+      ;; Load DLL (try source dir first, fall back to alt non-ASCII-safe dir)
+      (flet ((try-load (dir)
+               (pushnew dir cffi:*foreign-library-directories*)
+               (handler-case (load-foreign-library 'sonata-engine)
+                 (error () (setf cffi:*foreign-library-directories*
+                                 (rest cffi:*foreign-library-directories*))
+                        nil))))
+        (or (try-load src-dir)
+            (try-load alt-dir)
+            (error "Unable to load sonata_cuda.dll from ~a or ~a" src-dir alt-dir)))
+      (setf *engine-loaded* t)))
   (case backend
     (:cuda
      (handler-case
@@ -100,7 +110,7 @@ BACKEND: :auto (try CUDA → CPU), :cuda, :cpu."
        (error (e)
          (warn "CUDA init failed: ~a. Use :cpu backend." e)
          (setf *backend-name* "CUDA-unavailable")
-         :cpu))))
+          :cpu)))
     (:cpu
      (setf *backend-name* "CPU")
      :cpu)
@@ -215,7 +225,7 @@ Returns (values opcodes-vector args-vector)."
                   (push (coerce node 'single-float) args))
                  ((symbolp node)
                   (let ((name (string node)))
-                    (if (char= (char name 0) #\v)
+                    (if (char-equal (char name 0) #\v)
                         (let ((idx (parse-integer (subseq name 1))))
                           (push +ast-op-var opcodes)
                           (push (coerce idx 'single-float) args))
@@ -225,13 +235,14 @@ Returns (values opcodes-vector args-vector)."
                         (operands (rest node)))
                     (dolist (o operands) (walk o))
                     (push (ecase op
-                            (+ +ast-op-add) (- +ast-op-sub)
-                            (* +ast-op-mul) (/ +ast-op-div)
-                            (sin +ast-op-sin) (cos +ast-op-cos)
-                            (exp +ast-op-exp) (log +ast-op-log)
-                            (sqrt +ast-op-sqrt) (neg +ast-op-neg))
-                          opcodes)))
-                 (t (error "Invalid AST node: ~a" node))))
+                             (+ +ast-op-add) (- +ast-op-sub)
+                             (* +ast-op-mul) (/ +ast-op-div)
+                             (sin +ast-op-sin) (cos +ast-op-cos)
+                             (exp +ast-op-exp) (log +ast-op-log)
+                             (sqrt +ast-op-sqrt) (neg +ast-op-neg))
+                           opcodes)
+                    (push 0.0 args)))
+                 (t (error "Invalid AST node: ~a" node)))))
       (walk expr)
       (values
         (make-array (length opcodes) :element-type '(signed-byte 32)
