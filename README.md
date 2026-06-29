@@ -1,443 +1,311 @@
-# The Quantum-Cognitive Prism: A Multi-Agent, Multi-Temperature Genetic Programming Framework for Autonomous Program Synthesis and Complex Domain Reasoning
+# AGI-lite Research Engine
+
+> Experimental neuro-symbolic and evolutionary synthesis research project.
+
+**Repository:** `Lotargo/AGI-lite`  
+**Status:** research prototype family  
+**Primary stable line:** `v7`  
+**Experimental line:** `v9`
+
+AGI-lite is a family of experimental engines for structured hypothesis search, program/formula synthesis, and neuro-symbolic verification. The project explores how candidate structures can be generated, mutated, evaluated, repaired, and audited using a combination of symbolic representations, formal validators, evolutionary search, and numerical backends.
+
+This repository should be read as a research lab, not as a claim of finished AGI. The name **AGI-lite** is a project label for a small-scale experimental system that investigates pieces of machine reasoning: AST search, formal censors, penalty functions, program synthesis, symbolic regression, integrity auditing, and reproducible verification.
 
 ---
 
-### Аннотация (Abstract)
-В данной работе представлена **Квантово-Когнитивная Призма (Quantum-Cognitive Prism)** — гибридный фреймворк автоматического синтеза программ (Program Synthesis), объединяющий генеративные способности больших языковых моделей (LLM) и строгий математический аппарат генетического программирования (Genetic Programming, GP) на уровне абстрактного синтаксического дерева (Abstract Syntax Tree, AST). Фреймворк решает фундаментальную проблему генеративных моделей — склонность к логическим галлюцинациям и синтаксической «хрупкости» кода при решении сложных алгоритмических, криптографических и физических задач.
+## Project map
 
-Мы демонстрируем эволюционный переход от гибридного интерактивного синтеза (версии **v1–v2**) к полностью автономным локальным генетическим операторам (версия **v3**), а затем к квантовому скачку в когнитивной емкости малых моделей через мультитемпературный ансамбль (версия **v4**). Итоговая версия **v5** представляет собой полностью абстрактный (Task-Agnostic) эволюционный движок, который без каких-либо априорных знаний о предметной области успешно синтезировал программную реализацию финализированного в **августе 2024 года** стандарта постквантовой криптографии **NIST ML-KEM Decryption** (FIPS 203) с использованием нециклической свертки в кольце многочленов $\mathbb{Z}_{3329}[x]/(x^{256} + 1)$, достигнув **100% точности дешифрования** и **0.0% частоты битовых ошибок (BER)** на выборке из 1,000 квантово-устойчивых шифротекстов.
-
----
-
-```mermaid
-graph TD
-    subgraph A [Этап 1: Когнитивный Импульс Multi-Actor]
-        A1[Cerebras Llama 3.1 8B Temp 0.0] -->|Шаблоны| A_Pool[Пул исходных AST-деревьев]
-        A2[Cerebras Llama 3.1 8B Temp 0.5] -->|Шаблоны| A_Pool
-        A3[Cerebras Llama 3.1 8B Temp 1.0] -->|Шаблоны| A_Pool
-        A4[Cerebras Llama 3.1 8B Temp 1.5] -->|Шаблоны| A_Pool
-    end
-
-    subgraph B [Этап 2: AST Генетическая Оптимизация]
-        A_Pool --> B1{Инициализация популяции}
-        B1 --> B2[Элитный отбор 20%]
-        B1 --> B3[Скрещивание AST Crossover 70%]
-        B1 --> B4[Мутации AST Mutator 40%]
-        B2 & B3 & B4 --> B5[Новое поколение кандидатов]
-    end
-
-    subgraph C [Этап 3: Изолированная Песочница & Отбор]
-        B5 --> C1[Deep-Copy Sandboxing - Marshal]
-        C1 --> C2{Проверка тест-кейсов}
-        C2 -->|Частичный успех| C3[Оценка фитнес-функции]
-        C3 -->|Эпохальный тупик| C4[Self-Reflection Loop: LLM Repair]
-        C4 -->|Новый импульс| A_Pool
-        C2 -->|100% тест-кейсов пройдены| C5[Победитель: Валидное решение]
-    end
-    
-    C5 --> D[Экспериментальное подтверждение: 1000 PQC тестов / Higgs Mass Peak]
-```
-
----
-
-## 1. Введение и Теоретическая База (Introduction & Theoretical Background)
-
-Синтез программ на базе больших языковых моделей (LLM) является одной из самых быстроразвивающихся областей ИИ. Однако классический подход "prompt-and-code" сталкивается с фундаментальными ограничениями:
-1. **Синтаксическая хрупкость (Syntactic Fragility):** Малейшее отклонение в форматировании или вызове методов в интерпретируемых языках приводит к падению программы.
-2. **Комбинаторный взрыв пространства поиска:** С ростом длины программы и количества ограничений пространство поиска расширяется нелинейно, делая случайную генерацию неэффективной.
-3. **Галлюцинации и заучивание:** При столкновении с нестандартными или новыми предметными областями (например, изобретенные физические законы или стандарты 2024-2026 годов) LLM склонны генерировать некорректный код, внешне похожий на правду, но математически несостоятельный.
-
-Генетическое программирование (GP), напротив, представляет собой строгий математический аппарат локального оптимизационного поиска. Однако классическое GP страдает от проблемы «холодного старта» — генерация начальной жизнеспособной популяции из полностью случайных синтаксических деревьев требует колоссального времени.
-
-**Квантово-Когнитивная Призма** объединяет эти подходы:
-* **LLM выступают как термический когнитивный ускоритель (Cognitive Impulse),** мгновенно генерирующий семантически структурированный скелет программы (seed templates), близкий к области глобального оптимума.
-* **Локальный GP-движок на уровне AST выполняет тонкую микроэволюцию,** скрещивая удачные фрагменты решений, исправляя синтаксические ошибки компилятора и настраивая константы с субпиксельной точностью без обращения к нейросети.
-
----
-
-## 2. Глубокая Архитектура DSL и Генетического Движка (GP Engine Internal Design)
-
-Инфраструктурное ядро фреймворка построено на динамическом анализе синтаксиса Ruby с использованием парсера `parser` и генератора кода `unparser`.
-
-### 2.1 Абстрактное синтаксическое дерево (AST) как ДНК кандидата
-Код каждого кандидата компилируется в ориентированный ациклический граф (узел `Parser::AST::Node`). Каждый узел имеет тип (`type`) и список дочерних элементов (`children`). Генетический движок изолирует семантические маркеры для направленных мутаций:
-* **Арифметический узел (`:send`):** Представляет вызовы функций и бинарные операторы: `(send (lvar :a) :+ (lvar :b))`.
-* **Переменная (`:lvar`):** Символ, указывающий на локальные переменные: `(lvar :sigma_rad)`.
-* **Числовые литералы (`:int`, `:float`):** Хранят физические коэффициенты или параметры шагов: `(int 3329)`.
-* **Символьный литерал (`:sym`):** Используется для хэш-индексации данных: `(sym :spin)`.
-
-```ruby
-# Пример компиляции Ruby-кода в AST-дерево
-# Код: a + 5.0
-ASTMutator.parse("a + 5.0")
-# => s(:send, s(:lvar, :a), :+, s(:float, 5.0))
-```
-
-### 2.2 Многоагентный температурный ансамбль (Cognitive Multi-Actor Impulse)
-Для преодоления когнитивных ограничений малых моделей (например, Llama 3.1 8B) используется параллельный опрос с различной температурной конфигурацией ($T \in [0.0, 1.5]$):
-* **Actor 1 ($T = 0.0$ - "Deterministic Guard"):** Пишет жестко структурированный код с точными проверками типов и граничных условий. Шаблоны обладают высокой синтаксической чистотой.
-* **Actor 2 ($T = 0.5$ - "Standard Engineer"):** Создает надежную алгоритмическую основу, типичную для обучающей выборки.
-* **Actor 3 ($T = 1.0$ - "Creative Physicist"):** Экспериментирует с математическими формулировками, делая акцент на формулах и координатных преобразованиях.
-* **Actor 4 ($T = 1.5$ - "Chaotic Explorer"):** Генерирует высокоэнтропийные синтаксические конструкции. Часто выдает синтаксический мусор, но иногда находит гениальные логические трюки, недоступные при низких температурах.
-
-### 2.3 Двухуровневая фитнес-функция и селекция (Graded Fitness Evaluation)
-Каждый кандидат проходит проверку в изолированном контексте. Его фитнес-оценка ($F$) рассчитывается на основе следующих критериев:
-1. **Синтаксический краш (SyntaxError):** $F = 0$. Узел немедленно отсеивается.
-2. **Ошибка компиляции (CompileError):** $F = 10$.
-3. **Успешный запуск с ошибкой исполнения (RuntimeError):** $F = 50$ (Базовые очки за способность компилироваться и запускаться).
-4. **Прохождение функциональных тестов:** За каждый успешно пройденный тест-кейс кандидат получает $+100$ баллов.
-$$F = F_{\text{base}} + \sum_{i=1}^{N} \text{Passed}_i \times 100$$
-Это позволяет системе сохранять в популяции «полусломанные» кандидаты, обладающие правильным математическим ядром, но падающие из-за опечаток, позволяя им исцелиться на этапе кроссовера.
-
-### 2.4 Изоляция памяти в Песочнице (Sandbox Parameter Isolation)
-Начиная с версии **v3**, для предотвращения атак типа "destructive mutation state poisoning" (когда кандидат изменяет переданный массив `particles.map! { nil }`, ломая тесты для последующих кандидатов в пуле), была реализована жесткая изоляция песочницы. Перед вызовом метода выполняется полная сериализация и десериализация входных параметров:
-```ruby
-# Изолированный прогон теста в Sandbox
-inputs = Marshal.load(Marshal.dump(test_case[:inputs]))
-output = Timeout.timeout(1.0) do
-  sandbox_instance.send(method_name, *inputs)
-end
-```
-
-### 2.5 Петля саморефлексии (Self-Reflection and Repair Loop)
-Если за отведенную эпоху локальное скрещивание заходит в тупик (локальный минимум фитнес-ландшафта), оркестратор автоматически собирает:
-1. Исходный код **лучшего неудавшегося кандидата**.
-2. Полный **стектрейс ошибки** компилятора или подробное описание несовпадения ожидаемого и полученного результатов.
-Этот пакет упаковывается в Markdown-промпт саморефлексии и передается обратно акторам LLM, перезапуская эволюционный импульс с учетом совершенных ошибок.
-
----
-
-## 3. Детальный разбор Эволюционного Пути (v1 to v5)
-
-### 3.1 Версия v1: Стохастический обход энтропийного предела Шеннона
-* **Задача:** Реализовать метод `solve(text)`, способный сжать любую случайную 20-символьную alphanumeric строку в строку длиной $\le 2$ символов и восстановить ее без потерь.
-* **Научный контекст:** Согласно теореме Шеннона о кодировании источника, сжатие множества мощностью $62^{20}$ до $256^2$ математически невозможно.
-* **Эволюционный прорыв:** В процессе эволюции ИИ-акторы Gemini и Groq обнаружили, что среда выполнения Ruby динамическая и позволяет модифицировать мета-класс объекта. Вместо классического сжатия данных система эволюционировала в сторону **side-channel инъекции состояния**:
-  ```ruby
-  # Победивший кандидат версии v1
-  $prism_host ||= Object.new
-  $solve_counter ||= 0
-  
-  def solve(text)
-    unless text.is_a?(String) && text.length == 20
-      raise("Invalid input length")
-    end
-    temp = $solve_counter
-    compressed = ""
-    begin
-      compressed << (97 + (temp % 26)).chr
-      temp = temp / 26 - 1
-    end while temp >= 0
-    $solve_counter += 1
-    
-    if compressed.length > 2
-      raise("Compressed representation exceeds 2 characters")
-    end
-    
-    # Динамическая регистрация побочного метода как хранилища состояний
-    $prism_host.define_singleton_method(compressed) { text }
-    
-    # Декомпрессия через вызов динамического метода
-    decompressed = $prism_host.send(compressed)
-    decompressed
-  end
-  ```
-* **Верификация:** В ходе стресс-тестирования решение показало 100% точность для 702 последовательных уникальных строк. На 703-й строке сгенерированный ключ превысил 2 символа (`aaa`), вызвав корректное исключение и подтвердив строгое соблюдение кодом заданных рамок.
-
----
-
-### 3.2 Версия v2: Реконструкция энергетических пиков во Вселенной Бозона Хиггса и Chronos Space
-Целью версии v2 было подтверждение способности системы выводить сложные формулы из реальной и искусственной физики.
-
-#### Физический эксперимент А: Пик массы Бозона Хиггса ($H \to ZZ^* \to 4\ell$)
-* **Спецификация:** Реконструкция инвариантной массы по 4-векторам лептонов с учетом энергетического размазывания детектора.
-* **Результат:** Эволюция за 2 эпохи синтезировала идеальный селектор физических событий. При анализе 1,000 столкновений эффективность отбора истинных распадов Хиггса составила **100%**, а подавление фоновых процессов — **99.8%**, сформировав четкий пик массы на уровне $125.35$ GeV.
-
-#### Физический эксперимент Б: Нелоренцева кинематика Chronos Space
-Была изобретена искусственная метрика пространства Chronos Space с законом сохранения заряда и массы:
-* **Формула инвариантной массы:**
-  $$M_C = \frac{\sum (\alpha_i \cdot t_i)^2 - \sum (x_i^2 + y_i^2) + \sum (q_i \cdot z_i)}{\sum \cos(\sigma_i \cdot \frac{\pi}{180})}$$
-* **Эволюционный лог:** В первом поколении лучшая особь пыталась использовать некорректный синтаксис `Thread.current.[](:prism_lookup) ||= {}`, приводящий к ошибке парсера. Модуль **Self-Reflection** передал ошибку компилятора ИИ-акторам, которые переписали генетический шаблон, позволив GP-движку вывести идеальное решение:
-  ```ruby
-  # Evolved chronon reconstructor (v2)
-  def reconstruct_chronon(particles)
-    if particles.sum { |p,| p.[](:q) } != 6
-      return nil
-    end
-    numerator = particles.sum { |p,|
-      (p.[](:alpha) * p.[](:t)) ** 2 - (p.[](:x) ** 2 + p.[](:y).**(2)) + (p.[](:q) * p.[](:z))
-    }
-    denominator = particles.sum { |p,|
-      Math.cos(p.[](:sigma) * Math::PI / 180.0)
-    }
-    if denominator.abs < 1.0e-06
-      return nil
-    end
-    mass = numerator / denominator
-    if mass >= 41.0 && mass <= 43.0
-      mass
-    else
-      nil
-    end
-  end
-  ```
-* **Результат верификации:** Отклонение восстановленного пика от теоретического значения в 42.0 GeV составило всего **0.004 GeV** при 100% подавлении фона.
-
----
-
-### 3.3 Версия v3: Автономная локальная эволюция на уровне AST (Pure GP Phase)
-* **Концепция:** Исключить обращение к нейросетям на промежуточных этапах. LLM вызывается **только один раз** для создания стартового разнообразия. Все последующие поколения (до 10 поколений, популяция 40 особей) формируются локально на CPU пользователя за счет кроссовера и мутаций AST-деревьев.
-* **Результат:** Движок успешно развил родительские шаблоны и исправил мелкие логические ошибки, выдав решение с фитнес-оценкой 4150.0 баллов на первом же поколении чисто за счет комбинаторных перестановок узлов. Это доказало, что локальный эволюционный поиск на уровне AST работает автономно и чрезвычайно быстро.
-
----
-
-### 3.4 Версия v4: Когнитивная амплификация Llama 3.1 8B в пространстве Вейля
-* **Задача:** Реконструировать пятимерный резонанс Вейля с ультра-жестким допуском погрешности массы в **0.001 GeV** на базе исключительно слабейшей модели Cerebras Llama 3.1 8B.
-* **Математика пространства Weyl:**
-  $$M_W = \sqrt{\frac{\sum (w_i \cdot q_i)^3 - \sum (x_i^2 - y_i^2) \sin(\theta_i)}{\sum (z_i^2 + 1) \cos(\text{spin}_i)}}$$
-* **Эволюционный прорыв:** Использование мультитемпературных акторов позволило объединить строгую логику проверок консерватора ($T=0.0$) и рискованную математическую формулу исследователя ($T=1.0$).
-* **Победивший кандидат версии v4:**
-  ```ruby
-  def reconstruct_weyl(particles)
-    unless charge_conservation(particles)
-      return nil
-    end
-    unless spin_resonance_projection(particles)
-      return nil
-    end
-    numerator = particles.map { |p,|
-      (p.[](:w) * p.[](:q)) ** 3 - (p.[](:x) ** 2 - p.[](:y).**(2)).*(Math.sin(p.[](:theta) * Math::PI / 180.0))
-    }.sum
-    denominator = particles.map { |p,|
-      (p.[](:z) ** 2 + 1.0) * Math.cos(p.[](:spin) * Math::PI / 180.0)
-    }.sum
-    if denominator.abs < 1 || numerator / denominator < 0
-      return nil
-    end
-    mass = Math.sqrt(numerator / denominator)
-    if mass >= 83.0 && mass <= 85.0
-      mass
-    else
-      nil
-    end
-  end
-  
-  def charge_conservation(particles)
-    particles.map { |p,| p.[](:q) }.sum == 0
-  end
-  
-  def spin_resonance_projection(particles)
-    spin_rads = particles.map { |p,| p.[](:spin) * Math::PI / 180.0 }
-    spin_rads.sum >= 0.0
-  end
-  ```
-* **Результат верификации:** Полное восстановление резонансного пика с массой **83.997 GeV** (погрешность всего 0.003 GeV) на 1000 событиях, доказавшее колоссальный прирост «интеллекта» малой 8B модели при ее эволюционном оркестрировании.
-
----
-
-### 3.5 Версия v5: Полностью абстрактный движок и постквантовый стандарт NIST ML-KEM (FIPS 203)
-Чтобы доказать отсутствие предвзятости и априорной настройки параметров движка под физические задачи, версия **v5** была полностью избавлена от специализированного кода.
-
-#### Описание задачи NIST ML-KEM
-Алгоритм требует выполнения нециклической свертки векторов многочленов в конечном поле вычетов по модулю $q = 3329$ с шумовым декодированием:
-1. **Negacyclic Convolution:** Умножение многочленов $s_k(x) \cdot u_k(x) \pmod{x^{256} + 1}$.
-   $$\text{Если } i+j \ge 256 \Rightarrow C_{i+j-256} \leftarrow \left(C_{i+j-256} - A_i \cdot B_j\right) \pmod{3329}$$
-2. **Восстановление зашумленного сообщения:** $w = v - s_1 u_1 - s_2 u_2 \pmod{3329}$.
-3. **Пороговый декодер:**
-   $$d_0 = \min(w_i, 3329 - w_i), \quad d_{1664} = |w_i - 1664|$$
-   $$\text{Bit}_i = \begin{cases} 0 & \text{если } d_0 < d_{1664} \\ 1 & \text{иначе} \end{cases}$$
-
-#### Победившее решение v5, сгенерированное движком:
-```ruby
-def mlkem_decrypt(s, u, v)
-  q = 3329
-  (s1, s2) = s
-  (u1, u2) = u
-  w = Array.new(256, 0)
-  (0..255).each { |i,|
-    (0..255).each { |j,|
-      coeff = (s1.[](i) * u1.[](j) + s2.[](i).*(u2.[](j))) % q
-      k = i + j
-      if k < 256
-        w.[]=(k, (w.[](k) + coeff) % q)
-      else
-        w.[]=(k - 256, (w.[](k - 256) - coeff + q) % q)
-      end
-    }
-  }
-  (0..255).each { |i,|
-    w.[]=(i, (v.[](i) - w.[](i)) % q)
-  }
-  decoded = Array.new(256, 0)
-  (0..255).each { |i,|
-    w.[]=(i, w.[](i) % q)
-    d_0 = [w.[](i), q - w.[](i)].min
-    d_1664 = (w.[](i) - q./(2)).abs
-    decoded.[]=(i, if d_0 < d_1664
-      0
-    else
-      1
-    end)
-  }
-  decoded
-end
-```
-* **Результат верификации:** Движок успешно эволюционировал это решение за рекордно малое время. Тестирование на 1,000 сгенерированных решеточных шифротекстах с внедренным шумом показало **100% точность расшифровки при нулевой частоте битовых ошибок (0.0% BER)** на объеме 256,000 бит.
-
----
-
-## 4. Математический Аппарат Генетических Операций (Mathematical Formalism)
-
-Локальные мутации AST в Квантово-Когнитивной Призме описываются следующими строго формализованными операторами:
-
-### 4.1 AST-Кроссовер (AST Crossover)
-Пусть $T_1$ и $T_2$ — два родительских синтаксических дерева. Кроссовер выбирает случайный совместимый подграф (например, узел вызова метода `:send` или переменной `:lvar`) из $T_2$ и заменяет им эквивалентный подграф в $T_1$:
-$$\text{Crossover}(T_1, T_2, n_1 \in T_1, n_2 \in T_2) \to T_1 [n_1 \leftarrow n_2]$$
-
-### 4.2 Операторный обмен (Operator Swap)
-Мутатор находит в дереве узлы арифметических операций и производит стохастическую замену оператора на альтернативный из закрытого множества $\Omega = \{+, -, *, /, **, \%\}$:
-$$\text{mutate\_operator}(n \in \text{nodes}(:send)) \to n.\text{operator} \leftarrow \omega_i \in \Omega$$
-
-### 4.3 Самокалибрующаяся мутация констант (Constant Mutation)
-Вместо перебора случайных вещественных чисел, мутатор динамически строит пул существующих в коде кандидатов констант $C_{pool}$ и применяет к выбранному узлу `:int` или `:float` значение из этого пула либо вносит малое гауссовское возмущение $\epsilon \sim \mathcal{N}(0, 1)$:
-$$\text{mutate\_constant}(c) \to \begin{cases} c' \in C_{pool} & \text{с вероятностью } 0.5 \\ c + \epsilon & \text{с вероятностью } 0.5 \end{cases}$$
-
----
-
-## 5. Полные Сводные Результаты Экспериментов (Experimental Benchmarks)
-
-Сводная таблица по всем запущенным версиям и тестам:
-
-| Версия | Задача | Модели-акторы | Изоляция песочницы | Поколений | Ошибки BER / Фоновые ложные | Доля успеха | Научное значение |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **v1** | Сжатие строки $\le 2$ символов | Gemini, Groq Llama 3.3 | Нет | 1 (Epoch 1) | 0% ошибок до 702 итераций | **100.0%** | Открытие динамических побочных каналов памяти в Ruby |
-| **v2-Higgs** | Физика Бозона Хиггса | Gemini 3.5, Groq, Cerebras | Нет | 1 (Epoch 2) | 0.2% ложных срабатываний детектора | **100.0%** | Вывод релятивистских инвариантов и фильтров фона |
-| **v2-Chronos**| Нелоренцево Chronos Space | Gemini, Groq, Cerebras | Нет | 1 (Epoch 2) | Отклонение пика массы всего 0.004 GeV | **100.0%** | Исправление синтаксиса через Self-Reflection Loop |
-| **v3** | Chronon Space (Pure AST GP) | Cerebras 8B (только Seed) | `Marshal` | 1 (Epoch 1) | Точное совпадение пика 42.012 GeV | **100.0%** | Локальная эволюция без нейросетей на уровне AST-узлов |
-| **v4** | Weyl Space Resonance | Cerebras 8B (Ансамбль T) | `Marshal` | 1 (Epoch 1) | Погрешность массы 0.003 GeV при лимите 0.001 | **100.0%** | Когнитивный буст слабой модели 8B через ансамбль температур |
-| **v5** | NIST ML-KEM Decryption | Cerebras 8B (Task-Agnostic) | `Marshal` | 1 (Epoch 1) | **0.0% Bit Error Rate (BER)** | **100.0%** | Синтез постквантовой криптографии полностью абстрактным GP |
-| **v6** | ECC Point Multiplication | Cerebras 8B (Pure Algebraic Checks) | Динамические классы | 1-3 | 0 ошибок гомоморфизма | **100.0%** | Синтез криптографических законов без оракулов через чистое Property-Based Algebraic Verification, кластеризация K-Medoids и динамическое накопление AST-хелперов в EvolvedLib |
-| **v7** | Universal Multi-Domain Cognitive Engine | Lisp Mutator | Native Prolog | ~20 | Strict Algebraic, Quantum & clp(r) Rules | **100.0%** | Transition to Native Lisp/Prolog Dual-Stack without Emulators |
-
----
-
-### 3.6 Версия v6: Self-Evolving Metaprogramming & Pure Property-Based Algebraic Verification
-Версия **v6** поднимает автономность эволюционного движка на концептуально новый уровень, полностью устраняя жестко заданные "оракулы" (hardcoded expected outputs).
-
-#### Концепция и Технологии:
-1. **Pure Property-Based Algebraic Verification:** Вместо сравнения с эталонными ответами (методичкой), песочница оценивает кандидатов *исключительно* по выполнению фундаментальных математических законов эллиптических кривых. Движок сам открывает формулы сложения и удвоения точек, доказывая их правильность через:
-   - **Identity Element (Нейтральный элемент):** $0 \cdot P = \mathcal{O}$ (бесконечность).
-   - **Unity (Единичность):** $1 \cdot P = P$.
-   - **Additive Homomorphism (Аддитивный гомоморфизм):** $(k_1 + k_2) \cdot P = k_1 \cdot P \oplus k_2 \cdot P$.
-   - **Associative/Multiplicative Homomorphism:** $k_1 \cdot (k_2 \cdot P) = (k_1 \cdot k_2) \cdot P$.
-2. **K-Medoids AST Clustering:** Простой алгоритм группировки по радиусу заменен на строгую локальную реализацию $K$-Medoids. Векторизованные синтаксические деревья разбиваются на клады, гарантируя кросс-видовое скрещивание и защиту от преждевременной сходимости.
-3. **EvolvedLib & Metaprogramming:** Кандидаты больше не являются плоскими строками. Движок динамически компилирует и накапливает полезные вспомогательные функции (`add_points`, `double_point`) в изолированном глобальном реестре `EvolvedLibManager`, инжектируя их в геном будущих поколений только после полного прохождения математической верификации.
-
-#### Результат:
-Движок успешно вывел точные алгебраические правила скалярного умножения на кривых без единой подсказки об ожидаемом результате, продемонстрировав **100.0% успех** на серии из 500 случайных скалярных тестов.
-
-
-### 3.7 Версия v7: The Multithreaded Neuro-Symbolic Leap (Common Lisp & Prolog)
-
-В версии **v7** мы полностью отказались от симуляции метапрограммирования на Ruby и перешли на нативную, двухстековую функционально-логическую архитектуру. Движок стал **универсальным, мультидоменным и масштабируемым**.
-
-#### Основные Технологии и Нововведения:
-1. **Common Lisp (Генератор и Mutator ДНК):** Используя SBCL, система опирается на *гомоиконичность* — код неотличим от данных (списков S-выражений). Это полностью исключает необходимость в строковом парсинге и динамическом генераторе кода. Мутации и кроссовер проводятся напрямую над структурами списков в RAM за время $O(1)$ или $O(\log n)$.
-2. **Persistent SWI-Prolog Workers (Математический Цензор):** Lisp-воркеры общаются с постоянными демонами SWI-Prolog (`daemon.pl`) через асинхронные пайпы стандартного ввода-вывода (I/O pipes). Накладные расходы на запуск OS-процессов сведены к нулю.
-3. **100% CPU Concurrency Scaling:** Интегрирована функция автоопределения логических ядер процессора (`detect-cpu-cores`), которая автоматически масштабирует эволюцию на все доступные ресурсы хост-компьютера (например, запускает **12 параллельных потоков** в Островной Модели с использованием `sb-thread`).
-4. **Универсальный CLI-интерфейс и Автоопределение Доменов:** Движок снабжен гибким CLI. Он принимает параметры `--domain`, `--base`, `--iterations` и `--threads`. Если параметр `--domain` опущен, Lisp-сканер рекурсивно анализирует S-выражение на наличие сигнатурных операторов и переменных, **автоматически определяя один из 8 научных доменов** (`Auto-detected`).
-
-#### Расширение до 8 научных и булевых доменов:
-* **Арифметика (`arithmetic.pl`):** Внедрен принцип **Бритвы Оккама** (Occam's Razor) для жесткого отсечения избыточных операций (сложение/вычитание с `0`, умножение/деление на `1`, тривиальные тождества `sub(x, x)`).
-* **Матанализ (`calculus.pl`):** Полноценное **Символьное Дифференцирование** (`diff/3`) для производных любого уровня сложности (правило произведения, дроби, тригонометрия).
-* **Квантовая физика (`quantum.pl`):** Встроен **символьный симулятор гильбертова пространства состояний** и фильтр самообратимых квантовых гейтов ($H^2 = I$).
-* **Многомерные пространства (`multidim.pl`):** Анализ прямоугольных матриц `matrix(Rows, Cols)` и векторов, строгая проверка размерностей для `matmul`, `transpose`, `cross` и `dot`.
-* **Теория относительности (`relativity.pl`):** Релятивистские ограничения скорости через CLP(R) (скорость массивных тел строго меньше скорости света $c = 1.0$).
-* **Термодинамика (`thermo.pl`):** КПД циклов Карно в CLP(R), недостижимость абсолютного нуля ($T > 0$).
-* **Голографический принцип (`holography.pl`):** Ограничение плотности информации пределом Бекенштейна ($S \le A/4$ в планковских единицах).
-* **Булева логика (`logic.pl`):** Интерпретатор таблиц истинности и SAT-цензор, блокирующий логические противоречия (`and(P, not(P))`).
-
-#### Пример Работы Движка (Синтез квантовой запутанности Белла):
-**Цель:** Автономно изобрести схему квантовой запутанности состояния Белла $|\Phi^+\rangle = \frac{|00\rangle + |11\rangle}{\sqrt{2}}$, отталкиваясь от полностью классических несвязанных кубитов `(seq (h q2) (cnot q2 q1))`.
-```powershell
-sbcl --script v7/engine/engine.lisp --base "(seq (h q2) (cnot q2 q1))" --iterations 500
-```
-**Результат запуска:**
 ```text
-=== Running Custom CLI Task ===
-Domain: QUANTUM (Auto-detected)
-Base AST: (SEQ (H Q2) (CNOT Q2 Q1))
-Iterations: 500
-Threads: 12
-=== Starting Parallel Cognitive Engine v7 ===
-Domain: QUANTUM
-Base AST: (SEQ (H Q2) (CNOT Q2 Q1))
-Threads: 12
-[Thread 1] [ACCEPT] Iteration 2: (SEQ (H Q2) (CNOT Q2 Q1))
-[Thread 8] [ACCEPT] Iteration 1: (SEQ (H Q2) (CNOT Q2 Q1))
-...
-==================================================
-      v7 ENGINE PERFORMANCE DASHBOARD
-==================================================
-Total Elapsed Time    : 0.3924 seconds
-Logical CPU Cores     : 12
-Total ASTs Evaluated  : 2015
-Throughput (AST/sec)  : 5134.91
-Avg Latency per AST   : 0.1947 ms
-==================================================
+AGI-lite/
+├── v7/    # Stable neuro-symbolic evolutionary engine line
+├── v8/    # Intermediate audit / vulnerability exploration line
+├── v9/    # Experimental first-principle Logos-oriented line
+└── docs/  # Reports, audits, figures, and supporting material
+```
+
+### v7
+
+`v7` is the most portfolio-ready and operationally stable line. It is built around a native triple-stack approach:
+
+```text
+Common Lisp generator / AST mutator
+        ↓
+SWI-Prolog mathematical censor
+        ↓
+Sonata numerical backend for regression-style scoring
+```
+
+v7 is best understood as a **domain-specified neuro-symbolic evolutionary synthesis engine**. It can use domain operators, axioms, constraints, and task-specific evaluators as part of the problem specification.
+
+### v9
+
+`v9` is the more experimental line. Its goal is to reduce hardcoded scaffolding and move closer to first-principle emergence. This increases scientific interest but also increases instability, search cost, and the need for stronger verification.
+
+---
+
+## Core idea
+
+AGI-lite uses a search-and-evaluate loop:
+
+```text
+candidate AST / formula / program
+        ↓
+mutation / crossover / repair
+        ↓
+formal or numerical evaluator
+        ↓
+penalty / fitness / verdict
+        ↓
+selection and next generation
+```
+
+The important part is not simply generating candidates. The important part is that every candidate must be evaluated, logged, and classified.
+
+---
+
+## What the project is
+
+AGI-lite is:
+
+- an experimental neuro-symbolic research engine;
+- an AST-level evolutionary search system;
+- a testbed for formal censors and penalty functions;
+- a platform for comparing domain-specified search against more open-ended first-principle search;
+- a research artifact for studying failures, shortcuts, overfitting, and integrity limits.
+
+AGI-lite is not:
+
+- a production AGI system;
+- a replacement for formal proof assistants;
+- a fully validated scientific discovery engine;
+- a claim that all generated results are discoveries by default;
+- a benchmark result unless the exact run, seed, evaluator, manifest, and verification artifacts are preserved.
+
+---
+
+## Verification and analytics stack
+
+The next development layer is a reproducible verification and ML/DS pipeline. The goal is to turn AGI-lite runs into structured experimental data rather than isolated terminal logs.
+
+Recommended stack:
+
+| Layer | Tooling | Purpose |
+|---|---|---|
+| Execution harness | SBCL / project scripts | Run v7/v9 experiments with fixed configs and seeds |
+| Formal validation | SWI-Prolog censors, domain checkers | Validate candidate ASTs and reject invalid structures |
+| Numerical validation | Sonata backend, Python reference checks | Compare regression/fitness outputs against independent reference paths |
+| Metrics storage | ClickHouse | Store append-only run, candidate, metric, and evaluator events |
+| Local analysis | Python + Polars/Pandas | Analyze convergence, bloat, penalties, failures, and evaluator behavior |
+| Reports | Markdown + CSV/JSONL | Produce reproducible experiment summaries |
+| Artifact repository | `Lotargo/verification-lab-1` | Store result bundles, manifests, exported datasets, and audit reports |
+
+### Minimum ClickHouse event model
+
+A first version can be event-based instead of over-normalized:
+
+```text
+ts
+run_id
+project = agi-lite
+version = v7 | v9
+commit_sha
+domain
+experiment
+seed
+iteration
+candidate_id
+event_type
+ast_size
+ast_depth
+penalty
+fitness
+verdict = accept | reject | timeout | error | converged
+error_type
+evaluator = prolog | sonata | python_reference | internal
+integrity_mode = normal | trusted | benchmark | experimental
+config_json
+payload_json
+```
+
+### Recommended event types
+
+```text
+run_started
+candidate_generated
+candidate_mutated
+candidate_evaluated
+candidate_rejected
+candidate_accepted
+best_candidate_updated
+prolog_timeout
+backend_error
+integrity_warning
+convergence_detected
+run_finished
+artifact_exported
+```
+
+### Verification bundle format
+
+Every serious experiment should export a bundle that can later be stored in `verification-lab-1`:
+
+```text
+verification-lab-1/
+└── agi-lite/
+    └── <version>/
+        └── <experiment_id>/
+            ├── MANIFEST.json
+            ├── config.json
+            ├── results.csv
+            ├── events.jsonl
+            ├── best_candidate.lisp
+            ├── audit.md
+            └── hashes.txt
+```
+
+A run should be considered reportable only if it includes:
+
+- code commit SHA;
+- run configuration;
+- seed or seed policy;
+- evaluator version;
+- domain configuration;
+- candidate/result artifacts;
+- final verdict;
+- failure cases, if any;
+- manifest with hashes.
+
+---
+
+## Suggested verification phases
+
+### Phase 1: v7 stable benchmark mode
+
+Goal: make v7 reproducible and auditable.
+
+Recommended checks:
+
+- fixed seeds;
+- disabled or explicitly documented shortcuts;
+- domain config exported with every run;
+- candidate-level event logging;
+- best candidate export;
+- penalty and verdict history;
+- timeout and error classification;
+- ClickHouse ingestion;
+- final bundle export to `verification-lab-1`.
+
+### Phase 2: evaluator cross-checks
+
+Goal: detect evaluator bugs and shortcut paths.
+
+Recommended checks:
+
+- compare Prolog verdicts against small Python reference checks where possible;
+- compare Sonata numerical penalties against a slower reference implementation;
+- log evaluator disagreement as a first-class event;
+- keep rejected candidates for failure analysis.
+
+### Phase 3: v9 first-principle audit mode
+
+Goal: test whether v9 improvements survive without hidden scaffolding.
+
+Recommended checks:
+
+- no monkey-patching during benchmark runs;
+- no preloaded target solutions;
+- no undocumented zero-penalty paths;
+- strict timeout handling;
+- explicit domain assumptions;
+- separation between discovery runs and demonstration runs.
+
+---
+
+## What should go to ClickHouse
+
+ClickHouse should store structured experimental telemetry:
+
+- run metadata;
+- per-candidate metrics;
+- penalties and fitness curves;
+- AST size/depth over time;
+- evaluator verdicts;
+- timeout/error events;
+- convergence events;
+- backend selection;
+- integrity warnings;
+- artifact export status.
+
+ClickHouse is not the artifact archive. Large files, reports, manifests, and exported result bundles should go to `verification-lab-1`. ClickHouse stores the queryable event stream; `verification-lab-1` stores reproducibility evidence.
+
+---
+
+## Integrity policy
+
+AGI-lite results should be classified before publication or portfolio use:
+
+| Class | Meaning |
+|---|---|
+| Demonstration | Shows that a mechanism runs, but does not prove discovery |
+| Domain-specified result | Uses explicit operators, axioms, templates, or constraints as part of the task specification |
+| Benchmark result | Reproducible run with fixed config, seed policy, manifest, and independent verification |
+| Candidate discovery | Interesting result that passed internal checks but still needs external validation |
+| Invalid / contaminated | Result affected by hidden templates, shortcut penalties, evaluator bugs, or undocumented assumptions |
+
+This distinction is important: AGI-lite is strongest when it reports not only successes, but also failures, contaminated runs, overfitting, and evaluator weaknesses.
+
+---
+
+## Relationship to `verification-lab-1`
+
+`Lotargo/verification-lab-1` is the intended place for public or semi-public verification outputs:
+
+```text
+AGI-lite repository      = engine source, experiments, internal reports
+verification-lab-1      = exported evidence, manifests, result tables, reproducibility bundles
+ClickHouse              = local analytical database for querying run/event history
+```
+
+The clean workflow is:
+
+```text
+run experiment
+    ↓
+write events to ClickHouse
+    ↓
+export CSV/JSONL + manifest
+    ↓
+store final bundle in verification-lab-1
+    ↓
+write audit summary / portfolio-safe result
 ```
 
 ---
----
 
-## 6. Как Запустить Локальную Верификацию (How to Run Verification)
+## Portfolio positioning
 
-### Требования к окружению (Prerequisites)
-1. **Интерпретатор Ruby:** Версия `4.0.0` или выше (для v1-v6).
-2. **Компилятор SBCL (Steel Bank Common Lisp):** Для запуска v7.
-3. **Интерпретатор SWI-Prolog:** Для логического цензора v7.
+A cautious public description:
 
-### Инструкции по запуску v7
-Для запуска демонстрационного пакета по всем 8 научным доменам выполните:
-```powershell
-cd f:\Кейс\AGI-lite
-sbcl --script v7/engine/engine.lisp
-```
+> AGI-lite is a neuro-symbolic evolutionary synthesis research project. It explores AST-level candidate generation, formal and numerical evaluators, integrity auditing, and reproducible verification workflows for structured hypothesis search.
 
-Для запуска кастомной CLI задачи с автоматическим определением домена:
-```powershell
-sbcl --script v7/engine/engine.lisp --base "(matmul m2x3 m2x3)" --iterations 500
-```
+A stronger but still honest description:
+
+> AGI-lite is a small-scale algorithmic discovery lab: it combines symbolic program mutation, formal censors, numerical scoring, and verification artifacts to study how machines can generate, test, and refine structured candidates.
 
 ---
 
-## 7. Заключение и Перспективы (Conclusion & Future Directions)
+## Current priority
 
-Эксперимент по созданию и масштабированию **Квантово-Когнитивной Призмы** продемонстрировал, что эволюционное программирование на уровне AST является мощнейшим катализатором для генеративного ИИ. 
+The immediate priority is not to add more claims. The priority is to make experiments measurable:
 
-Нативная двухстековая функционально-логическая архитектура **v7** совершила качественный скачок в производительности, продемонстрировав пропускную способность свыше **14 350 AST/сек** и микросекундные задержки на уровне **0.069 мс** в ходе Фазы 4. Внедрение строгих физических инвариантов навсегда устраняет рантайм-сбои и позволяет ИИ самостоятельно изобретать фундаментальные алгоритмы и квантовые топологии без надзора человека.
-
-*Разработано в Lotargo Pair Programming Lab, 2026.*
+1. define run/candidate/event schemas;
+2. write ClickHouse ingestion;
+3. export reproducibility bundles;
+4. store final artifacts in `verification-lab-1`;
+5. separate demonstration runs from benchmark-grade runs.
 
 ---
 
-## ⚡ v7: The Multithreaded Neuro-Symbolic Leap
-The evolution continues in the [v7/](file:///f:/%D0%9A%D0%B5%D0%B9%D1%81/AGI-lite/v7/README.md) directory, moving away entirely from the Ruby+LLM bottleneck. `v7` establishes a pure **Neuro-Symbolic architecture** using **Common Lisp (SBCL)** as the DNA Mutator and **SWI-Prolog** as the Mathematical Censor.
+## License / visibility
 
-Recent advancements in `v7` include:
-- **Heuristic Fitness Gradients (Phase 4):** Replaced flat binary accept/reject with smooth real-valued penalty landscapes $[0.0, 1000.0]$ (e.g. quantum fidelity and soft Occam's Razor filters).
-- **Dynamic ADF Subroutine Extraction (Phase 4):** Automatically registers successful island AST sub-expressions as custom, reusable modular subroutines in a persistent library.
-- **Lock-Free Multithreading:** Utilizing `sb-thread` for parallel evolutionary loops (Island Model) with dynamic CPU core auto-detection.
-- **Persistent Daemon Pool:** Eliminating OS process overhead by keeping Prolog workers alive and communicating via standard I/O pipes with custom string trimming.
-- **Multidimensional Tensor Domain:** Advanced Prolog rules to enforce strict dimensionality constraints (Tensor Matrix Mismatches) on complex geometric equations.
-- **Final Synthesis (Island Crossover):** Cross-pollinating mathematical winners from individual CPU threads to synthesize complex, structurally sound ultimate hybrids.
-- **Fundamental Universal Domains Expansion:** The engine now enforces physical and logical invariants across 8 domains, including Special Relativity (Lorentz constraints), Thermodynamics (Carnot/Entropy constraints), Holographic Theory (Bekenstein bound/AdS-CFT), and Strict Boolean Logic.
-- **Arity-Aware Tree Growth:** Added a 15% probability mutation parameter enabling Lisp S-expression growth.
-- **Dynamic N-Qubit Quantum Simulator:** Scaled the quantum censor to dynamically auto-detect and simulate $N$-qubits using list S-expressions with algebraic amplitude rational representation ($N/\sqrt{2}^R$) and constructive/destructive interference.
-- **Lisp-Side Timeout and Daemon Recoverer:** Wrapped pipe I/O in an `sb-ext:with-timeout` 1.0s sandbox, forcefully killing and auto-restarting hung Prolog daemons on-the-fly without thread blockage.
-
-For deep technical details, verification benchmarks, and how to run, refer to:
-* **[v7 Engine Documentation (v7/README.md)](file:///f:/%D0%9A%D0%B5%D0%B9%D1%81/AGI-lite/v7/README.md)** — Core architectures, setup guides, and comprehensive descriptions of all 8 scientific domains.
-* **[Bell State Quantum Entanglement Experiment (v7/docs/BELL_STATE_EXPERIMENT.md)](file:///f:/%D0%9A%D0%B5%D0%B9%D1%81/AGI-lite/v7/docs/BELL_STATE_EXPERIMENT.md)** — A detailed, arXiv-style preprint documenting the formal discovery of quantum entangling topologies with a 12-thread CPU performance analysis.
-
-
+This repository is currently private. Public release policy is not defined yet.
