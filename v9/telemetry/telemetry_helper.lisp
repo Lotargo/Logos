@@ -6,7 +6,7 @@
   (with-output-to-string (s)
     (loop for char across (format nil "~A" str) do
       (cond
-        ((char= char #\") (write-string "\\" s))
+        ((char= char #\") (write-string "\\\"" s))
         ((char= char #\\) (write-string "\\\\" s))
         ((char= char #\Newline) (write-string "\\n" s))
         (t (write-char char s))))))
@@ -47,3 +47,21 @@
                                       :output_ast (format nil "~A" output-ast)
                                       :execution_time_ms execution-time
                                       :error_rate error-rate)))
+
+(defun fetch-telemetry-knowledge (&key (min-fitness 0.9))
+  "Calls the Python telemetry logger to fetch high-fitness ASTs and axioms."
+  (let* ((cmd (list "python3" "v9/telemetry/telemetry_logger.py" "fetch-knowledge"
+                    "--min-fitness" (format nil "~,2F" min-fitness)))
+         (output (handler-case
+                     (uiop:run-program cmd :output :string :ignore-error-status t)
+                   (error () nil))))
+    (if output
+        (handler-case
+            (let* ((lisp-format-cmd (list "python3" "-c"
+                                         "import sys, json; d = json.loads(sys.stdin.read()); print(f'(:asts ({ \" \".join([\"\\\"\" + str(x).replace(\"\\\"\", \"\\\\\\\"\") + \"\\\"\" for x in d.get(\"asts\", [])]) }) :axioms ({ \" \".join([\"\\\"\" + str(x).replace(\"\\\"\", \"\\\\\\\"\") + \"\\\"\" for x in d.get(\"axioms\", [])]) }))')"))
+                   (lisp-str (uiop:run-program lisp-format-cmd :input (make-string-input-stream output) :output :string)))
+              (read-from-string lisp-str))
+          (error (e)
+            (format t "[KNOWLEDGE FETCH ERROR] ~A~%" e)
+            nil))
+        nil)))
