@@ -68,3 +68,31 @@
             (format t "[KNOWLEDGE FETCH ERROR] ~A~%" e)
             nil))
         nil)))
+
+(defun verify-run-telemetry (run-id domain &key (best-ast nil) (output-dir nil))
+  "Invoke Python verification pipeline after an experiment run completes.
+   Runs: stats, evolutionary analysis, symbolic quality, dashboard generation.
+   Returns path to generated dashboard HTML, or nil on failure."
+  (let* ((cmd (list *python-executable* "v9/telemetry/verify_run.py"
+                    "--run-id" (format nil "~A" run-id)
+                    "--domain" (format nil "~A" (string-downcase (symbol-name domain)))
+                    "--session-id" *telemetry-session-id*))
+         (cmd (if best-ast
+                  (append cmd (list "--best-ast" (format nil "~A" best-ast)))
+                  cmd))
+         (cmd (if output-dir
+                  (append cmd (list "--output-dir" output-dir))
+                  cmd)))
+    (format t "[VERIFY] Running post-experiment verification for ~A...~%" run-id)
+    (handler-case
+        (let ((output (sb-ext:with-timeout 60.0
+                        (uiop:run-program cmd :output :string :ignore-error-status t))))
+          (when output
+            (format t "[VERIFY] ~A~%" output))
+          output)
+      (sb-ext:timeout ()
+        (format t "[VERIFY TIMEOUT] Verification timed out after 60s~%")
+        nil)
+      (error (e)
+        (format t "[VERIFY ERROR] ~A~%" e)
+        nil))))

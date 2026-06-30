@@ -446,6 +446,16 @@
               (generate-latex-ontology domain base-ast *discovered-axioms* (car hybrids) total-iterations elapsed-seconds))))
         (format t "No valid hypotheses found.~%"))
 
+    ;; Post-experiment verification: run statistical analysis, evolutionary metrics,
+    ;; symbolic quality checks, and generate dashboard.
+    (handler-case
+        (let ((best-ast-str (when winners (format nil "~A" (car winners)))))
+          (verify-run-telemetry
+           *telemetry-session-id* domain
+           :best-ast best-ast-str))
+      (error (e)
+        (format t "[VERIFY WARNING] Verification failed: ~A~%" e)))
+
     ;; Silicon Lowering
     (when (and winners (member domain '(:hardware :logic)))
       (let* ((best (car winners))
