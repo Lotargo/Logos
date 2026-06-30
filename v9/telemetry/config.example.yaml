@@ -1,0 +1,28 @@
+telemetry:
+  enabled: true
+  mode: local
+  cache_path: v9/telemetry/cache/logos_memory.jsonl
+  flush_batch_size: 100
+
+database:
+  url_env: NEON_DATABASE_URL
+
+git:
+  capture_commit_hash: true
+  capture_branch: true
+  capture_dirty_state: true
+
+ast:
+  store_full_ast_by_default: false
+  store_full_ast_on_high_fitness: true
+  store_full_ast_on_error: true
+  hash_algorithm: sha256
+
+linear:
+  enabled: false
+  api_key_env: LINEAR_API_KEY
+  team_id_env: LINEAR_TEAM_ID
+  project_id_env: LINEAR_PROJECT_ID
+  high_fitness_threshold: 0.95
+  low_fitness_threshold: 0.20
+  create_issue_on_error: true
