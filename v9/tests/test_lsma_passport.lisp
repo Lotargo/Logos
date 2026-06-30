@@ -169,10 +169,10 @@
          (hash (getf passport :ast-hash)))
     (setf (getf passport :ast-str) "(+ x 1)")
     ;; Write and read back
-    (cognitive-engine::jsonl-cache-write passport)
-    (let* ((loaded (car (cognitive-engine::jsonl-cache-read :hash hash))))
+    (lsma::jsonl-cache-write passport)
+    (let* ((loaded (car (lsma::jsonl-cache-read :hash hash))))
       (and loaded
-           (string= (getf loaded :ast_hash) hash)))))
+           (string= (getf loaded :ast-hash) hash)))))
 
 ;; ————————————————————————————————————————————————————————————————————
 ;; Summary
