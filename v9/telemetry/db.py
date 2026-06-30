@@ -15,10 +15,13 @@ class LogosDB:
         if not self.db_url:
             raise ValueError("NEON_DATABASE_URL environment variable not set")
         if not LogosDB._pool:
-            LogosDB._pool = ThreadedConnectionPool(1, 5, self.db_url,
-                                                   connect_timeout=5,
-                                                   options='-c statement_timeout=10000')
-        return LogosDB._pool.getconn()
+            clean_url = self.db_url.replace('-pooler', '')
+            LogosDB._pool = ThreadedConnectionPool(1, 5, clean_url,
+                                                   connect_timeout=5)
+        conn = LogosDB._pool.getconn()
+        with conn.cursor() as cur:
+            cur.execute("SET statement_timeout = 10000")
+        return conn
 
     def return_connection(self, conn):
         if LogosDB._pool:
