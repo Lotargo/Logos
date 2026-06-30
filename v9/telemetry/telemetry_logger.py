@@ -174,6 +174,112 @@ class TelemetryLogger:
         axiom_strs = " ".join(f'"{str(x).replace(chr(34), chr(92) + chr(34))}"' for x in axioms)
         print(f"(:asts ({ast_strs}) :axioms ({axiom_strs}))")
 
+    # ──────────────────────────────────────────
+    # logos_knowledge passport operations
+    # ──────────────────────────────────────────
+
+    def save_knowledge(self, ast_hash, stdin_payload=None, adf_symbol=None):
+        """Save a passport to logos_knowledge via UPSERT.
+        Reads ast and passport from stdin JSON if stdin_payload is not provided."""
+        if stdin_payload is None:
+            stdin_payload = sys.stdin.read()
+        payload = json.loads(stdin_payload)
+        ast_json = payload.get("ast")
+        passport_json = payload.get("passport", payload)
+        db = LogosDB()
+        try:
+            db.save_knowledge(ast_hash, ast_json, passport_json, adf_symbol)
+            print(json.dumps({"status": "saved", "ast_hash": ast_hash}))
+        except Exception as e:
+            print(json.dumps({"status": "error", "message": str(e)}))
+
+    def fetch_knowledge_by_hash_lisp(self, ast_hash):
+        """Fetch a single passport by hash, output as Lisp s-expr plist."""
+        db = LogosDB()
+        try:
+            row = db.get_passport_by_hash(ast_hash)
+            if row:
+                self._print_passport_lisp(row)
+            else:
+                print("nil")
+        except Exception as e:
+            print(f"(:error \"{str(e)}\")")
+
+    def fetch_knowledge_by_domain_lisp(self, domain):
+        """Fetch passports by domain, output as Lisp s-expr list."""
+        db = LogosDB()
+        try:
+            rows = db.get_passports_by_domain(domain)
+            self._print_passport_list_lisp(rows)
+        except Exception as e:
+            print(f"(:error \"{str(e)}\")")
+
+    def fetch_all_knowledge_lisp(self, limit=None):
+        """Fetch all passports, output as Lisp s-expr list."""
+        db = LogosDB()
+        try:
+            rows = db.get_all_passports(limit=limit)
+            self._print_passport_list_lisp(rows)
+        except Exception as e:
+            print(f"(:error \"{str(e)}\")")
+
+    def _passport_plist(self, row):
+        """Convert a passport DB row dict to a Lisp plist string."""
+        p = row.get("passport", {})
+        return (
+            f":ast-hash \"{self._esc(row.get('ast_hash', ''))}\" "
+            f":ast-str \"{self._esc(str(row.get('ast', '')))}\" "
+            f":adf-symbol {self._lisp_val(row.get('adf_symbol'))} "
+            f":domains {self._lisp_val(p.get('domains', []))} "
+            f":operator-profile {self._lisp_val(p.get('operator_profile', []))} "
+            f":subtree-hashes {self._lisp_val(p.get('subtree_hashes', []))} "
+            f":depth-profile {self._lisp_val(p.get('depth_profile', []))} "
+            f":usage-count {p.get('usage_count', 0)} "
+            f":success-count {p.get('success_count', 0)} "
+            f":failure-count {p.get('failure_count', 0)} "
+            f":lineage {self._lisp_val(p.get('lineage', []))} "
+            f":fitness-scores {self._lisp_val(p.get('fitness_scores', []))} "
+            f":freshness {self._lisp_val(p.get('freshness', ''))}"
+        )
+
+    def _esc(self, s):
+        """Escape a string for Lisp: backslash-escape quotes and backslashes."""
+        return str(s).replace("\\", "\\\\").replace('"', '\\"')
+
+    def _lisp_val(self, v):
+        """Convert a Python value to a Lisp-readable value."""
+        if v is None:
+            return "nil"
+        if isinstance(v, bool):
+            return "t" if v else "nil"
+        if isinstance(v, (int, float)):
+            return str(v)
+        if isinstance(v, str):
+            return f'"{self._esc(v)}"'
+        if isinstance(v, list):
+            items = " ".join(self._lisp_val(x) for x in v)
+            return f"({items})"
+        if isinstance(v, dict):
+            plist = []
+            for k, val in v.items():
+                plist.append(f":{k}")
+                plist.append(self._lisp_val(val))
+            return f"({' '.join(plist)})"
+        return f'"{self._esc(str(v))}"'
+
+    def _print_passport_lisp(self, row):
+        """Print a single passport row as a Lisp plist line."""
+        plist = self._passport_plist(row)
+        # flatten to single line for easy Lisp read-from-string
+        print(f"({plist})")
+
+    def _print_passport_list_lisp(self, rows):
+        """Print a list of passport rows as Lisp list of plists."""
+        plists = " ".join(
+            f"({self._passport_plist(row)})" for row in rows
+        )
+        print(f"({plists})")
+
 def main():
     parser = argparse.ArgumentParser(description="Logos v9 Telemetry Logger")
     subparsers = parser.add_subparsers(dest="command")
@@ -203,6 +309,21 @@ def main():
 
     fetch_lisp_parser = subparsers.add_parser("fetch-knowledge-lisp")
     fetch_lisp_parser.add_argument("--min-fitness", type=float, default=0.9)
+
+    save_knowledge_parser = subparsers.add_parser("save-knowledge")
+    save_knowledge_parser.add_argument("--ast-hash", required=True)
+    save_knowledge_parser.add_argument("--adf-symbol", default=None)
+    save_knowledge_parser.add_argument("--stdin", action="store_true",
+                                       help="Read JSON payload from stdin: {\"ast\": ..., \"passport\": ...}")
+
+    fetch_knowledge_by_hash_parser = subparsers.add_parser("fetch-knowledge-by-hash")
+    fetch_knowledge_by_hash_parser.add_argument("--ast-hash", required=True)
+
+    fetch_knowledge_by_domain_parser = subparsers.add_parser("fetch-knowledge-by-domain")
+    fetch_knowledge_by_domain_parser.add_argument("--domain", required=True)
+
+    fetch_knowledge_all_parser = subparsers.add_parser("fetch-knowledge-all")
+    fetch_knowledge_all_parser.add_argument("--limit", type=int, default=None)
 
     args = parser.parse_args()
 
@@ -243,6 +364,18 @@ def main():
 
     elif args.command == "fetch-knowledge-lisp":
         logger.fetch_knowledge_lisp(min_fitness=args.min_fitness)
+
+    elif args.command == "save-knowledge":
+        logger.save_knowledge(args.ast_hash, adf_symbol=args.adf_symbol)
+
+    elif args.command == "fetch-knowledge-by-hash":
+        logger.fetch_knowledge_by_hash_lisp(args.ast_hash)
+
+    elif args.command == "fetch-knowledge-by-domain":
+        logger.fetch_knowledge_by_domain_lisp(args.domain)
+
+    elif args.command == "fetch-knowledge-all":
+        logger.fetch_all_knowledge_lisp(limit=args.limit)
 
     else:
         parser.print_help()

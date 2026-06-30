@@ -222,6 +222,122 @@ class LogosDB:
                             asts.append(event["payload"].get("output_ast"))
         return {"asts": asts, "axioms": []}
 
+    # ──────────────────────────────────────────
+    # logos_knowledge operations (LSMA passports)
+    # ──────────────────────────────────────────
+
+    def save_knowledge(self, ast_hash, ast_json, passport_json, adf_symbol=None):
+        """UPSERT a passport into logos_knowledge."""
+        conn = self.connect()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO logos_knowledge (ast_hash, ast, passport, adf_symbol, updated_at)
+                    VALUES (%s, %s::jsonb, %s::jsonb, %s, now())
+                    ON CONFLICT (ast_hash) DO UPDATE
+                        SET ast = EXCLUDED.ast,
+                            passport = EXCLUDED.passport,
+                            adf_symbol = COALESCE(EXCLUDED.adf_symbol, logos_knowledge.adf_symbol),
+                            updated_at = now()
+                """, (ast_hash, ast_json, passport_json, adf_symbol))
+            conn.commit()
+            return True
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self.return_connection(conn)
+
+    def get_passport_by_hash(self, ast_hash):
+        """Fetch a single passport row by ast_hash. Returns dict or None."""
+        conn = self.connect()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT ast_hash, ast, passport, adf_symbol, created_at, updated_at
+                    FROM logos_knowledge
+                    WHERE ast_hash = %s
+                """, (ast_hash,))
+                row = cur.fetchone()
+                if row:
+                    return {
+                        "ast_hash": row[0],
+                        "ast": row[1],
+                        "passport": row[2],
+                        "adf_symbol": row[3],
+                        "created_at": row[4].isoformat() if row[4] else None,
+                        "updated_at": row[5].isoformat() if row[5] else None,
+                    }
+                return None
+        finally:
+            self.return_connection(conn)
+
+    def get_passports_by_domain(self, domain):
+        """Fetch all passports for a given domain. Returns list of dicts."""
+        conn = self.connect()
+        results = []
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT ast_hash, ast, passport, adf_symbol, created_at, updated_at
+                    FROM logos_knowledge
+                    WHERE passport @? '$.domains ? (@ == $domain)'
+                """, (domain,))
+                for row in cur.fetchall():
+                    results.append({
+                        "ast_hash": row[0],
+                        "ast": row[1],
+                        "passport": row[2],
+                        "adf_symbol": row[3],
+                        "created_at": row[4].isoformat() if row[4] else None,
+                        "updated_at": row[5].isoformat() if row[5] else None,
+                    })
+        finally:
+            self.return_connection(conn)
+        return results
+
+    def get_all_passports(self, limit=None):
+        """Fetch all passports from logos_knowledge. Returns list of dicts."""
+        conn = self.connect()
+        results = []
+        try:
+            with conn.cursor() as cur:
+                query = """
+                    SELECT ast_hash, ast, passport, adf_symbol, created_at, updated_at
+                    FROM logos_knowledge
+                    ORDER BY updated_at DESC
+                """
+                if limit:
+                    query += f" LIMIT {int(limit)}"
+                cur.execute(query)
+                for row in cur.fetchall():
+                    results.append({
+                        "ast_hash": row[0],
+                        "ast": row[1],
+                        "passport": row[2],
+                        "adf_symbol": row[3],
+                        "created_at": row[4].isoformat() if row[4] else None,
+                        "updated_at": row[5].isoformat() if row[5] else None,
+                    })
+        finally:
+            self.return_connection(conn)
+        return results
+
+    def delete_passport(self, ast_hash):
+        """Delete a passport by ast_hash."""
+        conn = self.connect()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM logos_knowledge WHERE ast_hash = %s", (ast_hash,))
+            conn.commit()
+            return cur.rowcount > 0
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self.return_connection(conn)
+
+
 if __name__ == "__main__":
     db = LogosDB()
     try:

@@ -18,6 +18,7 @@
 (defpackage :lsma
   (:use :cl)
   (:export
+   ;; Passport core
    :canonical-ast-hash
    :canonical-ast
    :canonicalize-variables
@@ -29,7 +30,22 @@
    :ast-structural-equal-p
    :passport-get
    :*canonical-variables*
-   :*subtree-hash-limit*))
+   :*subtree-hash-limit*
+   ;; Storage API
+   :save-passport
+   :load-passport-by-hash
+   :load-passports-by-domain
+   :load-all-passports
+   :count-passports
+   :passport->adf
+   :batch-passports->adfs
+   :register-passport-as-adf
+   ;; JSONL cache (useful for direct manipulation)
+   :jsonl-cache-write
+   :jsonl-cache-read
+   :jsonl-cache-delete
+   ;; Serialization helpers
+   :plist-to-json))
 
 (in-package :lsma)
 
@@ -59,15 +75,16 @@
 
 (defun %hash-bytes (bytes)
   "Return hex string hash of byte vector.
-   Uses sb-md5 (SBCL contrib). Loaded at runtime to avoid reader package errors."
+   Uses sb-md5 (SBCL contrib). Loaded at runtime to avoid reader package errors.
+   Always returns a simple string for deterministic printing."
   (%ensure-hash-module)
   (let* ((input (sb-ext:octets-to-string bytes :external-format :utf-8))
          (md5-fn (find-symbol "MD5SUM-STRING" :sb-md5))
-         (result (if md5-fn (funcall md5-fn input) nil)))
-    (cond ((stringp result) result)
-          ((typep result '(vector (unsigned-byte 8)))
+         (raw (if md5-fn (funcall md5-fn input) nil)))
+    (cond ((stringp raw) (copy-seq raw))
+          ((typep raw '(vector (unsigned-byte 8)))
            (format nil "~(~{~2,'0X~}~)"
-                   (coerce result 'list)))
+                   (coerce raw 'list)))
           (t
            (format nil "~(~36,8R~)" (sxhash input))))))
 
