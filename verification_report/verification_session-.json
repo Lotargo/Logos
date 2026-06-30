@@ -1,0 +1,13 @@
+{
+  "run_id": "session-337116",
+  "domain": "quantum",
+  "metrics": {
+    "improvement_test": {
+      "skipped": true,
+      "reason": "insufficient data"
+    },
+    "fitness_ci": {
+      "skipped": true
+    }
+  }
+}

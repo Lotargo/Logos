@@ -1,0 +1,33 @@
+{
+  "run_id": "session-337116",
+  "domain": "algebra",
+  "metrics": {
+    "improvement_test": {
+      "statistic": 18.0,
+      "p_value": NaN,
+      "test_used": "mannwhitney",
+      "cohens_d": {
+        "d": 0.0,
+        "abs_d": 0.0,
+        "interpretation": "negligible"
+      },
+      "hedges_g": {
+        "g": 0.0,
+        "abs_g": 0.0,
+        "correction_factor": 0.9230769230769231,
+        "interpretation": "negligible"
+      },
+      "ci_95_diff": {
+        "low": 0.0,
+        "high": 0.0
+      },
+      "interpretation": "no significant difference (p=nan)"
+    },
+    "fitness_ci": {
+      "ci_low": 1.0,
+      "ci_high": 1.0,
+      "observed": 1.0
+    }
+  },
+  "dashboard": "F:\\\u041a\u0435\u0439\u0441\\AGI-lite\\v9\\verification_report\\dashboard_session-.html"
+}

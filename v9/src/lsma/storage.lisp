@@ -18,9 +18,13 @@
 ;; ————————————————————————————————————————————————————————————————————
 
 (defvar *jsonl-cache-path*
-  (or (ignore-errors (uiop:getenv "LOGOS_JSONL_CACHE"))
-      "v9/telemetry/cache/logos_knowledge.jsonl")
-  "Path to the JSONL cache file for passport storage.")
+  (let ((raw (or (ignore-errors (uiop:getenv "LOGOS_JSONL_CACHE"))
+                 "v9/telemetry/cache/logos_knowledge.jsonl")))
+    (namestring (merge-pathnames raw)))
+  "Path to the JSONL cache file for passport storage. Normalized to absolute path.")
+
+(defvar *jsonl-lock* (sb-thread:make-mutex :name "jsonl-cache-lock")
+  "Mutex protecting all JSONL cache read/write/delete operations against concurrent access.")
 
 (defvar *python-executable*
   (or (uiop:getenv "LOGOS_PYTHON")
@@ -76,8 +80,13 @@
               :freshness (getf data :freshness "")))
     (error () nil)))
 
+;; ————————————————————————————————————————————————————————————————————
+;; Unlocked internal variants (called from within *jsonl-lock*)
+;; ————————————————————————————————————————————————————————————————————
+
 (defun %hash-exists-in-cache-p (hash)
-  "Return T if a passport with the given hash is already in the JSONL cache."
+  "Return T if a passport with the given hash is already in the JSONL cache.
+   Caller must hold *jsonl-lock*."
   (unless (probe-file *jsonl-cache-path*)
     (return-from %hash-exists-in-cache-p nil))
   (with-open-file (f *jsonl-cache-path* :direction :input :if-does-not-exist nil)
@@ -91,13 +100,12 @@
                  (error ())))))
   nil)
 
-(defun jsonl-cache-write (passport &key (dedup t))
-  "Append a passport to the JSONL cache.
-   When DEDUP is T (default), skips write if hash already exists."
+(defun jsonl-cache-write-unlocked (passport &key (dedup t))
+  "Append a passport to the JSONL cache (no mutex — caller must hold *jsonl-lock*)."
   (%ensure-cache-dir)
   (let ((hash (getf passport :ast-hash)))
     (when (and hash dedup (%hash-exists-in-cache-p hash))
-      (return-from jsonl-cache-write nil))
+      (return-from jsonl-cache-write-unlocked nil))
     (with-open-file (f *jsonl-cache-path*
                        :direction :output
                        :if-exists :append
@@ -106,11 +114,10 @@
       (write-string (%passport-plist->line passport) f))
     t))
 
-(defun jsonl-cache-read (&key (hash nil) (domain nil))
-  "Read passports from JSONL cache. Filters by hash or domain when provided.
-   Returns a list of passport plists."
+(defun jsonl-cache-read-unlocked (&key (hash nil) (domain nil))
+  "Read passports from JSONL cache (no mutex — caller must hold *jsonl-lock*)."
   (unless (probe-file *jsonl-cache-path*)
-    (return-from jsonl-cache-read nil))
+    (return-from jsonl-cache-read-unlocked nil))
   (let (results seen)
     (with-open-file (f *jsonl-cache-path*
                        :direction :input
@@ -132,11 +139,10 @@
                            (push plist results)))))))))
     (nreverse results)))
 
-(defun jsonl-cache-delete (hash)
-  "Remove all lines matching hash from the JSONL cache.
-   Rewrites the file excluding matching entries."
+(defun jsonl-cache-delete-unlocked (hash)
+  "Remove all lines matching hash from the JSONL cache (no mutex — caller must hold *jsonl-lock*)."
   (unless (probe-file *jsonl-cache-path*)
-    (return-from jsonl-cache-delete nil))
+    (return-from jsonl-cache-delete-unlocked nil))
   (let ((temp-path (format nil "~A.~A.tmp" *jsonl-cache-path* (get-internal-real-time)))
         (deleted 0))
     (with-open-file (in *jsonl-cache-path* :direction :input :external-format :utf-8)
@@ -153,6 +159,75 @@
     (when (> deleted 0)
       (rename-file temp-path *jsonl-cache-path*))
     deleted))
+
+(defun jsonl-cache-write (passport &key (dedup t))
+  "Append a passport to the JSONL cache.
+   When DEDUP is T (default), skips write if hash already exists.
+   Thread-safe: all operations protected by *jsonl-lock*."
+  (sb-thread:with-mutex (*jsonl-lock*)
+    (%ensure-cache-dir)
+    (let ((hash (getf passport :ast-hash)))
+      (when (and hash dedup (%hash-exists-in-cache-p hash))
+        (return-from jsonl-cache-write nil))
+      (with-open-file (f *jsonl-cache-path*
+                         :direction :output
+                         :if-exists :append
+                         :if-does-not-exist :create
+                         :external-format :utf-8)
+        (write-string (%passport-plist->line passport) f))
+      t)))
+
+(defun jsonl-cache-read (&key (hash nil) (domain nil))
+  "Read passports from JSONL cache. Filters by hash or domain when provided.
+   Returns a list of passport plists.
+   Thread-safe: all operations protected by *jsonl-lock*."
+  (sb-thread:with-mutex (*jsonl-lock*)
+    (unless (probe-file *jsonl-cache-path*)
+      (return-from jsonl-cache-read nil))
+    (let (results seen)
+      (with-open-file (f *jsonl-cache-path*
+                         :direction :input
+                         :if-does-not-exist nil
+                         :external-format :utf-8)
+        (when f
+          (loop for line = (read-line f nil nil)
+                while line
+                do (let ((plist (%line->passport-plist line)))
+                     (when plist
+                       (let ((h (getf plist :ast-hash)))
+                         (when (and (or (null hash) (string= h hash))
+                                    (or (null domain)
+                                        (member domain (getf plist :domains)
+                                                :test (lambda (d e)
+                                                        (string-equal (string d) (string e))))))
+                           (unless (member h seen :test #'string=)
+                             (push h seen)
+                             (push plist results)))))))))
+      (nreverse results))))
+
+(defun jsonl-cache-delete (hash)
+  "Remove all lines matching hash from the JSONL cache.
+   Rewrites the file excluding matching entries.
+   Thread-safe: all operations protected by *jsonl-lock*."
+  (sb-thread:with-mutex (*jsonl-lock*)
+    (unless (probe-file *jsonl-cache-path*)
+      (return-from jsonl-cache-delete nil))
+    (let ((temp-path (format nil "~A.~A.tmp" *jsonl-cache-path* (get-internal-real-time)))
+          (deleted 0))
+      (with-open-file (in *jsonl-cache-path* :direction :input :external-format :utf-8)
+        (with-open-file (out temp-path :direction :output :if-exists :supersede :external-format :utf-8)
+          (loop for line = (read-line in nil nil)
+                while line
+                do (handler-case
+                       (let ((data (read-from-string line)))
+                         (if (string= (getf data :ast-hash) hash)
+                             (incf deleted)
+                             (write-string (format nil "~A~%" line) out)))
+                     (error ()
+                       (write-string (format nil "~A~%" line) out))))))
+      (when (> deleted 0)
+        (rename-file temp-path *jsonl-cache-path*))
+      deleted)))
 
 ;; ————————————————————————————————————————————————————————————————————
 ;; JSON helpers — value-to-json handles all types correctly
@@ -180,13 +255,16 @@
     (integer (format nil "~D" val))
     (float (format nil "~A" val))
     (cons
-     (if (keywordp (car val))
-         ;; plist — alternating keywords and values
+     (if (and (keywordp (car val))
+              (evenp (length val))
+              (>= (length val) 4))
+         ;; plist — alternating keywords and values (min 4 elements to
+         ;; avoid misidentifying keyword lists like (:arithmetic) as plists)
          (let (parts)
            (loop for (k v) on val by #'cddr
                  do (push (format nil "~S: ~A"
-                                  (string-downcase (symbol-name k))
-                                  (%value-to-json v))
+                                   (string-downcase (symbol-name k))
+                                   (%value-to-json v))
                           parts))
            (format nil "{~{~A~^, ~}}" (nreverse parts)))
          ;; value list — JSON array (handle dotted pairs for alist entries)
@@ -217,7 +295,7 @@
                           collect (princ-to-string v)))))
     (handler-case
         (sb-ext:with-timeout 10.0
-          (uiop:run-program cmd :output :string :ignore-error-status t))
+          (uiop:run-program cmd :output :string :error-output :string :ignore-error-status t))
       (sb-ext:timeout ()
         (format t "[LSMA STORAGE TIMEOUT] Python ~A hung within 10s~%" subcommand)
         nil)
@@ -236,7 +314,7 @@
                           collect (princ-to-string v)))))
     (handler-case
         (sb-ext:with-timeout 10.0
-          (uiop:run-program cmd :input stdin-json :output :string :ignore-error-status t))
+          (uiop:run-program cmd :input stdin-json :output :string :error-output :string :ignore-error-status t))
       (sb-ext:timeout ()
         (format t "[LSMA STORAGE TIMEOUT] Python ~A hung within 10s~%" subcommand)
         nil)

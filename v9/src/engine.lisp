@@ -143,20 +143,21 @@
       (walk ast)
       used)))
 
-(defun expand-adfs (ast)
-  "Recursively expands any ADF symbols in the AST into their actual bodies."
+(defun expand-adfs (ast &optional (visited nil))
+  "Recursively expands any ADF symbols in the AST into their actual bodies.
+   Tracks visited ADF symbols to prevent infinite recursion from circular references."
   (cond
     ((null ast) nil)
     ((atom ast)
      (let ((body (assoc ast *adf-library*)))
-       (if body
-           (expand-adfs (cdr body))
+       (if (and body (not (member ast visited :test #'eq)))
+           (expand-adfs (cdr body) (cons ast visited))
            ast)))
     ((listp ast)
      (let ((body (assoc (car ast) *adf-library*)))
-       (if body
-           (expand-adfs (cdr body))
-           (cons (car ast) (mapcar #'expand-adfs (cdr ast))))))))
+       (if (and body (not (member (car ast) visited :test #'eq)))
+           (expand-adfs (cdr body) (cons (car ast) visited))
+           (cons (car ast) (mapcar (lambda (child) (expand-adfs child visited)) (cdr ast))))))))
 
 (defun lisp-to-prolog (ast)
   "Translates Lisp AST into Prolog term syntax after expanding any ADFs."

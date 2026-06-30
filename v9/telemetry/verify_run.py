@@ -13,6 +13,11 @@ import argparse
 import json
 import os
 import sys
+import io
+
+# Fix UTF-8 encoding on Windows for Lisp subprocess pipe
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 # Add project root to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -37,7 +42,7 @@ import numpy as np
 def load_population_data(run_id, data_dir=None):
     """Load population snapshots from JSONL cache or generate synthetic data."""
     if data_dir is None:
-        data_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
+        data_dir = os.path.join(os.path.dirname(__file__), "cache")
 
     jsonl_path = os.path.join(data_dir, f"pop_snapshots_{run_id}.jsonl")
     snapshots = []
@@ -76,7 +81,7 @@ def load_population_data(run_id, data_dir=None):
 def load_fitness_history(run_id, data_dir=None):
     """Load fitness values over time from telemetry events."""
     if data_dir is None:
-        data_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
+        data_dir = os.path.join(os.path.dirname(__file__), "cache")
 
     events_path = os.path.join(data_dir, "logos_memory.jsonl")
     fitness_values = []
