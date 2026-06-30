@@ -14,6 +14,7 @@ import numpy as np
 
 try:
     import plotly.graph_objects as go
+    import plotly.colors
     from plotly.subplots import make_subplots
     HAS_PLOTLY = True
 except ImportError:
@@ -162,6 +163,209 @@ def build_operator_heatmap(
     return fig
 
 
+def build_operator_pie(
+    operator_counts: Dict[str, int],
+    title: str = "Operator Usage Distribution",
+) -> "go.Figure":
+    """Pie chart of operator frequency from knowledge cache."""
+    labels = list(operator_counts.keys())
+    values = list(operator_counts.values())
+    fig = go.Figure(data=[go.Pie(
+        labels=labels, values=values,
+        hole=0.35,
+        textinfo="label+percent",
+        textfont_size=11,
+        marker=dict(colors=plotly.colors.qualitative.Set2),
+        hovertemplate="<b>%{label}</b><br>Count: %{value}<br>%{percent}<extra></extra>",
+    )])
+    fig.update_layout(
+        title=title,
+        template="plotly_white",
+        height=380,
+        margin=dict(l=20, r=20, t=50, b=20),
+        showlegend=False,
+    )
+    return fig
+
+
+def build_adf_bar(
+    adf_data: List[Dict[str, Any]],
+    title: str = "ADF Registration & Adoption",
+) -> "go.Figure":
+    """Bar chart of registered ADFs with their fitness scores."""
+    if not adf_data:
+        fig = go.Figure()
+        fig.update_layout(title=title + " (no data)", template="plotly_white", height=380)
+        return fig
+
+    symbols = [a.get("symbol", "?") for a in adf_data]
+    fitnesses = [a.get("fitness", 0) for a in adf_data]
+    domains = [", ".join(a.get("domains", [])) or "none" for a in adf_data]
+
+    colors = ["#2ca02c" if f >= 0.9 else "#ff7f0e" if f >= 0.5 else "#d62728" for f in fitnesses]
+
+    fig = go.Figure(data=[go.Bar(
+        x=symbols, y=fitnesses,
+        text=[f"{f:.2f}" for f in fitnesses],
+        textposition="outside",
+        marker_color=colors,
+        hovertemplate="<b>%{x}</b><br>Fitness: %{y:.3f}<br>Domain: %{customdata}<extra></extra>",
+        customdata=domains,
+    )])
+    fig.update_layout(
+        title=title,
+        xaxis_title="ADF Symbol",
+        yaxis_title="Fitness Score",
+        template="plotly_white",
+        height=380,
+        yaxis=dict(range=[0, 1.1]),
+        margin=dict(l=50, r=30, t=50, b=40),
+    )
+    return fig
+
+
+def build_complexity_hist(
+    ast_depths: List[int],
+    title: str = "AST Complexity Distribution",
+) -> "go.Figure":
+    """Histogram of AST node depths from knowledge cache."""
+    fig = go.Figure(data=[go.Histogram(
+        x=ast_depths,
+        nbinsx=20,
+        marker_color="#1f77b4",
+        opacity=0.75,
+        hovertemplate="Depth: %{x}<br>Count: %{y}<extra></extra>",
+    )])
+    fig.update_layout(
+        title=title,
+        xaxis_title="AST Depth",
+        yaxis_title="Count",
+        template="plotly_white",
+        height=380,
+        margin=dict(l=50, r=30, t=50, b=40),
+    )
+    return fig
+
+
+def build_convergence_trace(
+    fitness_values: List[float],
+    title: str = "Convergence Analysis",
+) -> "go.Figure":
+    """Fitness with moving average and convergence point marker."""
+    fig = go.Figure()
+    gens = list(range(len(fitness_values)))
+
+    # Raw fitness
+    fig.add_trace(go.Scatter(
+        x=gens, y=fitness_values,
+        mode="lines",
+        name="Fitness",
+        line=dict(color="#1f77b4", width=1.5),
+        opacity=0.6,
+    ))
+
+    # Moving average (window=5)
+    if len(fitness_values) >= 5:
+        window = min(5, len(fitness_values) // 3 or 5)
+        ma = []
+        for i in range(len(fitness_values)):
+            start = max(0, i - window + 1)
+            ma.append(np.mean(fitness_values[start:i + 1]))
+        fig.add_trace(go.Scatter(
+            x=gens, y=ma,
+            mode="lines",
+            name=f"Moving Avg (w={window})",
+            line=dict(color="#d62728", width=2.5),
+        ))
+
+    # Find convergence point (first time fitness stays within 5% of max for 3+ gens)
+    if fitness_values:
+        max_fit = max(fitness_values)
+        threshold = max_fit * 0.95
+        conv_point = len(fitness_values) - 1
+        for i in range(len(fitness_values) - 2):
+            if all(f >= threshold for f in fitness_values[i:i + 3]):
+                conv_point = i
+                break
+        fig.add_vline(x=conv_point, line_dash="dash", line_color="green",
+                      annotation_text=f"Converged at gen {conv_point}")
+
+    fig.update_layout(
+        title=title,
+        xaxis_title="Generation",
+        yaxis_title="Fitness",
+        template="plotly_white",
+        height=380,
+        margin=dict(l=50, r=30, t=50, b=40),
+    )
+    return fig
+
+
+def build_executive_summary(
+    run_id: str,
+    domain: str,
+    fitness_history: List[float],
+    adf_count: int = 0,
+    knowledge_count: int = 0,
+    title: str = "Executive Summary",
+) -> str:
+    """Generate HTML card with narrative summary of the experiment."""
+    n_evals = len(fitness_history)
+    if n_evals > 0:
+        avg_fit = np.mean(fitness_history)
+        max_fit = max(fitness_history)
+        min_fit = min(fitness_history)
+        std_fit = np.std(fitness_history)
+        fit_text = f"Average fitness: <b>{avg_fit:.3f}</b> (σ={std_fit:.3f}), range [{min_fit:.3f}, {max_fit:.3f}]"
+    else:
+        fit_text = "No fitness data available"
+
+    # Determine verdict
+    if n_evals > 0 and avg_fit >= 0.95:
+        verdict = "EXCELLENT"
+        verdict_color = "#2ca02c"
+        verdict_text = "The engine achieved near-optimal fitness consistently."
+    elif n_evals > 0 and avg_fit >= 0.7:
+        verdict = "GOOD"
+        verdict_color = "#ff7f0e"
+        verdict_text = "The engine showed strong performance with room for improvement."
+    elif n_evals > 0:
+        verdict = "NEEDS WORK"
+        verdict_color = "#d62728"
+        verdict_text = "The engine struggled to find high-fitness solutions."
+    else:
+        verdict = "NO DATA"
+        verdict_color = "#666"
+        verdict_text = "Insufficient data to evaluate performance."
+
+    html = f"""
+    <div class="card full-width" style="padding: 24px; border-left: 4px solid {verdict_color};">
+        <h2 style="margin-top: 0; color: #1a1a2e;">{title}</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin: 16px 0;">
+            <div style="text-align: center; padding: 12px; background: #f8f9fa; border-radius: 8px;">
+                <div style="font-size: 28px; font-weight: bold; color: {verdict_color};">{verdict}</div>
+                <div style="font-size: 12px; color: #666;">Overall Verdict</div>
+            </div>
+            <div style="text-align: center; padding: 12px; background: #f8f9fa; border-radius: 8px;">
+                <div style="font-size: 28px; font-weight: bold; color: #1a1a2e;">{n_evals}</div>
+                <div style="font-size: 12px; color: #666;">Fitness Evaluations</div>
+            </div>
+            <div style="text-align: center; padding: 12px; background: #f8f9fa; border-radius: 8px;">
+                <div style="font-size: 28px; font-weight: bold; color: #1a1a2e;">{knowledge_count}</div>
+                <div style="font-size: 12px; color: #666;">Knowledge Entries</div>
+            </div>
+        </div>
+        <p style="font-size: 14px; color: #333; line-height: 1.6;">
+            <b>Session:</b> {run_id} &nbsp;|&nbsp; <b>Domain:</b> {domain}<br>
+            {fit_text}<br>
+            <b>ADF Library:</b> {adf_count} registered functions<br>
+            <b>Verdict:</b> {verdict_text}
+        </p>
+    </div>
+    """
+    return html
+
+
 def build_stat_table(
     metrics: List[Dict[str, Any]],
     title: str = "Statistical Comparison Results",
@@ -209,16 +413,25 @@ def assemble_dashboard(
     pareto_fig: Optional["go.Figure"] = None,
     heatmap_fig: Optional["go.Figure"] = None,
     stat_table_fig: Optional["go.Figure"] = None,
+    operator_pie_fig: Optional["go.Figure"] = None,
+    adf_bar_fig: Optional["go.Figure"] = None,
+    complexity_hist_fig: Optional["go.Figure"] = None,
+    convergence_fig: Optional["go.Figure"] = None,
+    executive_summary_html: Optional[str] = None,
     output_path: Optional[str] = None,
-    title: str = "Logos V9 Verification Dashboard",
+    title: str = "Logos V9 Verification Report",
 ) -> str:
-    """Assemble all figures into a single HTML file (2x3 grid)."""
+    """Assemble all figures into a single HTML report with narrative sections."""
     if not HAS_PLOTLY:
         raise ImportError("plotly is required: pip install plotly")
 
     figs = [
         ("fitness", fitness_fig),
+        ("convergence", convergence_fig),
         ("diversity", diversity_fig),
+        ("operator_pie", operator_pie_fig),
+        ("adf_bar", adf_bar_fig),
+        ("complexity_hist", complexity_hist_fig),
         ("pareto", pareto_fig),
         ("heatmap", heatmap_fig),
         ("stats", stat_table_fig),
@@ -238,20 +451,26 @@ def assemble_dashboard(
         f"<title>{title}</title>",
         plotly_js_cdn,
         "<style>",
-        "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #fafafa; }",
-        "h1 { text-align: center; color: #1a1a2e; margin-bottom: 8px; }",
-        ".subtitle { text-align: center; color: #666; font-size: 14px; margin-bottom: 24px; }",
+        "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f5f6fa; color: #1a1a2e; }",
+        "h1 { text-align: center; color: #1a1a2e; margin-bottom: 4px; font-size: 28px; }",
+        "h2 { color: #1a1a2e; font-size: 18px; margin: 0 0 8px 0; }",
+        ".subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 24px; }",
         ".grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 1400px; margin: 0 auto; }",
-        ".card { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 8px; }",
+        ".card { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 16px; }",
         ".full-width { grid-column: 1 / -1; }",
+        ".section-header { grid-column: 1 / -1; font-size: 16px; font-weight: 600; color: #1a1a2e; padding: 8px 0 4px 0; border-bottom: 2px solid #e0e0e0; margin-top: 8px; }",
         "@media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }",
         "</style>",
         "</head>",
         "<body>",
         f"<h1>{title}</h1>",
-        "<div class='subtitle'>Generated by Logos V9 Verification Suite</div>",
+        "<div class='subtitle'>Generated by Logos V9 Verification Suite &mdash; Automated Analysis Report</div>",
         "<div class='grid'>",
     ]
+
+    # Executive summary goes first (full width)
+    if executive_summary_html:
+        html_parts.append(executive_summary_html)
 
     active_figs = [(n, f) for n, f in figs if f is not None]
     n_active = len(active_figs)
@@ -263,7 +482,11 @@ def assemble_dashboard(
         cls = "card full-width" if is_odd_last else "card"
         html_parts.append(f"<div class='{cls}'>{div_html}</div>")
 
+    # Footer
     html_parts.extend([
+        "<div class='card full-width' style='text-align: center; color: #999; font-size: 12px; padding: 12px;'>",
+        "Logos V9 Cognitive Engine &mdash; Verification Report",
+        "</div>",
         "</div>",
         "</body>",
         "</html>",
