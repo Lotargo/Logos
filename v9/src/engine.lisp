@@ -114,6 +114,7 @@
 ;; =======================================================================
 
 (defvar *adf-library* nil)
+(load "v9/src/knowledge_loader.lisp")
 (defparameter *novelty-search-mode* :auto)
 
 
@@ -351,6 +352,7 @@
 (defun run-engine-parallel (base-ast domain iterations num-threads)
   (log-telemetry "experiment_started" (format nil "Starting experiment in domain ~A" domain))
   (setf *discovered-axioms* nil)
+  (initialize-knowledge-base)
   (format t "=== Starting Parallel Logos Cognitive Engine ===~%")
   (format t "Domain: ~A~%" domain)
   (format t "Base AST: ~A~%" base-ast)
@@ -382,6 +384,7 @@
     (format t "Total Elapsed Time    : ~,4F seconds~%" elapsed-seconds)
     (format t "Logical CPU Cores     : ~D~%" num-threads)
     (format t "Total ASTs Evaluated  : ~D~%" total-iterations)
+    (format t "Total Knowledge Weights: ~D~%" (+ (length *adf-library*) (length *discovered-axioms*)))
     (format t "Throughput (AST/sec)  : ~,2F~%" (if (> elapsed-seconds 0) (/ total-iterations elapsed-seconds) 0))
     (format t "Avg Latency per AST   : ~,4F ms~%" (if (> total-iterations 0) (/ (* elapsed-seconds 1000) total-iterations) 0))
     (format t "==================================================~%~%")

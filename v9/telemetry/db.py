@@ -26,6 +26,46 @@ class LogosDB:
                 cur.execute(f.read())
         conn.commit()
 
+    def get_best_knowledge(self, min_fitness=0.9, limit=100):
+        """
+        Retrieves high-fitness ASTs from the database to be used as 'weights' or seeds.
+        """
+        conn = self.connect()
+        results = []
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT output_ast, fitness_score
+                FROM logos_fitness_results
+                WHERE fitness_score >= %s
+                ORDER BY fitness_score DESC, created_at DESC
+                LIMIT %s
+            """, (min_fitness, limit))
+            for row in cur.fetchall():
+                results.append({
+                    "ast": row[0],
+                    "fitness": row[1]
+                })
+        return results
+
+    def get_discovered_axioms(self, limit=100):
+        """
+        Retrieves successfully validated axioms from the events table.
+        """
+        conn = self.connect()
+        axioms = []
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT payload->>'axiom'
+                FROM logos_events
+                WHERE event_type = 'axiom_discovered'
+                ORDER BY created_at DESC
+                LIMIT %s
+            """, (limit,))
+            for row in cur.fetchall():
+                if row[0]:
+                    axioms.append(row[0])
+        return axioms
+
     def insert_events(self, events):
         """
         Batch inserts events into the database.
@@ -33,18 +73,15 @@ class LogosDB:
         """
         conn = self.connect()
         with conn.cursor() as cur:
-            # First, separate events by category if needed
-            # For MVP, we'll mostly use logos_events and logos_fitness_results
-
             general_events = []
             fitness_results = []
             runs = []
 
             for event in events:
                 event_type = event.get("event_type")
-                if event_type == "experiment_started" or event_type == "experiment_finished":
-                    # Map to logos_runs if it looks like a run event
-                    payload = event.get("payload", {})
+                payload = event.get("payload", {})
+
+                if event_type in ["experiment_started", "experiment_finished"]:
                     runs.append((
                         event.get("session_id"),
                         event.get("experiment_id"),
@@ -59,7 +96,6 @@ class LogosDB:
                         json.dumps(payload.get("metadata", {}))
                     ))
 
-                # All events go to logos_events
                 general_events.append((
                     event.get("session_id"),
                     event.get("event_type"),
@@ -67,12 +103,11 @@ class LogosDB:
                     event.get("created_at"),
                     event.get("severity", "info"),
                     event.get("message"),
-                    json.dumps(event.get("payload", {})),
+                    json.dumps(payload),
                     json.dumps(event.get("metadata", {}))
                 ))
 
                 if event_type == "fitness_evaluated":
-                    payload = event.get("payload", {})
                     fitness_results.append((
                         event.get("session_id"),
                         payload.get("candidate_id"),
@@ -89,10 +124,11 @@ class LogosDB:
                         json.dumps(event.get("metadata", {}))
                     ))
 
-            # Execute insertions
             if runs:
-                # Simplified run insertion for now
-                pass
+                execute_values(cur, """
+                    INSERT INTO logos_runs (session_id, experiment_id, run_type, started_at, status, model_id, logos_version, git_commit_hash, git_branch, dirty_worktree, metadata)
+                    VALUES %s
+                """, runs)
 
             if general_events:
                 execute_values(cur, """
@@ -109,7 +145,6 @@ class LogosDB:
         conn.commit()
 
 if __name__ == "__main__":
-    # Test connection
     db = LogosDB()
     try:
         db.connect()
