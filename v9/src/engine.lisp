@@ -349,10 +349,12 @@
         (uiop:wait-process active-proc))
       hybrids)))
 
-(defun run-engine-parallel (base-ast domain iterations num-threads)
+(defun run-engine-parallel (base-ast domain iterations num-threads
+                            &key (reset-state t))
   (log-telemetry "experiment_started" (format nil "Starting experiment in domain ~A" domain))
-  (setf *discovered-axioms* nil)
-  (initialize-knowledge-base)
+  (when reset-state
+    (setf *discovered-axioms* nil))
+  (initialize-knowledge-base :keep-existing (not reset-state))
   (format t "=== Starting Parallel Logos Cognitive Engine ===~%")
   (format t "Domain: ~A~%" domain)
   (format t "Base AST: ~A~%" base-ast)
@@ -374,7 +376,7 @@
 
     ;; Dynamic Subroutine Extraction: Register successful island winners as new ADF symbols
     (dolist (w winners)
-      (let ((adf-sym (intern (format nil "ADF-~D" (1+ (length *adf-library*))))))
+      (let ((adf-sym (next-adf-symbol "ADF")))
         (push (cons adf-sym w) *adf-library*)
         (format t "[ADF MANAGER] Extracted and registered dynamic subroutine: ~A -> ~A~%" adf-sym w)))
     

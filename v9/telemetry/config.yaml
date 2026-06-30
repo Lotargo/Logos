@@ -3,6 +3,8 @@ telemetry:
   mode: local
   cache_path: v9/telemetry/cache/logos_memory.jsonl
   flush_batch_size: 100
+  auto_flush_interval: 3600
+  retry_max_attempts: 3
 
 database:
   url_env: NEON_DATABASE_URL
