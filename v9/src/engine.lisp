@@ -5,6 +5,7 @@
 (in-package :cognitive-engine)
 
 ;; Load Meta-Evolution extensions
+(load "v9/telemetry/telemetry_helper.lisp")
 
 
 ;; =======================================================================
@@ -270,6 +271,7 @@
                          (setf current-ast hypothesis)
                          (when (and (eq current-mode :target) (= best-penalty 0.0))
                            (format t "[Thread ~D] [CONVERGED] Iteration ~D: ~A (Penalty: 0.0)~%" thread-id i best-ast)
+                           (log-fitness-telemetry (format nil "thread-~D-iter-~D" thread-id i) 1.0 base-ast best-ast)
                            (return)))))
                  
                  ;; Periodic Island Migration (Ring Topology)
@@ -347,6 +349,7 @@
       hybrids)))
 
 (defun run-engine-parallel (base-ast domain iterations num-threads)
+  (log-telemetry "experiment_started" (format nil "Starting experiment in domain ~A" domain))
   (setf *discovered-axioms* nil)
   (format t "=== Starting Parallel Logos Cognitive Engine ===~%")
   (format t "Domain: ~A~%" domain)
@@ -388,6 +391,7 @@
           (format t "Found valid hypotheses from Islands:~%")
           (loop for res in winners do (format t "  ~A~%" res))
           (let ((hybrids (synthesize-hybrids winners domain 3 20000)))
+          (log-telemetry "experiment_finished" (format nil "Experiment in domain ~A finished" domain))
             (when hybrids
               (format t "Ultimate Hybrids:~%")
               (loop for h in hybrids do (format t "  ~A~%" h))
