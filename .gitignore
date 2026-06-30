@@ -34,3 +34,6 @@ __pycache__/
 data/*.bin
 data/*.idx
 data/tensor_data/*
+
+# Secrets
+.env

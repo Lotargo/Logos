@@ -241,7 +241,7 @@ def power_analysis(effect_size=None, n_observations=None,
     try:
         if target == "effect_size":
             val = analysis.effect_size_from_power(
-                power=power, nobs1=n_obs, alpha=alpha, ratio=1.0)
+                power=power, nobs1=n_observations, alpha=alpha, ratio=1.0)
         elif target == "nobservations":
             val = analysis.solve_power(
                 effect_size=effect_size, power=power, alpha=alpha,
@@ -249,7 +249,7 @@ def power_analysis(effect_size=None, n_observations=None,
             val = int(np.ceil(val))
         elif target == "power":
             val = analysis.solve_power(
-                effect_size=effect_size, nobs1=n_obs, alpha=alpha,
+                effect_size=effect_size, nobs1=n_observations, alpha=alpha,
                 ratio=1.0, alternative=alternative)
         else:
             return {"error": f"Unknown parameter: {target}"}
