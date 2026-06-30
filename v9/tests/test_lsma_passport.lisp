@@ -17,6 +17,7 @@
 (format t "~%=== LSMA Passport Tests ===~%~%")
 
 ;; Load LSMA modules directly (skip engine.lisp to avoid auto-running main())
+(load "v9/src/lsma/package.lisp")
 (load "v9/src/lsma/passport.lisp")
 
 ;; Create a minimal cognitive-engine package for tests that reference it

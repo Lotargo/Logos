@@ -8,6 +8,7 @@
 ;;; Write-through: save always hits JSONL, optionally Neon.
 ;;; Read: JSONL first, Neon fallback.
 ;;;
+;;; Package defined in package.lisp — this file assumes (in-package :lsma).
 ;;; Dependencies: lsma/passport.lisp, telemetry_helper.lisp
 
 (in-package :lsma)
@@ -188,8 +189,11 @@
                                   (%value-to-json v))
                           parts))
            (format nil "{~{~A~^, ~}}" (nreverse parts)))
-         ;; value list — JSON array
-         (format nil "[~{~A~^, ~}]" (mapcar #'%value-to-json val))))
+         ;; value list — JSON array (handle dotted pairs for alist entries)
+         (if (listp (cdr val))
+             (format nil "[~{~A~^, ~}]" (mapcar #'%value-to-json val))
+             ;; dotted pair like (op . count)
+             (format nil "[~A, ~A]" (%value-to-json (car val)) (%value-to-json (cdr val))))))
     (t (%json-escape (princ-to-string val)))))
 
 (defun plist-to-json (plist)
@@ -396,7 +400,7 @@
 
 (defun register-passport-as-adf (passport &key (to-neon nil))
   "Save a passport and register it as an ADF in *adf-library*.
-   Returns the ADF symbol."
+   Returns the ADF symbol, or NIL if AST could not be parsed."
   (let* ((sym (next-adf-symbol))
          (ast-str (getf passport :ast-str ""))
          (ast (handler-case (read-from-string ast-str)
@@ -404,4 +408,11 @@
     (when ast
       (let ((augmented (list* :adf-symbol (symbol-name sym) passport)))
         (save-passport augmented :to-neon to-neon :adf-symbol (symbol-name sym))
+        ;; Push into cognitive-engine's *adf-library*
+        (let ((lib-sym (ignore-errors
+                         (find-symbol (string '*adf-library*)
+                                      (find-package :cognitive-engine)))))
+          (when lib-sym
+            (setf (symbol-value lib-sym)
+                  (cons (cons sym ast) (symbol-value lib-sym)))))
         sym))))

@@ -1,6 +1,8 @@
 ;;; LSMA — Phase 1: Canonical AST Hash + Passport
 ;;; File: v9/src/lsma/passport.lisp
 ;;;
+;;; Package defined in package.lisp — this file assumes (in-package :lsma).
+;;;
 ;;; Provides:
 ;;;   canonical-ast-hash       — deterministic hash (structure, not variable names)
 ;;;   canonical-ast            — variable-canonicalized copy of an AST
@@ -14,38 +16,6 @@
 ;;;
 ;;; Dependencies: sb-md5 (SBCL built-in) for hashing.
 ;;;   ironclad (SHA256) used if available, otherwise sb-md5.
-
-(defpackage :lsma
-  (:use :cl)
-  (:export
-   ;; Passport core
-   :canonical-ast-hash
-   :canonical-ast
-   :canonicalize-variables
-   :canonicalize-constants
-   :extract-passport
-   :extract-operator-profile
-   :extract-subtree-hashes
-   :extract-depth-profile
-   :ast-structural-equal-p
-   :passport-get
-   :*canonical-variables*
-   :*subtree-hash-limit*
-   ;; Storage API
-   :save-passport
-   :load-passport-by-hash
-   :load-passports-by-domain
-   :load-all-passports
-   :count-passports
-   :passport->adf
-   :batch-passports->adfs
-   :register-passport-as-adf
-   ;; JSONL cache (useful for direct manipulation)
-   :jsonl-cache-write
-   :jsonl-cache-read
-   :jsonl-cache-delete
-   ;; Serialization helpers
-   :plist-to-json))
 
 (in-package :lsma)
 
