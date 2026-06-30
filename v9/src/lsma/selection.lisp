@@ -214,58 +214,62 @@
 ;; ————————————————————————————————————————————————————————————————————
 
 (defun record-adf-usage (adf-symbol)
-  "Increment the usage counter for an ADF's passport in the JSONL cache."
-  (let* ((sym-name (symbol-name adf-symbol))
-         (passports (jsonl-cache-read))
-         (updated nil))
-    (dolist (p passports)
-      (let ((ast-str (getf p :ast-str "")))
-        (when (and (search sym-name ast-str :test #'char-equal)
-                   (or (null updated) (string> (getf p :freshness "")
-                                                (getf updated :freshness ""))))
-          (setf updated p))))
-    (when updated
-      (let* ((new-usage (1+ (getf updated :usage-count 0)))
-             (new-freshness (multiple-value-bind (s m h d mo y)
-                                (get-decoded-time)
-                              (format nil "~4,'0D-~2,'0D-~2,'0DT~2,'0D:~2,'0D:~2,'0DZ"
-                                      y mo d h m s)))
-             (augmented (list* :usage-count new-usage
-                               :freshness new-freshness
-                               updated)))
-        (jsonl-cache-delete (getf updated :ast-hash))
-        (jsonl-cache-write augmented :dedup nil)))))
+  "Increment the usage counter for an ADF's passport in the JSONL cache.
+   Thread-safe: entire read-modify-write cycle protected by *jsonl-lock*."
+  (sb-thread:with-mutex (*jsonl-lock*)
+    (let* ((sym-name (symbol-name adf-symbol))
+           (passports (jsonl-cache-read-unlocked))
+           (updated nil))
+      (dolist (p passports)
+        (let ((ast-str (getf p :ast-str "")))
+          (when (and (search sym-name ast-str :test #'char-equal)
+                     (or (null updated) (string> (getf p :freshness "")
+                                                  (getf updated :freshness ""))))
+            (setf updated p))))
+      (when updated
+        (let* ((new-usage (1+ (getf updated :usage-count 0)))
+               (new-freshness (multiple-value-bind (s m h d mo y)
+                                  (get-decoded-time)
+                                (format nil "~4,'0D-~2,'0D-~2,'0DT~2,'0D:~2,'0D:~2,'0DZ"
+                                        y mo d h m s)))
+               (augmented (list* :usage-count new-usage
+                                 :freshness new-freshness
+                                 updated)))
+          (jsonl-cache-delete-unlocked (getf updated :ast-hash))
+          (jsonl-cache-write-unlocked augmented :dedup nil))))))
 
 (defun record-adf-outcome (adf-symbol success &key (domain nil))
   "Record success or failure outcome for an ADF.
-   Updates the passport's success/failure counter in the JSONL cache."
+   Updates the passport's success/failure counter in the JSONL cache.
+   Thread-safe: entire read-modify-write cycle protected by *jsonl-lock*."
   (declare (ignore domain))
-  (let* ((sym-name (symbol-name adf-symbol))
-         (passports (jsonl-cache-read))
-         (target nil))
-    ;; Find the most recently updated passport matching this ADF symbol
-    (dolist (p passports)
-      (let ((ast-str (getf p :ast-str "")))
-        (when (search sym-name ast-str :test #'char-equal)
-          (if (or (null target)
-                  (string> (getf p :freshness "")
-                           (getf target :freshness "")))
-              (setf target p)))))
-    (when target
-      (let* ((new-success (if success
-                              (1+ (getf target :success-count 0))
-                              (getf target :success-count 0)))
-             (new-failure (if (not success)
-                              (1+ (getf target :failure-count 0))
-                              (getf target :failure-count 0)))
-             (new-freshness (multiple-value-bind (s m h d mo y)
-                                (get-decoded-time)
-                              (format nil "~4,'0D-~2,'0D-~2,'0DT~2,'0D:~2,'0D:~2,'0DZ"
-                                      y mo d h m s)))
-             (augmented (list* :usage-count (1+ (getf target :usage-count 0))
-                               :success-count new-success
-                               :failure-count new-failure
-                               :freshness new-freshness
-                               target)))
-        (jsonl-cache-delete (getf target :ast-hash))
-        (jsonl-cache-write augmented :dedup nil)))))
+  (sb-thread:with-mutex (*jsonl-lock*)
+    (let* ((sym-name (symbol-name adf-symbol))
+           (passports (jsonl-cache-read-unlocked))
+           (target nil))
+      ;; Find the most recently updated passport matching this ADF symbol
+      (dolist (p passports)
+        (let ((ast-str (getf p :ast-str "")))
+          (when (search sym-name ast-str :test #'char-equal)
+            (if (or (null target)
+                    (string> (getf p :freshness "")
+                             (getf target :freshness "")))
+                (setf target p)))))
+      (when target
+        (let* ((new-success (if success
+                                (1+ (getf target :success-count 0))
+                                (getf target :success-count 0)))
+               (new-failure (if (not success)
+                                (1+ (getf target :failure-count 0))
+                                (getf target :failure-count 0)))
+               (new-freshness (multiple-value-bind (s m h d mo y)
+                                  (get-decoded-time)
+                                (format nil "~4,'0D-~2,'0D-~2,'0DT~2,'0D:~2,'0D:~2,'0DZ"
+                                        y mo d h m s)))
+               (augmented (list* :usage-count (1+ (getf target :usage-count 0))
+                                 :success-count new-success
+                                 :failure-count new-failure
+                                 :freshness new-freshness
+                                 target)))
+          (jsonl-cache-delete-unlocked (getf target :ast-hash))
+          (jsonl-cache-write-unlocked augmented :dedup nil))))))

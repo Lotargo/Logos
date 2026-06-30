@@ -54,9 +54,9 @@
 (defun fetch-telemetry-knowledge (&key (min-fitness 0.9))
   (let* ((cmd (list *python-executable* "v9/telemetry/telemetry_logger.py" "fetch-knowledge-lisp"
                     "--min-fitness" (format nil "~,2F" min-fitness)))
-         (output (handler-case
-                     (sb-ext:with-timeout 10.0
-                       (uiop:run-program cmd :output :string :ignore-error-status t))
+          (output (handler-case
+                      (sb-ext:with-timeout 10.0
+                        (uiop:run-program cmd :output :string :error-output :string :ignore-error-status t))
                    (sb-ext:timeout ()
                      (format t "[KNOWLEDGE FETCH TIMEOUT] Python hung on fetch within 10s~%")
                      nil)
@@ -86,7 +86,10 @@
     (format t "[VERIFY] Running post-experiment verification for ~A...~%" run-id)
     (handler-case
         (let ((output (sb-ext:with-timeout 60.0
-                        (uiop:run-program cmd :output :string :ignore-error-status t))))
+                        (uiop:run-program cmd
+                                          :output :string
+                                          :error-output :string
+                                          :ignore-error-status t))))
           (when output
             (format t "[VERIFY] ~A~%" output))
           output)
