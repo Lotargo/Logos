@@ -3,6 +3,7 @@ import sys
 import json
 import argparse
 import datetime
+import time
 import yaml
 from git_utils import get_git_info
 from db import LogosDB
@@ -13,8 +14,8 @@ class TelemetryLogger:
         self.config = self._load_config(config_path)
         self.cache_path = os.environ.get("LOGOS_TELEMETRY_CACHE_PATH") or \
                           self.config.get("telemetry", {}).get("cache_path", "v9/telemetry/cache/logos_memory.jsonl")
+        self.last_flush_time = time.time()
 
-        # Ensure cache directory exists
         os.makedirs(os.path.dirname(self.cache_path), exist_ok=True)
 
     def _load_config(self, path):
@@ -34,7 +35,6 @@ class TelemetryLogger:
             "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         }
 
-        # Add git info if enabled
         if self.config.get("git", {}).get("capture_commit_hash", True):
             event.update(get_git_info())
 
@@ -46,8 +46,8 @@ class TelemetryLogger:
         with open(self.cache_path, "a") as f:
             f.write(json.dumps(event) + "\n")
 
-        # Optional: Check if we should create a Linear issue
         self._check_linear_triggers(event)
+        self._check_auto_flush()
 
         return event
 
@@ -81,23 +81,37 @@ class TelemetryLogger:
             description = f"Event Type: {event['event_type']}\nSource: {event['event_source']}\nMessage: {event['message']}\nPayload: {json.dumps(event['payload'], indent=2)}"
             issue = client.create_issue(title, description)
             if issue:
-                # Log that we created an issue
                 self.write_local("linear_issue_created", "telemetry_logger", event["session_id"],
                                  f"Created Linear issue {issue['url']}",
                                  payload={"linear_issue_id": issue["id"], "linear_issue_url": issue["url"], "reason": reason})
+
+    def _check_auto_flush(self):
+        batch_size = self.config.get('telemetry', {}).get('flush_batch_size', 100)
+        if os.path.exists(self.cache_path) and os.path.getsize(self.cache_path) > batch_size * 1024:
+            self.flush()
+        if time.time() - self.last_flush_time > 3600:
+            self.flush()
 
     def flush(self):
         if not os.path.exists(self.cache_path):
             print("No cache file found to flush.")
             return
 
+        temp_path = self.cache_path + ".flushing"
+        os.rename(self.cache_path, temp_path)
+
         events = []
-        with open(self.cache_path, "r") as f:
-            for line in f:
-                if line.strip():
-                    events.append(json.loads(line))
+        try:
+            with open(temp_path, "r") as f:
+                for line in f:
+                    if line.strip():
+                        events.append(json.loads(line))
+        except Exception:
+            os.remove(temp_path)
+            return
 
         if not events:
+            os.remove(temp_path)
             print("No events to flush.")
             return
 
@@ -105,10 +119,13 @@ class TelemetryLogger:
         try:
             db.insert_events(events)
             print(f"Successfully flushed {len(events)} events to Neon.")
-            # Clear cache after successful flush
-            open(self.cache_path, "w").close()
         except Exception as e:
+            os.rename(temp_path, self.cache_path)
             print(f"Failed to flush events: {e}")
+            return
+
+        os.remove(temp_path)
+        self.last_flush_time = time.time()
 
     def write_remote(self, event_type, event_source, session_id, message, payload=None, metadata=None):
         event = self._get_base_event(event_type, event_source, session_id, message, payload, metadata)
@@ -134,21 +151,36 @@ class TelemetryLogger:
             }
             print(json.dumps(output))
         except Exception as e:
-            # If DB fails, try reading from local cache for high fitness results as fallback
-            # but for now just return empty success
-            print(json.dumps({"status": "error", "message": str(e), "asts": [], "axioms": []}))
+            fallback = db.get_best_knowledge_from_cache(self.cache_path, min_fitness)
+            if fallback["asts"]:
+                print(json.dumps({"status": "fallback", "asts": fallback["asts"], "axioms": fallback["axioms"]}))
+            else:
+                print(json.dumps({"status": "error", "message": str(e), "asts": [], "axioms": []}))
+
+    def fetch_knowledge_lisp(self, min_fitness=0.9):
+        """Fetch knowledge and output as Lisp sexps for direct parsing."""
+        db = LogosDB()
+        try:
+            knowledge = db.get_best_knowledge(min_fitness=min_fitness)
+            axioms = db.get_discovered_axioms()
+        except Exception:
+            fallback = db.get_best_knowledge_from_cache(self.cache_path, min_fitness)
+            asts = fallback["asts"]
+            axioms = fallback["axioms"]
+        else:
+            asts = [k["ast"] for k in knowledge]
+
+        ast_strs = " ".join(f'"{str(x).replace(chr(34), chr(92) + chr(34))}"' for x in asts)
+        axiom_strs = " ".join(f'"{str(x).replace(chr(34), chr(92) + chr(34))}"' for x in axioms)
+        print(f"(:asts ({ast_strs}) :axioms ({axiom_strs}))")
 
 def main():
     parser = argparse.ArgumentParser(description="Logos v9 Telemetry Logger")
     subparsers = parser.add_subparsers(dest="command")
 
-    # init-db
     subparsers.add_parser("init-db")
-
-    # test-connection
     subparsers.add_parser("test-connection")
 
-    # write-local
     write_local_parser = subparsers.add_parser("write-local")
     write_local_parser.add_argument("--event-type", required=True)
     write_local_parser.add_argument("--event-source", required=True)
@@ -157,10 +189,8 @@ def main():
     write_local_parser.add_argument("--payload", help="JSON string or path to JSON file")
     write_local_parser.add_argument("--metadata", help="JSON string")
 
-    # flush
     subparsers.add_parser("flush")
 
-    # write-remote
     write_remote_parser = subparsers.add_parser("write-remote")
     write_remote_parser.add_argument("--event-type", required=True)
     write_remote_parser.add_argument("--event-source", required=True)
@@ -168,9 +198,11 @@ def main():
     write_remote_parser.add_argument("--message", required=True)
     write_remote_parser.add_argument("--payload", help="JSON string or path to JSON file")
 
-    # fetch-knowledge
     fetch_parser = subparsers.add_parser("fetch-knowledge")
     fetch_parser.add_argument("--min-fitness", type=float, default=0.9)
+
+    fetch_lisp_parser = subparsers.add_parser("fetch-knowledge-lisp")
+    fetch_lisp_parser.add_argument("--min-fitness", type=float, default=0.9)
 
     args = parser.parse_args()
 
@@ -200,7 +232,6 @@ def main():
 
         if args.command == "write-local":
             logger.write_local(args.event_type, args.event_source, args.session_id, args.message, payload, metadata)
-            # No print here to keep stdout clean for Lisp if it calls it
         else:
             logger.write_remote(args.event_type, args.event_source, args.session_id, args.message, payload, metadata)
 
@@ -209,6 +240,9 @@ def main():
 
     elif args.command == "fetch-knowledge":
         logger.fetch_knowledge(min_fitness=args.min_fitness)
+
+    elif args.command == "fetch-knowledge-lisp":
+        logger.fetch_knowledge_lisp(min_fitness=args.min_fitness)
 
     else:
         parser.print_help()
