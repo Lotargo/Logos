@@ -120,6 +120,24 @@ class TelemetryLogger:
             print(f"Failed to write remote, falling back to local: {e}")
             self.write_local(event_type, event_source, session_id, message, payload, metadata)
 
+    def fetch_knowledge(self, min_fitness=0.9):
+        """Fetches best knowledge from the DB and outputs it in a format Lisp can easily parse."""
+        db = LogosDB()
+        try:
+            knowledge = db.get_best_knowledge(min_fitness=min_fitness)
+            axioms = db.get_discovered_axioms()
+
+            output = {
+                "status": "success",
+                "asts": [k["ast"] for k in knowledge],
+                "axioms": axioms
+            }
+            print(json.dumps(output))
+        except Exception as e:
+            # If DB fails, try reading from local cache for high fitness results as fallback
+            # but for now just return empty success
+            print(json.dumps({"status": "error", "message": str(e), "asts": [], "axioms": []}))
+
 def main():
     parser = argparse.ArgumentParser(description="Logos v9 Telemetry Logger")
     subparsers = parser.add_subparsers(dest="command")
@@ -150,6 +168,10 @@ def main():
     write_remote_parser.add_argument("--message", required=True)
     write_remote_parser.add_argument("--payload", help="JSON string or path to JSON file")
 
+    # fetch-knowledge
+    fetch_parser = subparsers.add_parser("fetch-knowledge")
+    fetch_parser.add_argument("--min-fitness", type=float, default=0.9)
+
     args = parser.parse_args()
 
     logger = TelemetryLogger()
@@ -178,12 +200,15 @@ def main():
 
         if args.command == "write-local":
             logger.write_local(args.event_type, args.event_source, args.session_id, args.message, payload, metadata)
-            print("Event logged locally.")
+            # No print here to keep stdout clean for Lisp if it calls it
         else:
             logger.write_remote(args.event_type, args.event_source, args.session_id, args.message, payload, metadata)
 
     elif args.command == "flush":
         logger.flush()
+
+    elif args.command == "fetch-knowledge":
+        logger.fetch_knowledge(min_fitness=args.min_fitness)
 
     else:
         parser.print_help()
