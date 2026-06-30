@@ -1,4 +1,8 @@
 import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'telemetry'))
+from telemetry_client import log_event
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -94,5 +98,9 @@ These novel experiments further solidify the First-Principle Neuro-Symbolic arch
     print("Report generated successfully.")
 
 if __name__ == "__main__":
+    log_event("report_generation_started", "Starting generation for generate_new_experiments_report.py", source="python_reporter")
+
     generate_charts("v9/docs/assets")
     generate_report("v9/docs/empirical_discovery")
+
+    log_event("report_generation_finished", "Finished generation for generate_new_experiments_report.py", source="python_reporter")

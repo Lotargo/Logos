@@ -1,6 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'telemetry'))
+from telemetry_client import log_event
+
 
 def analyze_healing():
     assets_dir = "v9/docs/assets"
@@ -41,4 +45,7 @@ def analyze_healing():
     print(f"Healing simulation chart saved to {chart_path}")
 
 if __name__ == "__main__":
+    log_event("report_generation_started", "Starting generation for analyze_healing.py", source="python_reporter")
+
     analyze_healing()
+    log_event("report_generation_finished", "Finished generation for analyze_healing.py", source="python_reporter")
