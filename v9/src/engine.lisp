@@ -8,8 +8,11 @@
 (load "v9/telemetry/telemetry_helper.lisp")
 
 ;; Load LSMA modules (Logos Symbolic Memory Algebra)
+(load "v9/src/lsma/package.lisp")
 (load "v9/src/lsma/passport.lisp")
 (load "v9/src/lsma/storage.lisp")
+(load "v9/src/lsma/selection.lisp")
+(load "v9/src/lsma/eviction.lisp")
 
 
 ;; =======================================================================
@@ -121,6 +124,24 @@
 (load "v9/src/knowledge_loader.lisp")
 (defparameter *novelty-search-mode* :auto)
 
+
+(defun find-used-adfs (ast)
+  "Return a list of ADF symbols referenced in AST."
+  (let (used)
+    (labels ((walk (node)
+               (cond
+                 ((null node) nil)
+                 ((atom node)
+                  (let ((body (assoc node *adf-library*)))
+                    (when body
+                      (pushnew node used :test #'eq))))
+                 ((listp node)
+                  (let ((body (assoc (car node) *adf-library*)))
+                    (if body
+                        (pushnew (car node) used :test #'eq)
+                        (mapc #'walk (cdr node))))))))
+      (walk ast)
+      used)))
 
 (defun expand-adfs (ast)
   "Recursively expands any ADF symbols in the AST into their actual bodies."
@@ -247,8 +268,13 @@
                       (setf stagnation-counter 0)
                       (setf best-penalty (check-with-prolog best-ast domain proc-cell :target)))))
 
-                 (let* ((hypothesis (mutate current-ast))
-                        (penalty (check-with-prolog hypothesis domain proc-cell current-mode)))
+                  (let* ((hypothesis (mutate current-ast))
+                         (penalty (check-with-prolog hypothesis domain proc-cell current-mode)))
+
+                   ;; Record ADF outcomes — track which ADFs were used and their result
+                   (let ((used-adfs (find-used-adfs current-ast)))
+                     (dolist (adf-sym used-adfs)
+                       (lsma:record-adf-outcome adf-sym (= penalty 0.0) :domain domain)))
 
                    ;; Attempt Meta-Evolution mutation
                    (when (and (> penalty 0.0) (< (random 100) 20)) ; Trigger Meta-Evolution 20% of the time on invalid ASTs
@@ -279,8 +305,12 @@
                            (log-fitness-telemetry (format nil "thread-~D-iter-~D" thread-id i) 1.0 base-ast best-ast)
                            (return)))))
                  
-                 ;; Periodic Island Migration (Ring Topology)
-                 (when (and migration-pools migration-mutexes (> actual-iters 0) (= 0 (mod actual-iters 50)))
+                  ;; Periodic Eviction — prevent ADF library bloat
+                  (when (= 0 (mod actual-iters 200))
+                    (lsma:periodic-eviction *adf-library* :domain domain))
+
+                  ;; Periodic Island Migration (Ring Topology)
+                  (when (and migration-pools migration-mutexes (> actual-iters 0) (= 0 (mod actual-iters 50)))
                    (let* ((num-pools (length migration-pools))
                           (target-idx (mod thread-id num-pools))
                           (mutex (aref migration-mutexes target-idx))
@@ -379,14 +409,18 @@
          (winners (remove-duplicates (remove nil (mapcar #'car thread-results)) :test #'equal)))
 
     ;; Dynamic Subroutine Extraction: Register successful island winners as new ADF symbols
+    ;; Uses LSMA selection to score each winner, then registers via passport system.
     (dolist (w winners)
-      (let ((adf-sym (next-adf-symbol "ADF")))
-        (push (cons adf-sym w) *adf-library*)
-        ;; Save LSMA passport for the newly extracted ADF
-        (let ((passport (lsma:extract-passport w :domain domain)))
-          (setf (getf passport :ast-str) (format nil "~A" w))
-          (save-passport passport))
-        (format t "[ADF MANAGER] Extracted and registered dynamic subroutine: ~A -> ~A~%" adf-sym w)))
+      (let ((passport (lsma:extract-passport w :domain domain)))
+        (setf (getf passport :ast-str) (format nil "~A" w))
+        ;; Score the candidate ADF — low-scoring winners are skipped to prevent bloat
+        (let ((score (lsma:compute-adf-score passport :domain domain
+                                             :adf-library *adf-library*
+                                             :candidates (mapcar #'cdr *adf-library*))))
+          (when (>= score 0.1)  ; minimum threshold — only register non-trivial ADFs
+            (let ((adf-sym (lsma:register-passport-as-adf passport :to-neon t)))
+              (format t "[ADF MANAGER] Extracted and registered dynamic subroutine: ~A -> ~A (score: ~,3F)~%"
+                      adf-sym w score))))))
     
     (format t "~%==================================================~%")
     (format t "      LOGOS ENGINE PERFORMANCE DASHBOARD~%")
@@ -419,7 +453,7 @@
              (path (format nil "v9/hardware/~A.v" mod-name)))
         (uiop:run-program "mkdir -p v9/hardware" :ignore-error-status t)
         (emit-verilog best mod-name path)))
-    ))
+    (values winners total-iterations)))
 
 (defun detect-cpu-cores ()
   "Attempts to detect the total number of logical CPU threads (SMT/Hyperthreading included).
