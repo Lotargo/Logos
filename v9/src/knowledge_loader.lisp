@@ -6,10 +6,13 @@
   (intern (format nil "~A-~D" prefix (incf *adf-counter*))))
 
 (defun ast-hash (ast)
-  (sxhash (format nil "~A" ast)))
+  "LSMA canonical hash: deterministic SHA256 (or MD5 fallback) based on structure,
+   not variable names. Replaces non-deterministic sxhash."
+  (lsma:canonical-ast-hash ast))
 
 (defun initialize-knowledge-base (&key (min-fitness 0.9) (keep-existing nil))
-  "Fetches knowledge from the persistent Neon DB and integrates it into the engine."
+  "Fetches knowledge from the persistent Neon DB and integrates it into the engine.
+   Uses LSMA canonical hashes for deduplication and saves passports for each ADF."
   (format t "--- Initializing Persistent Knowledge Base ---~%")
   (unless keep-existing
     (setf *discovered-axioms* nil))
@@ -27,10 +30,14 @@
             (let ((ast (handler-case (read-from-string ast-str) (error () nil))))
               (when ast
                 (let ((hash (ast-hash ast)))
-                  (unless (member hash seen-hashes)
+                  (unless (member hash seen-hashes :test #'string=)
                     (push hash seen-hashes)
                     (let ((adf-sym (next-adf-symbol "DB-ADF")))
                       (push (cons adf-sym ast) *adf-library*)
+                      ;; Save LSMA passport for this ADF
+                      (let ((passport (lsma:extract-passport ast :domain nil)))
+                        (setf (getf passport :ast-str) ast-str)
+                        (save-passport passport))
                       (incf new-adf-count)))))))
 
           (dolist (axiom axioms)
