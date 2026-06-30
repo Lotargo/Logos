@@ -7,6 +7,10 @@
 ;; Load Meta-Evolution extensions
 (load "v9/telemetry/telemetry_helper.lisp")
 
+;; Load LSMA modules (Logos Symbolic Memory Algebra)
+(load "v9/src/lsma/passport.lisp")
+(load "v9/src/lsma/storage.lisp")
+
 
 ;; =======================================================================
 ;; 1. Domains Configuration
@@ -378,6 +382,10 @@
     (dolist (w winners)
       (let ((adf-sym (next-adf-symbol "ADF")))
         (push (cons adf-sym w) *adf-library*)
+        ;; Save LSMA passport for the newly extracted ADF
+        (let ((passport (lsma:extract-passport w :domain domain)))
+          (setf (getf passport :ast-str) (format nil "~A" w))
+          (save-passport passport))
         (format t "[ADF MANAGER] Extracted and registered dynamic subroutine: ~A -> ~A~%" adf-sym w)))
     
     (format t "~%==================================================~%")
