@@ -2,3 +2,35 @@ dont_delete*
 v7/papers/*.tex
 benchmarks_output/
 discoveries.log
+v9/telemetry/__pycache__
+v9/telemetry/cache
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Model weights
+*.safetensors
+*.pt
+*.bin
+
+# Logs and reports
+*.log
+*.txt
+*.md
+*.html
+*.nsys-rep
+
+# Build artifacts
+*.exe
+*.dll
+*.obj
+*.ilk
+*.exp
+*.lib
+*.pdb
+
+# Generated data
+data/*.bin
+data/*.idx
+data/tensor_data/*
