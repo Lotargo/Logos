@@ -308,6 +308,7 @@ def build_executive_summary(
     adf_count: int = 0,
     knowledge_count: int = 0,
     title: str = "Executive Summary",
+    experiment_name: str = "",
 ) -> str:
     """Generate HTML card with narrative summary of the experiment."""
     n_evals = len(fitness_history)
@@ -356,7 +357,7 @@ def build_executive_summary(
             </div>
         </div>
         <p style="font-size: 14px; color: #333; line-height: 1.6;">
-            <b>Session:</b> {run_id} &nbsp;|&nbsp; <b>Domain:</b> {domain}<br>
+            <b>Experiment:</b> {experiment_name} &nbsp;|&nbsp; <b>Session:</b> {run_id} &nbsp;|&nbsp; <b>Domain:</b> {domain}<br>
             {fit_text}<br>
             <b>ADF Library:</b> {adf_count} registered functions<br>
             <b>Verdict:</b> {verdict_text}
@@ -407,6 +408,152 @@ def build_stat_table(
     return fig
 
 
+def build_metrics_section(
+    results: Dict[str, Any],
+    title: str = "Verification Metrics",
+) -> str:
+    """Build a text-based metrics summary card from verification.json."""
+    metrics = results.get("metrics", {})
+    operator_counts = results.get("operator_counts", {})
+    ast_depths = metrics.get("ast_depths", [])
+
+    rows = []
+
+    # Fitness
+    ci = metrics.get("fitness_ci", {})
+    if ci and not ci.get("skipped"):
+        rows.append(("Fitness (mean)", f"{ci.get('observed', '?')}"))
+        rows.append(("Fitness CI 95%", f"[{ci.get('ci_low', '?')}, {ci.get('ci_high', '?')}]"))
+
+    # Improvement test
+    imp = metrics.get("improvement_test", {})
+    if imp and not imp.get("skipped"):
+        rows.append(("Test used", imp.get("test_used", "?")))
+        rows.append(("Statistic", f"{imp.get('statistic', '?')}"))
+        p = imp.get("p_value", 1)
+        rows.append(("p-value", f"{p:.4e}" if p < 0.001 else f"{p:.4f}"))
+        d = imp.get("cohens_d", {})
+        rows.append(("Cohen's d", f"{d.get('d', '?')} ({d.get('interpretation', '?')})"))
+        rows.append(("Significant", "Yes" if imp.get("significant") else "No"))
+
+    # Stagnation
+    stag = metrics.get("stagnation", {})
+    if stag:
+        rows.append(("Stagnation", "Yes" if stag.get("is_stagnant") else "No"))
+        if stag.get("is_stagnant"):
+            rows.append(("Stagnant from", f"gen {stag.get('stagnant_from', '?')}"))
+
+    # Operators
+    if operator_counts:
+        total = sum(operator_counts.values())
+        rows.append(("Total operators", str(total)))
+        rows.append(("Unique operators", str(len(operator_counts))))
+        for op, cnt in sorted(operator_counts.items(), key=lambda x: -x[1])[:5]:
+            rows.append((f"  {op}", str(cnt)))
+
+    # AST
+    if ast_depths:
+        depths = np.array(ast_depths)
+        rows.append(("AST entries", str(len(depths))))
+        rows.append(("AST mean depth", f"{np.mean(depths):.2f}"))
+        rows.append(("AST max depth", str(int(np.max(depths)))))
+        rows.append(("AST std", f"{np.std(depths):.2f}"))
+
+    # Build HTML table
+    table_rows = ""
+    for label, value in rows:
+        table_rows += f'<tr><td style="padding:4px 12px;color:#555;">{label}</td><td style="padding:4px 12px;font-weight:600;">{value}</td></tr>\n'
+
+    html = f"""
+    <div class="card full-width" style="padding: 20px;">
+        <h2 style="margin-top: 0; color: #1a1a2e;">{title}</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div>
+                <h3 style="font-size:14px;color:#1a1a2e;margin:0 0 8px 0;">Core Metrics</h3>
+                <table style="border-collapse:collapse;font-size:13px;width:100%;">
+                    {table_rows}
+                </table>
+            </div>
+            <div>
+                <h3 style="font-size:14px;color:#1a1a2e;margin:0 0 8px 0;">Experiment Info</h3>
+                <table style="border-collapse:collapse;font-size:13px;width:100%;">
+                    <tr><td style="padding:4px 12px;color:#555;">Experiment</td><td style="padding:4px 12px;font-weight:600;">{results.get('experiment', 'N/A')}</td></tr>
+                    <tr><td style="padding:4px 12px;color:#555;">Run ID</td><td style="padding:4px 12px;font-weight:600;">{results.get('run_id', 'N/A')}</td></tr>
+                    <tr><td style="padding:4px 12px;color:#555;">Domain</td><td style="padding:4px 12px;font-weight:600;">{results.get('domain', 'N/A')}</td></tr>
+                    <tr><td style="padding:4px 12px;color:#555;">Knowledge</td><td style="padding:4px 12px;font-weight:600;">{results.get('knowledge_count', 0)} entries</td></tr>
+                    <tr><td style="padding:4px 12px;color:#555;">ADF Library</td><td style="padding:4px 12px;font-weight:600;">{results.get('adf_count', 0)} functions</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    """
+    return html
+
+
+def build_judge_section(judge_data: Dict[str, Any]) -> str:
+    """Build judge report section with markdown rendering.
+
+    Pre-renders markdown to HTML at build time so the report is visible
+    even without CDN scripts.  Falls back to a JS-based renderer if the
+    ``markdown`` package is unavailable.
+    """
+    if not judge_data or judge_data.get("skipped"):
+        return ""
+
+    verdict = judge_data.get("verdict", "N/A")
+    report_md = judge_data.get("report", "")
+    tool_calls = judge_data.get("tool_calls", [])
+
+    # Verdict color
+    verdict_colors = {
+        "CONFIRMED": "#2ca02c",
+        "PARTIALLY CONFIRMED": "#ff7f0e",
+        "INCONCLUSIVE": "#666",
+        "QUESTIONED": "#d62728",
+    }
+    v_color = verdict_colors.get(verdict, "#666")
+
+    # Pre-render markdown to HTML
+    try:
+        import markdown as md_lib
+        report_html = md_lib.markdown(
+            report_md,
+            extensions=["tables", "fenced_code"],
+        )
+    except ImportError:
+        # Fallback: escape and wrap in <pre>
+        import html as html_mod
+        report_html = f"<pre>{html_mod.escape(report_md)}</pre>"
+
+    # Tool calls summary
+    tools_html = ""
+    if tool_calls:
+        tool_items = "".join(
+            f'<li><code>{tc.get("name", "?")}</code>({", ".join(tc.get("args", {}).keys())})</li>'
+            for tc in tool_calls
+        )
+        tools_html = f"""
+        <div style="margin-top:12px;">
+            <b>Tools called:</b> {len(tool_calls)}
+            <ul style="font-size:12px;color:#555;margin:4px 0;">{tool_items}</ul>
+        </div>
+        """
+
+    html = f"""
+    <div class="card full-width" style="padding: 20px; border-left: 4px solid {v_color};">
+        <h2 style="margin-top: 0; color: #1a1a2e;">
+            LLM Judge Report
+            <span style="font-size:14px;font-weight:400;margin-left:12px;padding:2px 8px;border-radius:4px;background:{v_color}20;color:{v_color};">{verdict}</span>
+        </h2>
+        {tools_html}
+        <div class="markdown-body" style="margin-top:12px;font-size:13px;line-height:1.6;">
+            {report_html}
+        </div>
+    </div>
+    """
+    return html
+
+
 def assemble_dashboard(
     fitness_fig: Optional["go.Figure"] = None,
     diversity_fig: Optional["go.Figure"] = None,
@@ -418,6 +565,8 @@ def assemble_dashboard(
     complexity_hist_fig: Optional["go.Figure"] = None,
     convergence_fig: Optional["go.Figure"] = None,
     executive_summary_html: Optional[str] = None,
+    metrics_section_html: Optional[str] = None,
+    judge_section_html: Optional[str] = None,
     output_path: Optional[str] = None,
     title: str = "Logos V9 Verification Report",
 ) -> str:
@@ -441,24 +590,38 @@ def assemble_dashboard(
         output_path = os.path.join(OUTPUT_DIR, "dashboard.html")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-    plotly_js_cdn = '<script src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>'
-
     html_parts = [
         "<!DOCTYPE html>",
         "<html lang='en'>",
         "<head>",
         "<meta charset='UTF-8'>",
         f"<title>{title}</title>",
-        plotly_js_cdn,
+        # Plotly
+        '<script src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>',
         "<style>",
         "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f5f6fa; color: #1a1a2e; }",
         "h1 { text-align: center; color: #1a1a2e; margin-bottom: 4px; font-size: 28px; }",
         "h2 { color: #1a1a2e; font-size: 18px; margin: 0 0 8px 0; }",
+        "h3 { color: #1a1a2e; font-size: 14px; margin: 0 0 6px 0; }",
         ".subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 24px; }",
         ".grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 1400px; margin: 0 auto; }",
         ".card { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 16px; }",
         ".full-width { grid-column: 1 / -1; }",
         ".section-header { grid-column: 1 / -1; font-size: 16px; font-weight: 600; color: #1a1a2e; padding: 8px 0 4px 0; border-bottom: 2px solid #e0e0e0; margin-top: 8px; }",
+        ".markdown-body { font-size: 13px; line-height: 1.6; }",
+        ".markdown-body h1 { font-size: 20px; text-align: left; margin: 16px 0 8px; }",
+        ".markdown-body h2 { font-size: 17px; text-align: left; margin: 14px 0 6px; border-bottom: 1px solid #eee; padding-bottom: 4px; }",
+        ".markdown-body h3 { font-size: 14px; text-align: left; margin: 10px 0 4px; }",
+        ".markdown-body p { margin: 6px 0; }",
+        ".markdown-body ul, .markdown-body ol { margin: 6px 0; padding-left: 24px; }",
+        ".markdown-body li { margin: 2px 0; }",
+        ".markdown-body code { background: #f0f4f8; padding: 1px 4px; border-radius: 3px; font-size: 12px; }",
+        ".markdown-body pre { background: #f8f9fa; padding: 10px; border-radius: 6px; overflow-x: auto; font-size: 12px; }",
+        ".markdown-body table { border-collapse: collapse; width: 100%; margin: 8px 0; }",
+        ".markdown-body th, .markdown-body td { border: 1px solid #e0e0e0; padding: 6px 10px; text-align: left; font-size: 12px; }",
+        ".markdown-body th { background: #f8f9fa; font-weight: 600; }",
+        ".markdown-body blockquote { border-left: 3px solid #ddd; margin: 8px 0; padding: 4px 12px; color: #555; }",
+        ".markdown-body strong { color: #1a1a2e; }",
         "@media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }",
         "</style>",
         "</head>",
@@ -468,10 +631,15 @@ def assemble_dashboard(
         "<div class='grid'>",
     ]
 
-    # Executive summary goes first (full width)
+    # Executive summary (full width)
     if executive_summary_html:
         html_parts.append(executive_summary_html)
 
+    # Metrics section (full width)
+    if metrics_section_html:
+        html_parts.append(metrics_section_html)
+
+    # Plotly charts
     active_figs = [(n, f) for n, f in figs if f is not None]
     n_active = len(active_figs)
 
@@ -481,6 +649,10 @@ def assemble_dashboard(
         is_odd_last = (n_active % 2 == 1) and is_last
         cls = "card full-width" if is_odd_last else "card"
         html_parts.append(f"<div class='{cls}'>{div_html}</div>")
+
+    # Judge report section (full width, after charts)
+    if judge_section_html:
+        html_parts.append(judge_section_html)
 
     # Footer
     html_parts.extend([
