@@ -237,9 +237,12 @@ def _extract_operators_from_str(expr):
     return ops
 
 
-def run_verification(run_id, domain, session_id, output_dir, best_ast=None):
+def run_verification(run_id, domain, session_id, output_dir, best_ast=None,
+                     experiment="default"):
     """Run the full verification pipeline for a completed experiment."""
-    os.makedirs(output_dir, exist_ok=True)
+    # Structured output: verification_report/{experiment}/{session_id}/
+    run_dir = os.path.join(output_dir, experiment, session_id)
+    os.makedirs(run_dir, exist_ok=True)
 
     np.random.seed(42)
 
@@ -282,11 +285,13 @@ def run_verification(run_id, domain, session_id, output_dir, best_ast=None):
             ast_depths.append(_ast_depth_from_str(ast_str))
 
     results = {
+        "experiment": experiment,
         "run_id": run_id,
         "domain": domain,
         "knowledge_count": len(knowledge),
         "adf_count": len(adf_entries),
         "operator_counts": operator_counts,
+        "fitness_history": fitness_history,
         "metrics": {},
     }
 
@@ -390,68 +395,138 @@ def run_verification(run_id, domain, session_id, output_dir, best_ast=None):
     if stat_metrics:
         figs["stats"] = build_stat_table(stat_metrics)
 
-    # --- Phase 6: Assemble dashboard ---
-    print("[6/6] Assembling report...")
-    summary_html = build_executive_summary(
-        run_id=run_id,
-        domain=domain,
-        fitness_history=fitness_history,
-        adf_count=len(adf_entries),
-        knowledge_count=len(knowledge),
-    )
-
-    dashboard_path = None
-    try:
-        if figs:
-            dashboard_path = assemble_dashboard(
-                fitness_fig=figs.get("fitness"),
-                diversity_fig=figs.get("diversity"),
-                pareto_fig=figs.get("pareto"),
-                heatmap_fig=figs.get("heatmap"),
-                stat_table_fig=figs.get("stats"),
-                operator_pie_fig=figs.get("operator_pie"),
-                adf_bar_fig=figs.get("adf_bar"),
-                complexity_hist_fig=figs.get("complexity_hist"),
-                convergence_fig=figs.get("convergence"),
-                executive_summary_html=summary_html,
-                output_path=os.path.join(output_dir, f"dashboard_{run_id[:8]}.html"),
-            )
-            results["dashboard"] = dashboard_path
-    except Exception as e:
-        print(f"[WARN] Dashboard generation failed: {e}")
-        results["dashboard_error"] = str(e)
+    # --- Phase 6: Save results (dashboard built later by _rebuild_dashboard) ---
+    print("[6/6] Saving verification results...")
 
     # Save results
-    results_path = os.path.join(output_dir, f"verification_{run_id[:8]}.json")
+    results_path = os.path.join(run_dir, f"verification.json")
     with open(results_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, default=str)
 
     print(f"[OK] Verification complete: {results_path}")
-    if dashboard_path:
-        print(f"[OK] Dashboard: {dashboard_path}")
 
-    return results
+    return results, run_dir, figs
+
+
+def run_judge_phase(verification_json_path: str) -> dict:
+    """Phase 7: LLM Judge — independent review of verification results."""
+    print("[7/7] LLM Judge verification...")
+    try:
+        from v9.telemetry.llm.judge_agent import run_judge, save_judge_report
+    except ImportError as e:
+        print(f"[SKIP] LLM Judge unavailable: {e}")
+        return {"skipped": True, "reason": str(e)}
+
+    judge_result = run_judge(verification_json_path)
+    output_dir = os.path.dirname(verification_json_path)
+    report_path = save_judge_report(judge_result, output_dir)
+
+    print(f"[OK] Judge verdict: {judge_result['verdict']}")
+    print(f"[OK] Judge report: {report_path}")
+
+    return {
+        **judge_result,
+        "report_path": report_path,
+    }
 
 
 def main():
     parser = argparse.ArgumentParser(description="Post-run verification for Logos V9")
     parser.add_argument("--run-id", required=True, help="Run UUID from telemetry")
     parser.add_argument("--domain", default="algebra", help="Experiment domain")
+    parser.add_argument("--experiment", default="default",
+                        help="Experiment name (used as folder name under verification_report/)")
     parser.add_argument("--session-id", default=None, help="Telemetry session ID")
     parser.add_argument("--output-dir", default=None, help="Output directory")
     parser.add_argument("--best-ast", default=None, help="Best AST string from run")
+    parser.add_argument("--judge", action="store_true",
+                        help="Run LLM Judge agent after DS/ML analysis (phase 7)")
     args = parser.parse_args()
 
     output_dir = args.output_dir or os.path.join(
         os.path.dirname(__file__), "..", "..", "verification_report")
 
-    run_verification(
+    results, run_dir, figs = run_verification(
         run_id=args.run_id,
         domain=args.domain,
         session_id=args.session_id or args.run_id,
         output_dir=output_dir,
         best_ast=args.best_ast,
+        experiment=args.experiment,
     )
+
+    if args.judge:
+        verification_json = os.path.join(run_dir, "verification.json")
+        judge_result = run_judge_phase(verification_json)
+        results["judge"] = judge_result
+
+        # Re-save results with judge verdict
+        with open(verification_json, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=2, default=str)
+
+    # --- Rebuild dashboard with text content ---
+    _rebuild_dashboard(results, run_dir, args.experiment, figs)
+
+
+def _rebuild_dashboard(results: dict, run_dir: str, experiment: str, figs: dict):
+    """Rebuild dashboard with metrics section + judge report.
+
+    Uses importlib.reload() to force a fresh import of the dashboard module,
+    ensuring server-side rendered markdown (not stale JS-based rendering).
+    """
+    import importlib
+    import sys
+
+    mod_name = "v9.analysis.dashboard"
+    # Remove stale cached module and force a fresh import
+    sys.modules.pop(mod_name, None)
+    mod = importlib.import_module(mod_name)
+    mod = importlib.reload(mod)
+
+    build_metrics_section = mod.build_metrics_section
+    build_judge_section = mod.build_judge_section
+    build_executive_summary = mod.build_executive_summary
+    assemble_dashboard = mod.assemble_dashboard
+
+    fitness_history = results.get("fitness_history", [])
+    adf_entries = results.get("metrics", {}).get("adf_entries", [])
+    knowledge_count = results.get("knowledge_count", 0)
+
+    summary_html = build_executive_summary(
+        run_id=results.get("run_id", "N/A"),
+        domain=results.get("domain", "N/A"),
+        fitness_history=fitness_history,
+        adf_count=len(adf_entries),
+        knowledge_count=knowledge_count,
+        experiment_name=experiment,
+    )
+
+    metrics_html = build_metrics_section(results, title=f"Verification Metrics — {experiment}")
+
+    judge_html = ""
+    if "judge" in results and not results["judge"].get("skipped"):
+        judge_html = build_judge_section(results["judge"])
+
+    try:
+        dashboard_path = assemble_dashboard(
+            fitness_fig=figs.get("fitness"),
+            diversity_fig=figs.get("diversity"),
+            pareto_fig=figs.get("pareto"),
+            heatmap_fig=figs.get("heatmap"),
+            stat_table_fig=figs.get("stats"),
+            operator_pie_fig=figs.get("operator_pie"),
+            adf_bar_fig=figs.get("adf_bar"),
+            complexity_hist_fig=figs.get("complexity_hist"),
+            convergence_fig=figs.get("convergence"),
+            executive_summary_html=summary_html,
+            metrics_section_html=metrics_html,
+            judge_section_html=judge_html,
+            output_path=os.path.join(run_dir, f"dashboard.html"),
+            title=f"Logos V9 — {experiment}",
+        )
+        print(f"[OK] Dashboard rebuilt: {dashboard_path}")
+    except Exception as e:
+        print(f"[WARN] Dashboard rebuild failed: {e}")
 
 
 if __name__ == "__main__":
