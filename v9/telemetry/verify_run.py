@@ -492,6 +492,11 @@ def _rebuild_dashboard(results: dict, run_dir: str, experiment: str, figs: dict)
     adf_entries = results.get("metrics", {}).get("adf_entries", [])
     knowledge_count = results.get("knowledge_count", 0)
 
+    # Extract judge verdict (if available) for the Executive Summary
+    judge_verdict = None
+    if "judge" in results and not results["judge"].get("skipped"):
+        judge_verdict = results["judge"].get("verdict")
+
     summary_html = build_executive_summary(
         run_id=results.get("run_id", "N/A"),
         domain=results.get("domain", "N/A"),
@@ -499,6 +504,7 @@ def _rebuild_dashboard(results: dict, run_dir: str, experiment: str, figs: dict)
         adf_count=len(adf_entries),
         knowledge_count=knowledge_count,
         experiment_name=experiment,
+        judge_verdict=judge_verdict,
     )
 
     metrics_html = build_metrics_section(results, title=f"Verification Metrics — {experiment}")

@@ -309,8 +309,14 @@ def build_executive_summary(
     knowledge_count: int = 0,
     title: str = "Executive Summary",
     experiment_name: str = "",
+    judge_verdict: Optional[str] = None,
 ) -> str:
-    """Generate HTML card with narrative summary of the experiment."""
+    """Generate HTML card with narrative summary of the experiment.
+
+    If *judge_verdict* is supplied it overrides the auto-calculated
+    verdict so the Executive Summary always reflects the LLM Judge's
+    assessment.
+    """
     n_evals = len(fitness_history)
     if n_evals > 0:
         avg_fit = np.mean(fitness_history)
@@ -321,8 +327,20 @@ def build_executive_summary(
     else:
         fit_text = "No fitness data available"
 
-    # Determine verdict
-    if n_evals > 0 and avg_fit >= 0.95:
+    # Determine verdict — judge verdict takes precedence
+    if judge_verdict:
+        # Map LLM Judge verdicts to display values and colours
+        _vmap = {
+            "CONFIRMED":          ("CONFIRMED",          "#2ca02c", "Judge confirmed the results are statistically sound."),
+            "PARTIALLY CONFIRMED":("PARTIALLY CONFIRMED", "#f0ad4e", "Judge confirmed core results but flagged some areas."),
+            "INCONCLUSIVE":       ("INCONCLUSIVE",        "#f0ad4e", "Judge could not confirm or deny the results."),
+            "QUESTIONED":         ("QUESTIONED",          "#d62728", "Judge raised significant concerns about the results."),
+        }
+        verdict, verdict_color, verdict_text = _vmap.get(
+            judge_verdict.upper(),
+            (judge_verdict.upper(), "#666", f"Judge verdict: {judge_verdict}"),
+        )
+    elif n_evals > 0 and avg_fit >= 0.95:
         verdict = "EXCELLENT"
         verdict_color = "#2ca02c"
         verdict_text = "The engine achieved near-optimal fitness consistently."
