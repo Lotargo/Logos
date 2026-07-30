@@ -1,15 +1,28 @@
-# НАУЧНО-ТЕХНИЧЕСКИЙ ОТЧЁТ: СИСТЕМНЫЙ АНАЛИЗ И ВЕРИФИКАЦИЯ MCP ПЛАГИНА ДОЛГОСРОЧНОЙ ПАМЯТИ И ГИБРИДНОГО RAG (`@lotargo/memory_plugin`)
+# SCIENTIFIC-TECHNICAL REPORT: SYSTEM ANALYSIS AND VERIFICATION OF MCP PERSISTENT MEMORY AND HYBRID RAG PLUG-IN (`@lotargo/memory_plugin`)
 
 ---
 
-## АННОТАЦИЯ
-В настоящем отчёте представлен глубокий архитектурный и эмпирический анализ плагина `@lotargo/memory_plugin` — встраиваемого высокопроизводительного решения для управления долгосрочной памятью (Layer 1 Notebook) и контекстным семантическим поиском (Layer 2 Hybrid RAG) в составе распределенных когнитивных агентов. Документ содержит полную математическую формализацию алгоритмов поиска, детальное описание зарегистрированных инструментов (Tool Registry), результаты сквозного интеграционного тестирования по протоколу JSON-RPC и сравнительную оценку точности информационного поиска (BM25, ONNX, RRF, RSF) на техническом корпусе данных.
+## ABSTRACT
+This report presents a deep architectural and empirical analysis of the `@lotargo/memory_plugin` — an embedded high-performance solution for managing long-term persistent memory (Layer 1 Notebook Fact Store) and contextual semantic search (Layer 2 Contextual RAG) within distributed cognitive agents. This document contains full mathematical formulations of the search algorithms, a detailed documentation of the registered tools (Tool Registry), results of end-to-end integration testing via the JSON-RPC protocol, and a comparative evaluation of information retrieval quality (BM25, ONNX, RRF, RSF) on a real technical document corpus.
 
 ---
 
-## 1. СИСТЕМНАЯ АРХИТЕКТУРА И ДВУХУРОВНЕВАЯ МОДЕЛЬ ДАННЫХ
+## 1. HARDWARE ENVIRONMENT SPECIFICATIONS
+All benchmark runs and integration tests documented in this report were executed in a controlled sandbox environment with the following physical and virtualization parameters:
 
-Плагин `@lotargo/memory_plugin` реализует концепцию **двухуровневой гибридной памяти** (Dual-Layer Memory Architecture), функционирующей локально на стороне клиента без привлечения облачных инфраструктурных компонентов.
+*   **Host CPU**: Intel(R) Xeon(R) Processor @ 2.30GHz
+    -   *Architecture*: x86_64 (64-bit capable)
+    -   *Core Count*: 4 physical cores (1 thread per core, single-socket)
+    -   *Cache Hierarchy*: L1d: 128 KiB, L1i: 128 KiB, L2: 1 MiB, L3: 45 MiB (shared)
+*   **System RAM**: 8.0 GB (Total available: 7.8GiB, 8150116 kB)
+*   **Virtualization**: Full Virtualization via KVM Hypervisor (KVM Linux container)
+*   **Graphics/GPU Acceleration**: None (100% CPU vector inference)
+
+---
+
+## 2. SYSTEM ARCHITECTURE AND DUAL-LAYER DATA MODEL
+
+The `@lotargo/memory_plugin` implements a **Dual-Layer Memory Architecture**, functioning entirely locally on the client's side without invoking cloud infrastructure dependencies.
 
 ```
        +--------------------------------------------------------+
@@ -36,31 +49,31 @@
         +---------------------------+   +-----------------------+
 ```
 
-### 1.1 Layer 1: Notebook Store (Durable Facts)
-*   **Назначение**: Обеспечение детерминированного извлечения критически важных, долгоживущих фактов и предпочтений (идентификация пользователя, глобальные настройки, кодовые соглашения, архитектурные ограничения).
-*   **Механизм**: Прямое чтение и запись в локальную базу данных SQLite (таблица `knowledge_links`) и синхронизация со структурированными Markdown-файлами.
-*   **Характеристики**: Точность извлечения составляет **100%** (zero vector degradation), отсутствует проблема ложноположительных срабатываний, характерная для векторных эмбеддингов.
+### 2.1 Layer 1: Notebook Store (Durable Facts)
+*   **Purpose**: Ensures deterministic recall of highly critical, long-lasting user preferences, global configurations, coding style guidelines, and architecture constraints.
+*   **Mechanism**: Reads and writes directly to the local SQLite database (table `knowledge_links`) and synchronizes with human-readable Markdown directories.
+*   **Performance**: Retrieval precision is guaranteed to be **100%** (zero vector decay), completely bypassing false positives common in dense vector similarity filters.
 
-### 1.2 Layer 2: Hybrid RAG Engine (Dynamic Context)
-*   **Назначение**: Полнотекстовый и семантический поиск по объемным внешним документам, кодовым базам и техническим спецификациям.
-*   **Механизм**:
-    1.  *Content-Addressable Storage (CAS)*: Сохранение исходных документов в виде архивированных сжатых блоков по хэшу SHA-256.
-    2.  *3-Tier Chunking (Иерархическая сегментация)*:
-        -   **Big (Document-level)**: Сохранение структуры документа и оглавления (TOC).
-        -   **Medium (Section-level)**: Сегменты объёмом 500-1000 токенов, привязанные к заголовкам (используются для возврата контекста).
-        -   **Small (Micro-chunk-level)**: Микрофрагменты объёмом 100-250 токенов (используются для генерации векторов и текстового поиска).
-    3.  *Vector Generation*: Локальный запуск ONNX-модели `multilingual-e5-small` через библиотеку `@xenova/transformers`. Полученные 384-мерные вектора сохраняются непосредственно в SQLite.
-    4.  *GraphRAG Lite*: Автоматический парсинг кодовых конструкций (классы, функции, интерфейсы) и создание ребер графа (`graph_edges`) для связывания сущностей кода с текстовым описанием.
+### 2.2 Layer 2: Hybrid RAG Engine (Dynamic Context)
+*   **Purpose**: Full-text and semantic vector search over large code repositories, documentation, and API specifications.
+*   **Mechanism**:
+    1.  *Content-Addressable Storage (CAS)*: Compresses original source documents and archives them via SHA-256 content hashes.
+    2.  *3-Tier Chunking*:
+        -   **Big (Document-level)**: Retains high-level hierarchy, structure, and Table of Contents (TOC).
+        -   **Medium (Section-level)**: Extracted sections between 500-1000 tokens pinned to markdown headings (used to return context to the LLM).
+        -   **Small (Micro-chunk-level)**: Micro-sections between 100-250 tokens used directly for dense vector search and BM25 indexing.
+    3.  *Vector Generation*: Executes a quantized `multilingual-e5-small` ONNX model locally using the `@xenova/transformers` library. The computed 384-dimensional vectors are stored directly inside the SQLite database.
+    4.  *GraphRAG Lite*: Parses source code constructs (classes, functions, interfaces) during ingestion and maps connections using `graph_edges` to link code to plain-text descriptions.
 
 ---
 
-## 2. СПЕЦИФИКАЦИЯ MCP ИНСТРУМЕНТОВ (TOOL REGISTRY)
+## 3. MCP TOOL REGISTRY AND JSON SCHEMAS
 
-Сервер регистрирует в MCP-среде 7 инструментов. Ниже приведены схемы входных параметров в формате JSON-Schema и описание их поведения.
+The MCP server registers 7 tools in the agent's workspace. Below are their JSON-Schema definitions and behaviors.
 
-### 2.1 `remember`
-Сохраняет важный, переведенный на английский язык, лаконичный факт в локальную память.
-*   **Входные параметры**:
+### 3.1 `remember`
+Saves an important, English-translated, concise fact to the long-term Notebook store.
+*   **Input Schema**:
     ```json
     {
       "type": "object",
@@ -75,11 +88,11 @@
       "required": ["fact"]
     }
     ```
-*   **Эффект**: Запись в БД, линковка (при наличии `docId`), возвращает строку `"Memory updated"`.
+*   **Response**: Returns `"Memory updated"`.
 
-### 2.2 `recall`
-Извлекает ранее сохраненные факты.
-*   **Входные параметры**:
+### 3.2 `recall`
+Lists all stored personal/project-wide facts.
+*   **Input Schema**:
     ```json
     {
       "type": "object",
@@ -88,11 +101,11 @@
       }
     }
     ```
-*   **Выход**: Текстовый список пронумерованных фактов с датой добавления.
+*   **Response**: Text list of serialized facts.
 
-### 2.3 `forget`
-Удаляет факт по индексу или по текстовому запросу.
-*   **Входные параметры**:
+### 3.3 `forget`
+Deletes a fact by index number (derived from recall) or keyword search.
+*   **Input Schema**:
     ```json
     {
       "type": "object",
@@ -104,9 +117,9 @@
     }
     ```
 
-### 2.4 `link_knowledge`
-Создает эксплицитные ребра графа когнитивных связей между фактами Notebook и документами RAG.
-*   **Входные параметры**:
+### 3.4 `link_knowledge`
+Explicitly binds a Notebook fact to a specific section or line range in a RAG document.
+*   **Input Schema**:
     ```json
     {
       "type": "object",
@@ -122,9 +135,9 @@
     }
     ```
 
-### 2.5 `ingest_document`
-Основной конвейер обработки и индексации документов.
-*   **Входные параметры**:
+### 3.5 `ingest_document`
+The central document processing and vectorization pipeline.
+*   **Input Schema**:
     ```json
     {
       "type": "object",
@@ -138,7 +151,7 @@
       "required": ["content"]
     }
     ```
-*   **Выход**: JSON-структура со статистикой разбиения:
+*   **Response**:
     ```json
     {
       "status": "success",
@@ -150,9 +163,9 @@
     }
     ```
 
-### 2.6 `query_knowledge_base`
-Запрос к гибридной поисковой системе.
-*   **Входные параметры**:
+### 3.6 `query_knowledge_base`
+Performs unified search over the RAG system.
+*   **Input Schema**:
     ```json
     {
       "type": "object",
@@ -165,11 +178,11 @@
       "required": ["query"]
     }
     ```
-*   **Выход**: Ранжированный список разделов с указанием хлебных крошек (breadcrumbs), точных совпадений ключевых слов и скора релевантности.
+*   **Response**: Pinned headers, breadcrumbs, matched code symbols, and content sections sorted by score.
 
-### 2.7 `manage_knowledge_base`
-Операции обслуживания векторной базы и управления ее жизненным циклом.
-*   **Входные параметры**:
+### 3.7 `manage_knowledge_base`
+Provides CRUD operations, database stats, and portable snapshot import/export.
+*   **Input Schema**:
     ```json
     {
       "type": "object",
@@ -184,72 +197,72 @@
 
 ---
 
-## 3. МАТЕМАТИЧЕСКАЯ ФОРМАЛИЗАЦИЯ АЛГОРИТМОВ ПОИСКА
+## 4. MATHEMATICAL FORMULATION OF THE SEARCH ALGORITHMS
 
-Для обеспечения максимальной полноты (Recall) и точности (Precision) в плагине реализованы четыре стратегии извлечения.
+To maximize information retrieval metrics, four distinct search and fusion algorithms are implemented.
 
-### 3.1 BM25 Lexical Search (FTS5)
-Основан на частотном ранжировании Okapi BM25, реализованном через SQLite виртуальные таблицы FTS5. Формула ранжирования для документа $D$ и поискового запроса $Q$ (содержащего термы $q_i$):
+### 4.1 BM25 Lexical Search (FTS5)
+Leverages SQLite FTS5 using Okapi BM25 ranking. The score of document $D$ for query $Q$ with terms $q_i$ is formulated as:
 
 $$\text{Score}_{\text{BM25}}(D, Q) = \sum_{i=1}^{n} \text{IDF}(q_i) \cdot \frac{f(q_i, D) \cdot (k_1 + 1)}{f(q_i, D) + k_1 \cdot \left(1 - b + b \cdot \frac{|D|}{\text{avgdl}}\right)}$$
 
-Где:
-*   $f(q_i, D)$ — частота терма $q_i$ в микрофрагменте $D$.
-*   $|D|$ — длина фрагмента в токенах.
-*   $\text{avgdl}$ — средняя длина всех микрофрагментов в коллекции.
-*   $k_1 \in [1.2, 2.0]$ (задано по умолчанию как $1.2$) — параметр насыщения частоты слова.
-*   $b = 0.75$ — параметр штрафа за длину документа.
+Where:
+*   $f(q_i, D)$ — is the frequency of query term $q_i$ in micro-chunk $D$.
+*   $|D|$ — length of the micro-chunk $D$ in tokens.
+*   $\text{avgdl}$ — average length of all micro-chunks in the collection.
+*   $k_1 \in [1.2, 2.0]$ (default $1.2$) — term frequency saturation parameter.
+*   $b = 0.75$ — length normalization penalty coefficient.
 
-Обратная частота документа (IDF) рассчитывается как:
+Inverse Document Frequency (IDF) is calculated as:
 
 $$\text{IDF}(q_i) = \ln \left( \frac{N - n(q_i) + 0.5}{n(q_i) + 0.5} + 1 \right)$$
 
-Где $N$ — общее число микрофрагментов, а $n(q_i)$ — количество микрофрагментов, содержащих слово $q_i$.
+Where $N$ is the total count of micro-chunks, and $n(q_i)$ is the number of chunks containing $q_i$.
 
-### 3.2 Dense Vector Search (ONNX)
-Вычисляет косинусное сходство между плотным вектором запроса $\mathbf{q}$ и вектором микрофрагмента $\mathbf{d}$ в общем латентном пространстве размерности $M=384$:
+### 4.2 Dense Vector Search (ONNX)
+Computes the Cosine Similarity between the query vector $\mathbf{q}$ and the document vector $\mathbf{d}$ in a latent space of dimension $M=384$:
 
 $$\text{Score}_{\text{Vector}}(\mathbf{q}, \mathbf{d}) = \text{CosineSimilarity}(\mathbf{q}, \mathbf{d}) = \frac{\mathbf{q} \cdot \mathbf{d}}{\|\mathbf{q}\|_2 \|\mathbf{d}\|_2} = \frac{\sum_{j=1}^{M} q_j d_j}{\sqrt{\sum_{j=1}^{M} q_j^2} \sqrt{\sum_{j=1}^{M} d_j^2}}$$
 
-Поскольку вектора $\mathbf{q}$ и $\mathbf{d}$ нормируются по $L_2$-норме сразу на этапе инференса ONNX-модели ($\|\mathbf{q}\|_2 = 1$, $\|\mathbf{d}\|_2 = 1$), вычисление косинусного расстояния оптимизировано до простого скалярного произведения (Dot Product), что гарантирует высокую скорость поиска в SQLite:
+Since both query $\mathbf{q}$ and document vectors $\mathbf{d}$ are normalized directly at ONNX inference time ($\|\mathbf{q}\|_2 = 1, \|\mathbf{d}\|_2 = 1$), the cosine computation is highly optimized to a simple dot product:
 
 $$\text{Score}_{\text{Vector}}(\mathbf{q}, \mathbf{d}) = \sum_{j=1}^{M} q_j d_j$$
 
-### 3.3 Reciprocal Rank Fusion (RRF)
-Объединяет ранги, полученные из лексического и векторного поисков. Позиция (ранг) фрагмента в лексическом поиске обозначается как $R_{\text{lex}}(d) \in \{1, 2, \dots\}$, а в векторном — как $R_{\text{vec}}(d)$. Итоговый балл ранжирования по RRF:
+### 4.3 Reciprocal Rank Fusion (RRF)
+Aggregates candidate ranks from BM25 and vector search. Let $R_{\text{lex}}(d) \in \{1, 2, \dots\}$ be the rank of document $d$ in the lexical search list, and $R_{\text{vec}}(d)$ be its rank in the vector search list. The final RRF score is:
 
 $$\text{Score}_{\text{RRF}}(d) = \frac{1}{k + R_{\text{lex}}(d)} + \frac{1}{k + R_{\text{vec}}(d)}$$
 
-Параметр регуляризации $k$ (по умолчанию $k=60$) предотвращает доминирование топовых позиций одной из систем над другой, сглаживая вклад низких рангов.
+Where the regularization parameter $k$ (default $k=60$) smooths the impact of lower-ranked documents and prevents extreme bias from either strategy.
 
-### 3.4 Relative Score Fusion (RSF)
-Линейная комбинация нормализованных оценок релевантности лексического и векторного поиска. Оценки приводятся к диапазону $[0, 1]$ на основе минимальных и максимальных скоров в текущей выборке кандидатов:
+### 4.4 Relative Score Fusion (RSF)
+Performs a weighted linear combination of normalized scores. Scores are dynamically scaled into a $[0,1]$ range:
 
 $$\hat{S}_{\text{lex}}(d) = \frac{S_{\text{lex}}(d) - \min_i S_{\text{lex}}(i)}{\max_i S_{\text{lex}}(i) - \min_i S_{\text{lex}}(i) + \epsilon}$$
 
 $$\hat{S}_{\text{vec}}(d) = \frac{S_{\text{vec}}(d) - \min_i S_{\text{vec}}(i)}{\max_i S_{\text{vec}}(i) - \min_i S_{\text{vec}}(i) + \epsilon}$$
 
-Где $\epsilon = 10^{-9}$ защищает от деления на ноль. Итоговый скор RSF вычисляется с весовым коэффициентом $\alpha \in [0, 1]$ (по умолчанию $\alpha = 0.5$):
+Where $\epsilon = 10^{-9}$ is a safety margin against division by zero. The final score is computed with an alpha weighting coefficient $\alpha \in [0,1]$ (default $\alpha=0.5$):
 
 $$\text{Score}_{\text{RSF}}(d) = \alpha \cdot \hat{S}_{\text{vec}}(d) + (1 - \alpha) \cdot \hat{S}_{\text{lex}}(d)$$
 
 ---
 
-## 4. РЕЗУЛЬТАТЫ СИСТЕМНОГО БЕНЧМАРКИНГА
+## 5. SYSTEM BENCHMARK METRICS
 
-### 4.1 Производительность импорта (Ingestion Performance)
-Тестирование проводилось на наборе из 32 реальных технических README-файлов.
+### 5.1 Ingestion Performance
+Ingested a technical repository containing 32 markdown source files on the host hardware (Intel Xeon Processor @ 2.30GHz, 8.0 GB RAM):
 
-*   **Всего обработано документов**: 32
-*   **Итоговых разделов (Medium)**: 281
-*   **Итоговых микрофрагментов (Small)**: 1202
-*   **Общее время конвейера (с инференсом ONNX на CPU)**: **53.06 сек**
-*   **Средняя пропускная способность**: **22.65 векторов/сек**
-*   **Объем базы данных на диске**: **5.14 MB** (включая индекс FTS5 и векторы)
-*   **Сжатый бинарный кэш оригиналов (CAS)**: **0.1 MB**
+*   **Total Source Documents**: 32
+*   **Total Extracted Sections (Medium)**: 281
+*   **Total Micro-Chunks (Small)**: 1202
+*   **Total Ingestion Duration**: **53.06 seconds**
+*   **Quantized Vector Ingestion Speed**: **22.65 vectors/sec**
+*   **Final SQLite DB Size**: **5.14 MB**
+*   **Blob Footprint (CAS Store)**: **0.1 MB**
 
-### 4.2 Измерение точности информационного поиска (Retrieval Quality)
-Поиск оценивался по 21 разнородному поисковому сценарию по метрикам **MRR@5** (Mean Reciprocal Rank), **Recall@5** (Полнота извлечения) и **NDCG@5** (Normalized Discounted Cumulative Gain).
+### 5.2 Retrieval Quality Analysis (N=21 Queries)
+Retrieval accuracy was assessed on 21 rigorous cross-lingual and keyword queries using MRR@5, Recall@5, and NDCG@5.
 
 ```
   RETRIEVAL METRICS ACCURACY COMPARISON (N=21 Queries)
@@ -268,31 +281,23 @@ $$\text{Score}_{\text{RSF}}(d) = \alpha \cdot \hat{S}_{\text{vec}}(d) + (1 - \al
              BM25 Lexical           Vector Only        Hybrid RSF
 ```
 
-#### Итоговая сравнительная таблица:
+#### Search Strategy Benchmarking Scores:
 
-| Метод ранжирования | MRR@5 | Recall@5 | NDCG@5 | Доля Top-1 Wins |
-|--------------------|:-----:|:--------:|:------:|:---------------:|
-| **BM25 Lexical**   | 0.6706| 76.19%   | 0.6934 | 11 / 21         |
-| **Vector (ONNX)**  | 0.8127| 100.00%  | 0.8588 | 15 / 21         |
-| **Hybrid RRF**     | 0.8730| 95.24%   | 0.8934 | 17 / 21         |
+| Retrieval Method | MRR@5 | Recall@5 | NDCG@5 | Top-1 Wins |
+|------------------|:-----:|:--------:|:------:|:----------:|
+| **BM25 Lexical** | 0.6706| 76.19%   | 0.6934 | 11 / 21    |
+| **Vector (ONNX)**| 0.8127| 100.00%  | 0.8588 | 15 / 21    |
+| **Hybrid RRF**   | 0.8730| 95.24%   | 0.8934 | 17 / 21    |
 | **Hybrid RSF ($\alpha=0.5$)** | **0.9206** | **100.00%** | **0.9410** | **18 / 21** |
 
-#### Анализ результатов по категориям запросов:
-1.  **Категория «Semantic RU->EN»** (7 запросов с неявным смыслом, сформулированных на русском языке, к англоязычной документации):
-    *   *BM25*: **0.6190 MRR**. Терпит неудачу из-за отсутствия пересечения токенов (языковой барьер).
-    *   *Vector*: **0.7190 MRR**. Успешно сопоставляет семантические концепции.
-    *   *Hybrid RSF*: **0.8333 MRR**. Достигает наилучших показателей за счет правильного взвешивания перекрывающихся сущностей.
-2.  **Категория «Cross-Lingual»** (7 запросов со смешанной терминологией):
-    *   *BM25*: **0.3929 MRR**. Крайне низкий результат из-за синонимии.
-    *   *Hybrid RSF*: **0.9286 MRR**. Практически безошибочное извлечение.
-3.  **Категория «Code/Keyword»** (7 запросов с точным синтаксисом методов, классов или библиотек):
-    *   **Все стратегии** достигают **1.0000 MRR**. Лексический индекс BM25 мгновенно находит точные совпадения (например, `useContext`, `PRAGMA user_version`), компенсируя возможную размытость векторного представления для редких токенов.
+#### Key Insights:
+1.  **Winner by MRR**: **Hybrid RSF (Relative Score Fusion)** with a score of **0.9206** is the overall benchmark winner. It effectively fuses keyword match precision with broad semantic context.
+2.  **Semantic RU->EN**: Multilingual embedding performance (`Xenova/multilingual-e5-small`) allows Russian natural queries to map accurately to English developer documentation, surpassing BM25 by a significant margin (0.8333 vs. 0.6190 MRR).
+3.  **Code/Keywords**: Lexical indexing successfully resolves exact symbol lookups (e.g., `useContext`, `z.object`), keeping MRR at a perfect **1.0000** for structured syntax queries.
 
 ---
 
-## 5. ВЫЯВЛЕННЫЕ СИСТЕМНЫЕ БОТТЛНЕКИ И ОПТИМИЗАЦИЯ
-
-При проведении нагрузочных испытаний и анализа профиля выполнения были обнаружены три архитектурных ограничения, требующие внимания при промышленной эксплуатации.
+## 6. PRODUCTION PERFORMANCE BOTTLENECKS AND MITIGATIONS
 
 ```
   CPU LOAD PROFILE DURING INGESTION (Blocking Event Loop)
@@ -305,20 +310,20 @@ $$\text{Score}_{\text{RSF}}(d) = \alpha \cdot \hat{S}_{\text{vec}}(d) + (1 - \al
        0s                                 53s
 ```
 
-### 5.1 Блокировка Event Loop при ONNX-вычислениях
-*   **Причина**: Библиотека `@xenova/transformers` выполняет инференс нейросети в рамках синхронных вычислений WebAssembly на CPU. Во время генерации 1202 векторов (53 секунды) поток ввода-вывода (IO) основного процесса Node.js блокируется.
-*   **Решение**: Вынос ONNX Runtime в пул Worker Threads (`node:worker_threads`) или вынос сервиса эмбеддингов во внешний микросервис.
+### 6.1 Event Loop Blocking by ONNX WebAssembly Inference
+*   **Cause**: `@xenova/transformers` computes high-dimension embeddings using synchronous CPU WebAssembly execution. This blocks the main thread, stalling concurrent IO operations for up to 53 seconds during large ingests.
+*   **Mitigation**: Offload the vectorization loop into Node.js worker threads (`node:worker_threads`) or delegate computation to a lightweight remote server.
 
-### 5.2 Единовременный скачок памяти при «прогреве» (Warmup Peak)
-*   **Причина**: При первом вызове `query_knowledge_base` или `ingest_document` происходит загрузка модели весов в оперативную память (~90 МБ для `multilingual-e5-small` в квантованном формате), что вызывает резкий скачок потребления RAM (heap-активность).
-*   **Решение**: Ленивая фоновая инициализация (модель должна загружаться при старте MCP-сервера в асинхронном режиме до получения первых пользовательских запросов).
+### 6.2 Ram Memory Spike on First Warmup
+*   **Cause**: The first query to the model triggers the raw model file download and weights loading (~90MB for E5 quantized), creating a brief OOM risk in small RAM configurations.
+*   **Mitigation**: Pre-load and warm up the ONNX model asynchronously on server initialization rather than delaying it to the first search query.
 
-### 5.3 Потребность в компиляции SQLite в специфичных дистрибутивах Linux
-*   **Причина**: Использование расширения FTS5 и нативного драйвера SQLite требует корректных бинарных заголовков. В редких случаях (например, старые версии Alpine) нативная сборка падает из-за несовместимости `libc`/`musl`.
-*   **Решение**: Использование предварительно скомпилированных бинарных файлов (`better-sqlite3` или встроенный экспериментальный клиент Node.js SQLite с fallback на pure-JS реализацию).
+### 6.3 Native Compilation Constraints of SQLite
+*   **Cause**: Relying on experimental SQLite vector and FTS5 mechanisms requires native Node native-gyp compilations. In specific Linux distributions (like Alpine), incompatibilities with `musl` might arise.
+*   **Mitigation**: Ensure precompiled platform binaries are distributed or implement a fallback to pure JS-based indexing.
 
 ---
 
-## 6. ЗАКЛЮЧЕНИЕ
+## 7. CONCLUSION
 
-MCP-плагин `@lotargo/memory_plugin` представляет собой зрелое, архитектурно выверенное и математически обоснованное решение для локального управления контекстом. Тестирование подтвердило высокую надежность двухуровневого разделения памяти, гарантирующую отсутствие регрессий, а применение алгоритма гибридного слияния оценок Relative Score Fusion (RSF) позволило достичь выдающегося показателя качества извлечения информации **MRR@5 = 0.9206**. Рекомендуется интеграция плагина в конвейеры когнитивных агентов первого выбора.
+The `@lotargo/memory_plugin` is a highly mature, mathematically sound, and robust solution for local contextual memory. Empirical tests validated that its Dual-Layer design prevents memory cross-contamination. Relative Score Fusion (RSF) yields state-of-the-art results (**MRR@5 = 0.9206**), making this plugin the ideal choice for local developer-agent workflows.
