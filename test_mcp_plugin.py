@@ -97,7 +97,7 @@ def run_mcp_test():
         remember_params = {
             "name": "remember",
             "arguments": {
-                "fact": "The project uses SBCL and SWI-Prolog for the Logos cognitive engine.",
+                "fact": "The workspace is configured to use strict typing and linting checks.",
                 "scope": "project"
             }
         }
@@ -117,15 +117,15 @@ def run_mcp_test():
         assert "error" not in resp, f"recall failed: {resp}"
         text_content = resp["result"]["content"][0]["text"]
         print(f"[PASS] recall response: {text_content}")
-        assert "SBCL" in text_content and "SWI-Prolog" in text_content, f"Recall did not return expected facts: {text_content}"
+        assert "typing" in text_content and "linting" in text_content, f"Recall did not return expected facts: {text_content}"
 
         # Step 5: Test 'ingest_document'
         ingest_params = {
             "name": "ingest_document",
             "arguments": {
-                "content": "Logos v9 relies on dynamic Occam's Razor penalty for symbolic regression to combat overfitting.",
+                "content": "The system architecture utilizes type-checking and unified modules to combat potential regressions.",
                 "type": "text",
-                "title": "Logos Symbolic Regression spec"
+                "title": "Target Application Spec"
             }
         }
         resp = send_request("tools/call", ingest_params, 5)
@@ -140,7 +140,7 @@ def run_mcp_test():
             "name": "link_knowledge",
             "arguments": {
                 "action": "link",
-                "factText": "SBCL and SWI-Prolog",
+                "factText": "strict typing and linting",
                 "docId": doc_id,
                 "relationType": "IMPLEMENTS"
             }
@@ -154,7 +154,7 @@ def run_mcp_test():
         query_params = {
             "name": "query_knowledge_base",
             "arguments": {
-                "query": "symbolic regression Occam's Razor",
+                "query": "system architecture type-checking regressions",
                 "limit": 3
             }
         }
@@ -162,7 +162,7 @@ def run_mcp_test():
         assert "error" not in resp, f"query_knowledge_base failed: {resp}"
         query_res = resp["result"]["content"][0]["text"]
         print(f"[PASS] query_knowledge_base response: {query_res}")
-        assert "regression" in query_res or "Occam" in query_res, f"Query did not find matching sections: {query_res}"
+        assert "architecture" in query_res or "checking" in query_res, f"Query did not find matching sections: {query_res}"
 
         # Step 8: Test 'manage_knowledge_base' (stats)
         stats_params = {
@@ -193,7 +193,7 @@ def run_mcp_test():
         forget_params = {
             "name": "forget",
             "arguments": {
-                "query": "SBCL",
+                "query": "strict typing",
                 "scope": "project"
             }
         }
@@ -207,7 +207,7 @@ def run_mcp_test():
         assert "error" not in resp, f"recall after forget failed: {resp}"
         recall_after = resp["result"]["content"][0]["text"]
         print(f"[PASS] recall after forget: {recall_after}")
-        assert "SBCL" not in recall_after, "Deleted fact should no longer be returned by recall"
+        assert "typing" not in recall_after, "Deleted fact should no longer be returned by recall"
         print("[PASS] Forget operation verified successfully.")
 
         # Cleanup ingested document
