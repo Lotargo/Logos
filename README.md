@@ -1,22 +1,22 @@
-# AGI-lite Research Engine
+# Logos Research Engine
 
 > Experimental neuro-symbolic and evolutionary synthesis research project.
 
-**Repository:** `Lotargo/AGI-lite`  
+**Repository:** [`Lotargo/Logos`](https://github.com/Lotargo/Logos)  
 **Status:** research prototype family  
 **Primary stable line:** `v7`  
 **Experimental line:** `v9`
 
-AGI-lite is a family of experimental engines for structured hypothesis search, program/formula synthesis, and neuro-symbolic verification. The project explores how candidate structures can be generated, mutated, evaluated, repaired, and audited using a combination of symbolic representations, formal validators, evolutionary search, and numerical backends.
+Logos is a family of experimental engines for structured hypothesis search, program/formula synthesis, and neuro-symbolic verification. The project explores how candidate structures can be generated, mutated, evaluated, repaired, and audited using a combination of symbolic representations, formal validators, evolutionary search, and numerical backends.
 
-This repository should be read as a research lab, not as a claim of finished AGI. The name **AGI-lite** is a project label for a small-scale experimental system that investigates pieces of machine reasoning: AST search, formal censors, penalty functions, program synthesis, symbolic regression, integrity auditing, and reproducible verification.
+The research focuses on AST search, formal validators, penalty functions, program synthesis, symbolic regression, integrity auditing, and reproducible verification.
 
 ---
 
 ## Project map
 
 ```text
-AGI-lite/
+Logos/
 ├── v7/    # Stable neuro-symbolic evolutionary engine line
 ├── v8/    # Intermediate audit / vulnerability exploration line
 ├── v9/    # Experimental first-principle Logos-oriented line
@@ -45,7 +45,7 @@ v7 is best understood as a **domain-specified neuro-symbolic evolutionary synthe
 
 ## Core idea
 
-AGI-lite uses a search-and-evaluate loop:
+Logos uses a search-and-evaluate loop:
 
 ```text
 candidate AST / formula / program
@@ -65,7 +65,7 @@ The important part is not simply generating candidates. The important part is th
 
 ## What the project is
 
-AGI-lite is:
+Logos is:
 
 - an experimental neuro-symbolic research engine;
 - an AST-level evolutionary search system;
@@ -73,7 +73,7 @@ AGI-lite is:
 - a platform for comparing domain-specified search against more open-ended first-principle search;
 - a research artifact for studying failures, shortcuts, overfitting, and integrity limits.
 
-AGI-lite is not:
+Logos is not:
 
 - a production AGI system;
 - a replacement for formal proof assistants;
@@ -85,7 +85,7 @@ AGI-lite is not:
 
 ## Verification and analytics stack
 
-The next development layer is a reproducible verification and ML/DS pipeline. The goal is to turn AGI-lite runs into structured experimental data rather than isolated terminal logs.
+The next development layer is a reproducible verification and ML/DS pipeline. The goal is to turn Logos runs into structured experimental data rather than isolated terminal logs.
 
 Recommended stack:
 
@@ -106,7 +106,7 @@ A first version can be event-based instead of over-normalized:
 ```text
 ts
 run_id
-project = agi-lite
+project = logos
 version = v7 | v9
 commit_sha
 domain
@@ -151,7 +151,7 @@ Every serious experiment should export a bundle that can later be stored in `ver
 
 ```text
 verification-lab-1/
-└── agi-lite/
+└── logos/
     └── <version>/
         └── <experiment_id>/
             ├── MANIFEST.json
@@ -242,7 +242,7 @@ ClickHouse is not the artifact archive. Large files, reports, manifests, and exp
 
 ## Integrity policy
 
-AGI-lite results should be classified before publication or portfolio use:
+Logos results should be classified before publication or portfolio use:
 
 | Class | Meaning |
 |---|---|
@@ -252,7 +252,7 @@ AGI-lite results should be classified before publication or portfolio use:
 | Candidate discovery | Interesting result that passed internal checks but still needs external validation |
 | Invalid / contaminated | Result affected by hidden templates, shortcut penalties, evaluator bugs, or undocumented assumptions |
 
-This distinction is important: AGI-lite is strongest when it reports not only successes, but also failures, contaminated runs, overfitting, and evaluator weaknesses.
+This distinction is important: Logos is strongest when it reports not only successes, but also failures, contaminated runs, overfitting, and evaluator weaknesses.
 
 ---
 
@@ -261,7 +261,7 @@ This distinction is important: AGI-lite is strongest when it reports not only su
 `Lotargo/verification-lab-1` is the intended place for public or semi-public verification outputs:
 
 ```text
-AGI-lite repository      = engine source, experiments, internal reports
+Logos repository      = engine source, experiments, internal reports
 verification-lab-1      = exported evidence, manifests, result tables, reproducibility bundles
 ClickHouse              = local analytical database for querying run/event history
 ```
@@ -286,11 +286,11 @@ write audit summary / portfolio-safe result
 
 A cautious public description:
 
-> AGI-lite is a neuro-symbolic evolutionary synthesis research project. It explores AST-level candidate generation, formal and numerical evaluators, integrity auditing, and reproducible verification workflows for structured hypothesis search.
+> Logos is a neuro-symbolic evolutionary synthesis research project. It explores AST-level candidate generation, formal and numerical evaluators, integrity auditing, and reproducible verification workflows for structured hypothesis search.
 
 A stronger but still honest description:
 
-> AGI-lite is a small-scale algorithmic discovery lab: it combines symbolic program mutation, formal censors, numerical scoring, and verification artifacts to study how machines can generate, test, and refine structured candidates.
+> Logos is a small-scale algorithmic discovery lab: it combines symbolic program mutation, formal censors, numerical scoring, and verification artifacts to study how machines can generate, test, and refine structured candidates.
 
 ---
 
@@ -306,6 +306,6 @@ The immediate priority is not to add more claims. The priority is to make experi
 
 ---
 
-## License / visibility
+## Repository visibility
 
-This repository is currently private. Public release policy is not defined yet.
+Logos is publicly accessible on GitHub.
