@@ -1,6 +1,6 @@
 # Logos Engine v9
 
-> First-Principle Neuro-Symbolic AGI-lite Kernel — Autonomous Discovery of Fundamental Laws
+> First-Principle Neuro-Symbolic Logos Kernel — Autonomous Discovery of Fundamental Laws
 
 ---
 

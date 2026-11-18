@@ -6,7 +6,7 @@
 
 ## 1. What is Logos?
 
-Logos is the realization of the **First-Principle Neuro-Symbolic Architecture**. It is a self-evolving Artificial General Intelligence (AGI-lite) kernel designed to autonomously discover, mathematically verify, and synthesize the fundamental laws of physics and logic.
+Logos is the realization of the **First-Principle Neuro-Symbolic Architecture**. Its self-evolving neuro-symbolic kernel is designed to autonomously discover, mathematically verify, and synthesize the fundamental laws of physics and logic.
 
 Unlike legacy expert systems or modern Large Language Models (LLMs) that rely on memorization, domain hardcoding, or probabilistic interpolation, Logos discovers truth through a rigorous Dual-Stack mechanism:
 1. **The Mind (Common Lisp Orchestrator):** A multi-threaded, SMT/Hyperthreading-aware evolutionary heuristic generator. It leverages homoiconicity to mutate Abstract Syntax Trees (ASTs), acting as the system's "intuition."
